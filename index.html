@@ -6,6 +6,8 @@
 <title>FireGuard — Extinguisher Management Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
   :root {
     --fire: #FF4910;
@@ -1238,8 +1240,8 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-bulk-result')">Close</button>
-      <button class="btn btn-blue" onclick="printCombinedPass()">🖨️ Print Pass</button>
-      <button class="btn btn-primary" id="cp-open-doc" style="display:none;" onclick="">📄 Open PDF in Drive</button>
+      <button class="btn btn-blue" onclick="printCombinedPass()">🖨️ Print</button>
+      <button class="btn btn-primary" onclick="downloadPassAsDocx()" id="btn-download-docx">⬇ Download Word</button>
     </div>
   </div>
 </div>
@@ -1672,18 +1674,372 @@ function renderPasses() {
       <td>
         <div class="actions-cell">
           <button class="btn btn-ghost btn-sm" onclick="viewPass('${p.PassNo}')">👁️ View</button>
-          <button class="btn btn-blue btn-sm" onclick="printPassByNo('${p.PassNo}')">🖨️</button>
-          ${p.DocUrl ? `<a href="${p.DocUrl}" target="_blank" class="btn btn-ghost btn-sm">📄 PDF</a>` : ''}
+          <button class="btn btn-primary btn-sm" onclick="viewAndDownload('${p.PassNo}')">⬇ Word</button>
+          ${p.DocUrl ? `<a href="${p.DocUrl}" target="_blank" class="btn btn-ghost btn-sm">☁ Drive</a>` : ''}
         </div>
       </td>
     </tr>`;
   }).join('');
 }
 
-// Print a pass directly from passes list without opening the modal
-function printPassByNo(passNo) {
-  viewPass(passNo); // opens the combined pass modal
-  setTimeout(() => printCombinedPass(), 300); // small delay for modal to render
+// Open pass modal then download as Word
+function viewAndDownload(passNo) {
+  viewPass(passNo);
+  setTimeout(() => downloadPassAsDocx(), 200);
+}
+
+// ═══════════════════════════════════════════════
+// WORD (.docx) DOWNLOAD — Browser-side generation
+// ═══════════════════════════════════════════════
+async function downloadPassAsDocx() {
+  // Collect data from the currently displayed pass preview
+  const passNo  = document.getElementById('cp-passno').textContent.trim();
+  const org     = document.getElementById('cp-org').textContent.trim();
+  const reqDate = document.getElementById('cp-reqdate').textContent.trim();
+  const reqBy   = document.getElementById('cp-reqby').textContent.trim();
+  const count   = document.getElementById('cp-count').textContent.trim();
+  const remarks = document.getElementById('cp-remarks').textContent.trim();
+
+  const rows = [...document.querySelectorAll('#cp-ext-body tr')].map(tr => {
+    const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+    return { sl: cells[0]||'', extNo: cells[1]||'', type: cells[2]||'', weight: cells[3]||'', location: cells[4]||'', mfgDate: cells[5]||'' };
+  });
+
+  const btn = document.getElementById('btn-download-docx');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating...'; }
+
+  try {
+    const blob = await buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows });
+    saveAs(blob, `Refill-Pass-${passNo}.docx`);
+    showToast(`${passNo}.docx downloaded!`, 'success');
+  } catch (e) {
+    showToast('Word generation failed: ' + e.message, 'error');
+    console.error(e);
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '⬇ Download Word'; }
+}
+
+async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows }) {
+  // ── Helper: escape XML special characters ──────────────────
+  const x = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+
+  // ── Helper: a simple paragraph ─────────────────────────────
+  const para = (text, opts = {}) => {
+    const { bold=false, size=22, color='000000', spaceAfter=80, spaceBefore=0,
+            align='left', italic=false, font='Arial' } = opts;
+    return `<w:p>
+      <w:pPr>
+        <w:spacing w:before="${spaceBefore}" w:after="${spaceAfter}"/>
+        <w:jc w:val="${align}"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          ${bold ? '<w:b/><w:bCs/>' : ''}
+          ${italic ? '<w:i/><w:iCs/>' : ''}
+          <w:color w:val="${color}"/>
+          <w:sz w:val="${size}"/><w:szCs w:val="${size}"/>
+          <w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}"/>
+        </w:rPr>
+        <w:t xml:space="preserve">${x(text)}</w:t>
+      </w:r>
+    </w:p>`;
+  };
+
+  // ── Helper: horizontal rule via bottom border on paragraph ──
+  const hrPara = (color='C93300') => `<w:p>
+    <w:pPr>
+      <w:spacing w:before="60" w:after="60"/>
+      <w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="${color}"/></w:pBdr>
+    </w:pPr>
+  </w:p>`;
+
+  // ── Helper: two-column info row (key | value) ───────────────
+  // Uses a 2-column table row inside the meta table
+  const metaRow = (key, val) => `
+    <w:tr>
+      <w:tc>
+        <w:tcPr>
+          <w:tcW w:w="2200" w:type="dxa"/>
+          <w:tcBorders>
+            <w:top w:val="none" w:sz="0"/><w:left w:val="none" w:sz="0"/>
+            <w:bottom w:val="none" w:sz="0"/><w:right w:val="none" w:sz="0"/>
+          </w:tcBorders>
+          <w:shading w:val="clear" w:color="auto" w:fill="F5F5F5"/>
+        </w:tcPr>
+        <w:p><w:pPr><w:spacing w:before="40" w:after="40"/></w:pPr>
+          <w:r><w:rPr><w:color w:val="666666"/><w:sz w:val="18"/><w:szCs w:val="18"/>
+            <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
+          </w:rPr><w:t xml:space="preserve">${x(key)}</w:t></w:r>
+        </w:p>
+      </w:tc>
+      <w:tc>
+        <w:tcPr>
+          <w:tcW w:w="6826" w:type="dxa"/>
+          <w:tcBorders>
+            <w:top w:val="none" w:sz="0"/><w:left w:val="none" w:sz="0"/>
+            <w:bottom w:val="none" w:sz="0"/><w:right w:val="none" w:sz="0"/>
+          </w:tcBorders>
+        </w:tcPr>
+        <w:p><w:pPr><w:spacing w:before="40" w:after="40"/></w:pPr>
+          <w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/>
+            <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
+          </w:rPr><w:t xml:space="preserve">${x(val)}</w:t></w:r>
+        </w:p>
+      </w:tc>
+    </w:tr>`;
+
+  // ── Header: Org name + Pass No side by side ─────────────────
+  const headerTable = `
+  <w:tbl>
+    <w:tblPr>
+      <w:tblW w:w="9026" w:type="dxa"/>
+      <w:tblBorders>
+        <w:top w:val="none"/><w:left w:val="none"/>
+        <w:bottom w:val="none"/><w:right w:val="none"/>
+        <w:insideH w:val="none"/><w:insideV w:val="none"/>
+      </w:tblBorders>
+    </w:tblPr>
+    <w:tr>
+      <w:tc>
+        <w:tcPr><w:tcW w:w="5500" w:type="dxa"/></w:tcPr>
+        <w:p><w:pPr><w:spacing w:before="0" w:after="40"/></w:pPr>
+          <w:r><w:rPr><w:b/><w:bCs/><w:color w:val="C93300"/><w:sz w:val="40"/><w:szCs w:val="40"/>
+            <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
+          </w:rPr><w:t>${x(org)}</w:t></w:r>
+        </w:p>
+        <w:p><w:pPr><w:spacing w:before="0" w:after="80"/></w:pPr>
+          <w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/>
+            <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
+          </w:rPr><w:t>FIRE EXTINGUISHER REFILL PASS</w:t></w:r>
+        </w:p>
+      </w:tc>
+      <w:tc>
+        <w:tcPr><w:tcW w:w="3526" w:type="dxa"/></w:tcPr>
+        <w:p><w:pPr><w:jc w:val="right"/><w:spacing w:before="0" w:after="20"/></w:pPr>
+          <w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/>
+            <w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>
+          </w:rPr><w:t>PASS NO.</w:t></w:r>
+        </w:p>
+        <w:p><w:pPr><w:jc w:val="right"/><w:spacing w:before="0" w:after="80"/></w:pPr>
+          <w:r><w:rPr><w:b/><w:bCs/><w:color w:val="C93300"/><w:sz w:val="36"/><w:szCs w:val="36"/>
+            <w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>
+          </w:rPr><w:t>${x(passNo)}</w:t></w:r>
+        </w:p>
+      </w:tc>
+    </w:tr>
+  </w:tbl>`;
+
+  // ── Meta info table (key/value pairs) ───────────────────────
+  const metaTable = `
+  <w:tbl>
+    <w:tblPr>
+      <w:tblW w:w="9026" w:type="dxa"/>
+      <w:tblBorders>
+        <w:top w:val="none"/><w:left w:val="none"/>
+        <w:bottom w:val="none"/><w:right w:val="none"/>
+        <w:insideH w:val="none"/><w:insideV w:val="none"/>
+      </w:tblBorders>
+      <w:tblCellMar>
+        <w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/>
+        <w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>
+      </w:tblCellMar>
+    </w:tblPr>
+    ${metaRow('Request Date', reqDate)}
+    ${metaRow('Requested By', reqBy)}
+    ${metaRow('No. of Extinguishers', count)}
+    ${metaRow('Remarks', remarks || '—')}
+  </w:tbl>`;
+
+  // ── Section label ────────────────────────────────────────────
+  const sectionLabel = para('EXTINGUISHER DETAILS', {
+    bold: true, size: 17, color: '888888', spaceAfter: 60, spaceBefore: 120
+  });
+
+  // ── Extinguisher detail table ────────────────────────────────
+  const colWidths = [600, 1100, 1600, 700, 3226, 1100]; // sum = 8326 (+700 margin)
+  const hdBg = 'C93300';
+  const hdFg = 'FFFFFF';
+  const hdLabels = ['Sl.', 'Ext. No.', 'Type', 'Weight', 'Location', 'Mfg Date'];
+
+  const cellBorder = `
+    <w:tcBorders>
+      <w:top w:val="single" w:sz="2" w:color="DDDDDD"/>
+      <w:left w:val="single" w:sz="2" w:color="DDDDDD"/>
+      <w:bottom w:val="single" w:sz="2" w:color="DDDDDD"/>
+      <w:right w:val="single" w:sz="2" w:color="DDDDDD"/>
+    </w:tcBorders>`;
+
+  const hdRow = `<w:tr>
+    ${hdLabels.map((label, i) => `
+    <w:tc>
+      <w:tcPr>
+        <w:tcW w:w="${colWidths[i]}" w:type="dxa"/>
+        ${cellBorder}
+        <w:shading w:val="clear" w:color="auto" w:fill="${hdBg}"/>
+      </w:tcPr>
+      <w:p><w:pPr><w:spacing w:before="80" w:after="80"/></w:pPr>
+        <w:r><w:rPr><w:b/><w:bCs/><w:color w:val="${hdFg}"/><w:sz w:val="18"/><w:szCs w:val="18"/>
+          <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
+        </w:rPr><w:t>${x(label)}</w:t></w:r>
+      </w:p>
+    </w:tc>`).join('')}
+  </w:tr>`;
+
+  const dataRows = rows.map((r, idx) => {
+    const bg = idx % 2 === 0 ? 'FFFFFF' : 'FFF3F0';
+    const vals = [r.sl, r.extNo, r.type, r.weight, r.location, r.mfgDate];
+    return `<w:tr>
+      ${vals.map((v, i) => `
+      <w:tc>
+        <w:tcPr>
+          <w:tcW w:w="${colWidths[i]}" w:type="dxa"/>
+          ${cellBorder}
+          <w:shading w:val="clear" w:color="auto" w:fill="${bg}"/>
+        </w:tcPr>
+        <w:p><w:pPr><w:spacing w:before="80" w:after="80"/></w:pPr>
+          <w:r><w:rPr>
+            ${i === 0 || i === 1 ? '<w:b/><w:bCs/><w:color w:val="C93300"/>' : '<w:color w:val="111111"/>'}
+            <w:sz w:val="18"/><w:szCs w:val="18"/>
+            <w:rFonts w:ascii="${i===1?'Courier New':'Arial'}" w:hAnsi="${i===1?'Courier New':'Arial'}"/>
+          </w:rPr><w:t xml:space="preserve">${x(v)}</w:t></w:r>
+        </w:p>
+      </w:tc>`).join('')}
+    </w:tr>`;
+  }).join('');
+
+  const extTable = `
+  <w:tbl>
+    <w:tblPr>
+      <w:tblW w:w="9026" w:type="dxa"/>
+      <w:tblLook w:val="04A0"/>
+    </w:tblPr>
+    <w:tblGrid>
+      ${colWidths.map(w => `<w:gridCol w:w="${w}"/>`).join('')}
+    </w:tblGrid>
+    ${hdRow}
+    ${dataRows}
+  </w:tbl>`;
+
+  // ── Signature block ─────────────────────────────────────────
+  const sigLineCell = (label, width) => `
+    <w:tc>
+      <w:tcPr>
+        <w:tcW w:w="${width}" w:type="dxa"/>
+        <w:tcBorders>
+          <w:top w:val="none"/><w:left w:val="none"/>
+          <w:bottom w:val="none"/><w:right w:val="none"/>
+        </w:tcBorders>
+      </w:tcPr>
+      <w:p>
+        <w:pPr>
+          <w:spacing w:before="600" w:after="40"/>
+          <w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="999999"/></w:pBdr>
+        </w:pPr>
+      </w:p>
+      <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="40" w:after="0"/></w:pPr>
+        <w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/>
+          <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
+        </w:rPr><w:t>${x(label)}</w:t></w:r>
+      </w:p>
+    </w:tc>`;
+
+  const sigTable = `
+  <w:tbl>
+    <w:tblPr>
+      <w:tblW w:w="9026" w:type="dxa"/>
+      <w:tblBorders>
+        <w:top w:val="none"/><w:left w:val="none"/>
+        <w:bottom w:val="none"/><w:right w:val="none"/>
+        <w:insideH w:val="none"/><w:insideV w:val="none"/>
+      </w:tblBorders>
+    </w:tblPr>
+    <w:tr>
+      ${sigLineCell('Authorised Signature', 3000)}
+      <w:tc><w:tcPr><w:tcW w:w="300" w:type="dxa"/></w:tcPr><w:p/></w:tc>
+      ${sigLineCell('Date', 2000)}
+      <w:tc><w:tcPr><w:tcW w:w="300" w:type="dxa"/></w:tcPr><w:p/></w:tc>
+      ${sigLineCell('Vendor Stamp', 3426)}
+    </w:tr>
+  </w:tbl>`;
+
+  // ── Assemble document.xml ───────────────────────────────────
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:w10="urn:schemas-microsoft-com:office:word"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"
+  xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
+  xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
+  xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml"
+  xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
+  xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex"
+  xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+  xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+  xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+  mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
+<w:body>
+  <w:sectPr>
+    <w:pgSz w:w="11906" w:h="16838"/>
+    <w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080"
+             w:header="708" w:footer="708" w:gutter="0"/>
+  </w:sectPr>
+
+  ${headerTable}
+  ${hrPara('C93300')}
+
+  ${metaTable}
+  ${hrPara('DDDDDD')}
+
+  ${sectionLabel}
+  ${extTable}
+
+  ${para('')}
+  ${hrPara('C93300')}
+  ${para('This pass must accompany the extinguishers to the service vendor.', {
+    italic: true, size: 18, color: '555555', align: 'center', spaceAfter: 200
+  })}
+
+  ${sigTable}
+</w:body>
+</w:document>`;
+
+  // ── Build .docx ZIP ─────────────────────────────────────────
+  const zip = new JSZip();
+
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml"
+    ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`);
+
+  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1"
+    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+    Target="word/document.xml"/>
+</Relationships>`);
+
+  zip.file('word/document.xml', documentXml);
+
+  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`);
+
+  return await zip.generateAsync({ type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
 }
 
 // ═══════════════════════════════════════════════
