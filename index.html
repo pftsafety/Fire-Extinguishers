@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireGuard — Extinguisher Management Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fire: #FF4910;
+    --fire-dark: #C93300;
+    --fire-glow: rgba(255,73,16,0.15);
+    --ember: #FF8C42;
+    --smoke: #1A1A1F;
+    --ash: #2C2C35;
+    --char: #3D3D4A;
+    --grey: #8888A0;
+    --light: #F0EEF5;
+    --white: #FFFFFF;
+    --green: #22C55E;
+    --yellow: #F59E0B;
+    --red: #EF4444;
+    --blue: #3B82F6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--smoke);
+    color: var(--light);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    position: fixed; top: 0; left: 0;
+    width: 240px; height: 100vh;
+    background: var(--ash);
+    border-right: 1px solid var(--char);
+    display: flex; flex-direction: column;
+    z-index: 100;
+    transition: transform .3s ease;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--char);
+  }
+  .logo-mark {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--fire);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 20px var(--fire-glow);
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; }
+  .logo-sub { font-size: 10px; color: var(--grey); letter-spacing: .08em; text-transform: uppercase; margin-top: 1px; }
+
+  .nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+  .nav-section-label {
+    font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--grey); padding: 8px 8px 6px; margin-top: 8px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    cursor: pointer; transition: all .15s;
+    font-size: 13.5px; font-weight: 400; color: var(--grey);
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--char); color: var(--light); }
+  .nav-item.active { background: var(--fire-glow); color: var(--fire); font-weight: 500; }
+  .nav-item .icon { width: 18px; text-align: center; font-size: 15px; }
+  .nav-badge {
+    margin-left: auto; background: var(--fire); color: #fff;
+    font-size: 10px; padding: 1px 6px; border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .sidebar-footer {
+    padding: 16px; border-top: 1px solid var(--char);
+    font-size: 11px; color: var(--grey);
+  }
+  .config-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 6px;
+    cursor: pointer; transition: all .15s;
+  }
+  .config-btn:hover { background: var(--char); color: var(--light); }
+
+  /* ─── MAIN ─── */
+  .main { margin-left: 240px; min-height: 100vh; }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(26,26,31,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--char);
+    padding: 0 28px; height: 56px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .topbar-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+  .topbar-sub { color: var(--grey); font-size: 12px; margin-left: 4px; }
+  .topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px; border: none;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all .15s; text-decoration: none;
+  }
+  .btn-primary { background: var(--fire); color: #fff; }
+  .btn-primary:hover { background: var(--fire-dark); box-shadow: 0 0 20px var(--fire-glow); }
+  .btn-ghost { background: transparent; color: var(--grey); border: 1px solid var(--char); }
+  .btn-ghost:hover { border-color: var(--grey); color: var(--light); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-green { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+  .btn-green:hover { background: rgba(34,197,94,.25); }
+  .btn-blue { background: rgba(59,130,246,.15); color: var(--blue); border: 1px solid rgba(59,130,246,.3); }
+  .btn-blue:hover { background: rgba(59,130,246,.25); }
+  .btn-red { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+  .btn-red:hover { background: rgba(239,68,68,.25); }
+
+  .content { padding: 28px; }
+
+  /* ─── PAGES ─── */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ─── STAT CARDS ─── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--ash); border: 1px solid var(--char);
+    border-radius: 12px; padding: 20px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; right: 0;
+    width: 80px; height: 80px; border-radius: 50%;
+    transform: translate(30%, -30%);
+    opacity: .12;
+  }
+  .stat-card.fire::before { background: var(--fire); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.yellow::before { background: var(--yellow); }
+  .stat-card.red::before { background: var(--red); }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--grey); margin-bottom: 8px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; }
+  .stat-card.fire .stat-value { color: var(--fire); }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.yellow .stat-value { color: var(--yellow); }
+  .stat-card.red .stat-value { color: var(--red); }
+  .stat-sub { font-size: 11px; color: var(--grey); margin-top: 4px; }
+
+  /* ─── TABLE ─── */
+  .table-card {
+    background: var(--ash); border: 1px solid var(--char);
+    border-radius: 12px; overflow: hidden;
+  }
+  .table-header {
+    padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--char);
+    flex-wrap: wrap; gap: 10px;
+  }
+  .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--char); border: 1px solid transparent;
+    border-radius: 8px; padding: 7px 12px; transition: all .15s;
+    flex: 1; max-width: 280px;
+  }
+  .search-box:focus-within { border-color: var(--fire); background: rgba(255,73,16,.05); }
+  .search-box input {
+    background: none; border: none; outline: none;
+    color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    width: 100%;
+  }
+  .search-box input::placeholder { color: var(--grey); }
+  .filter-select {
+    background: var(--char); border: 1px solid var(--char);
+    border-radius: 8px; padding: 7px 10px;
+    color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    outline: none; cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--fire); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 10px 16px; text-align: left;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--grey); background: rgba(0,0,0,.2);
+    font-weight: 500; white-space: nowrap;
+  }
+  td { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.04); font-size: 13px; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  .ext-num {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    color: var(--ember); font-weight: 500;
+  }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 500;
+  }
+  .tag-abc { background: rgba(59,130,246,.15); color: var(--blue); }
+  .tag-co2 { background: rgba(255,140,66,.15); color: var(--ember); }
+  .tag-dry { background: rgba(245,158,11,.15); color: var(--yellow); }
+  .tag-water { background: rgba(34,197,94,.15); color: var(--green); }
+  .status-dot {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .dot-due { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .dot-pending { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+
+  .actions-cell { display: flex; gap: 6px; }
+  .pagination {
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid var(--char); font-size: 12px; color: var(--grey);
+  }
+  .page-btns { display: flex; gap: 4px; }
+  .page-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--char);
+    background: none; color: var(--grey); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    transition: all .15s;
+  }
+  .page-btn:hover, .page-btn.active { background: var(--fire); border-color: var(--fire); color: #fff; }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+    z-index: 200; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
+  .modal {
+    background: var(--ash); border: 1px solid var(--char);
+    border-radius: 16px; width: 100%; max-width: 600px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-head {
+    padding: 20px 24px; border-bottom: 1px solid var(--char);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--ash); z-index: 1;
+  }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+  .modal-close {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--char); border: none; color: var(--grey);
+    cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .modal-close:hover { color: var(--light); }
+  .modal-body { padding: 24px; }
+  .modal-footer {
+    padding: 16px 24px; border-top: 1px solid var(--char);
+    display: flex; justify-content: flex-end; gap: 10px;
+    position: sticky; bottom: 0; background: var(--ash);
+  }
+
+  /* ─── FORM ─── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 500; color: var(--grey); text-transform: uppercase; letter-spacing: .06em; }
+  input[type="text"], input[type="date"], input[type="number"], select, textarea {
+    background: var(--char); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px; padding: 9px 12px;
+    color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    outline: none; transition: all .15s; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--fire); background: rgba(255,73,16,.04); }
+  textarea { resize: vertical; min-height: 80px; }
+  select option { background: var(--ash); }
+
+  /* ─── REFILL CARD ─── */
+  .refill-grid { display: grid; gap: 14px; }
+  .refill-card {
+    background: var(--ash); border: 1px solid var(--char);
+    border-radius: 12px; padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    transition: all .15s;
+  }
+  .refill-card:hover { border-color: rgba(255,255,255,.12); }
+  .refill-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .refill-icon.pending { background: rgba(59,130,246,.12); }
+  .refill-icon.sent { background: rgba(245,158,11,.12); }
+  .refill-icon.received { background: rgba(34,197,94,.12); }
+  .refill-info { flex: 1; }
+  .refill-num { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ember); }
+  .refill-desc { font-size: 13px; font-weight: 500; margin: 2px 0; }
+  .refill-meta { font-size: 11px; color: var(--grey); }
+  .refill-actions { display: flex; gap: 8px; }
+
+  /* ─── PASS PREVIEW ─── */
+  .pass-preview {
+    background: linear-gradient(135deg, #1a0800 0%, #2d0e00 100%);
+    border: 1px solid rgba(255,73,16,.3);
+    border-radius: 12px; padding: 24px;
+    font-family: 'DM Mono', monospace;
+    box-shadow: 0 0 40px rgba(255,73,16,.1);
+  }
+  .pass-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .pass-org { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--fire); }
+  .pass-title { font-size: 11px; color: var(--grey); letter-spacing: .1em; text-transform: uppercase; }
+  .pass-num { font-size: 22px; font-weight: 700; color: var(--ember); }
+  .pass-divider { border: none; border-top: 1px dashed rgba(255,73,16,.3); margin: 16px 0; }
+  .pass-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+  .pass-key { color: var(--grey); }
+  .pass-val { color: var(--light); font-weight: 500; }
+  .pass-footer { margin-top: 16px; text-align: center; font-size: 10px; color: var(--grey); letter-spacing: .08em; }
+  .pass-stamp {
+    display: inline-block; border: 2px solid var(--fire);
+    color: var(--fire); padding: 4px 12px; border-radius: 4px;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    transform: rotate(-3deg);
+  }
+
+  /* ─── HISTORY TABLE ─── */
+  .section-title {
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--char);
+  }
+
+  /* ─── CONFIG PAGE ─── */
+  .config-section {
+    background: var(--ash); border: 1px solid var(--char);
+    border-radius: 12px; padding: 24px; margin-bottom: 20px;
+  }
+  .config-section-title {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    margin-bottom: 16px; color: var(--ember);
+  }
+  .url-display {
+    background: var(--char); border-radius: 8px; padding: 10px 14px;
+    font-family: 'DM Mono', monospace; font-size: 12px; color: var(--grey);
+    word-break: break-all;
+  }
+  .copy-row { display: flex; gap: 8px; align-items: center; }
+  .copy-row .url-display { flex: 1; }
+  .alert {
+    padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
+  }
+  .alert-info { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25); color: #93C5FD; }
+  .alert-warn { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25); color: #FCD34D; }
+
+  /* ─── EMPTY STATE ─── */
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--grey);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: .4; }
+  .empty-text { font-size: 14px; }
+
+  /* ─── TOAST ─── */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--ash); border: 1px solid var(--char);
+    border-radius: 10px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; min-width: 240px;
+    animation: slideIn .3s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+  .toast.info { border-left: 3px solid var(--blue); }
+
+  /* ─── LOADING ─── */
+  .loading-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.6); z-index: 999;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 3px solid var(--char);
+    border-top-color: var(--fire);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .content { padding: 16px; }
+  }
+
+  /* ─── LOCATION TRACKING ─── */
+  .loc-vacant {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--red);
+    background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25);
+    border-radius: 4px; padding: 1px 7px;
+  }
+  .loc-substitute {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--yellow);
+    background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25);
+    border-radius: 4px; padding: 1px 7px;
+  }
+  .loc-store {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--blue);
+    background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25);
+    border-radius: 4px; padding: 1px 7px;
+  }
+  .loc-deployed {
+    font-size: 12px; color: var(--light);
+  }
+  .loc-action-card {
+    background: var(--char); border-radius: 8px; padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,.06); margin-bottom: 8px;
+  }
+  .loc-action-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .loc-action-ext { font-family: 'DM Mono',monospace; font-size: 12px; color: var(--ember); font-weight: 700; }
+  .loc-action-loc { font-size: 12px; color: var(--grey); flex: 1; }
+  .loc-radio-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .loc-radio-btn {
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--char);
+    background: var(--smoke); font-size: 12px; transition: all .15s;
+    user-select: none;
+  }
+  .loc-radio-btn:has(input:checked) {
+    border-color: var(--fire); background: rgba(255,73,16,.08); color: var(--light);
+  }
+  .loc-radio-btn input[type="radio"] { accent-color: var(--fire); margin: 0; }
+  .loc-sub-input { display: none; margin-top: 8px; }
+  .loc-sub-input.show { display: block; }
+  .deploy-card {
+    background: var(--ash); border: 1px solid rgba(59,130,246,.3);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .deploy-ext-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .deploy-orig-loc { font-size: 12px; color: var(--grey); }
+  .deploy-orig-loc strong { color: var(--blue); }
+
+  /* ─── HAMBURGER ─── */
+  .hamburger {
+    display: none; background: none; border: none; color: var(--light);
+    font-size: 20px; cursor: pointer; padding: 4px;
+  }
+  @media (max-width: 900px) { .hamburger { display: block; } }
+
+  /* ─── CHECKBOX ─── */
+  .cb-wrap {
+    display: flex; align-items: center; justify-content: center;
+  }
+  input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: var(--fire);
+    cursor: pointer; border-radius: 4px;
+  }
+  tr.selected td { background: rgba(255,73,16,.06) !important; }
+  tr.selected td:first-child { border-left: 3px solid var(--fire); }
+
+  /* ─── SELECTION TOOLBAR ─── */
+  .sel-toolbar {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--ash); border: 1px solid var(--fire);
+    border-radius: 14px; padding: 12px 20px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 8px 40px rgba(255,73,16,.25), 0 2px 12px rgba(0,0,0,.5);
+    z-index: 150; transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+    min-width: 380px;
+  }
+  .sel-toolbar.visible { transform: translateX(-50%) translateY(0); }
+  .sel-count {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    color: var(--fire); white-space: nowrap;
+  }
+  .sel-count span { color: var(--light); font-size: 12px; font-family: 'DM Sans',sans-serif; font-weight: 400; }
+  .sel-divider { width: 1px; height: 24px; background: var(--char); }
+  .sel-actions { display: flex; gap: 8px; align-items: center; flex: 1; }
+  .btn-clear { background: none; border: none; color: var(--grey); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 6px; }
+  .btn-clear:hover { color: var(--light); background: var(--char); }
+
+  /* ─── BULK REFILL MODAL ─── */
+  .bulk-ext-list {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 280px; overflow-y: auto;
+    padding-right: 4px; margin-bottom: 16px;
+  }
+  .bulk-ext-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--char); border-radius: 8px; padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .bulk-ext-item .ext-num { min-width: 70px; }
+  .bulk-ext-item .ext-info { flex: 1; font-size: 12px; color: var(--grey); }
+  .bulk-ext-item .ext-info strong { color: var(--light); display: block; font-size: 13px; }
+  .bulk-remove {
+    background: none; border: none; color: var(--grey); cursor: pointer;
+    font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: all .15s;
+  }
+  .bulk-remove:hover { color: var(--red); background: rgba(239,68,68,.1); }
+
+  /* ─── BATCH PASSES PREVIEW ─── */
+  .batch-pass-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px;
+  }
+  .batch-pass-mini {
+    background: linear-gradient(135deg, #1a0800 0%, #2d0e00 100%);
+    border: 1px solid rgba(255,73,16,.3); border-radius: 8px;
+    padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px;
+  }
+  .batch-pass-mini .bpm-passno { color: var(--ember); font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .batch-pass-mini .bpm-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .batch-pass-mini .bpm-key { color: var(--grey); }
+  .batch-pass-mini .bpm-val { color: var(--light); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">🔥</div>
+      <div>
+        <div class="logo-text">FireGuard</div>
+        <div class="logo-sub">Extinguisher Portal</div>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section-label">Overview</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="icon">📊</span> Dashboard
+    </div>
+    <div class="nav-section-label">Manage</div>
+    <div class="nav-item" onclick="showPage('masterlist')">
+      <span class="icon">🧯</span> Master List
+    </div>
+    <div class="nav-item" onclick="showPage('hydro')">
+      <span class="icon">💧</span> Hydrostatic Tests
+    </div>
+    <div class="nav-item" onclick="showPage('refills')">
+      <span class="icon">🔄</span> Refills
+      <span class="nav-badge" id="pending-badge">0</span>
+    </div>
+    <div class="nav-section-label">Reports</div>
+    <div class="nav-item" onclick="showPage('passes')">
+      <span class="icon">📄</span> Passes / Requests
+    </div>
+    <div class="nav-item" onclick="showPage('config')">
+      <span class="icon">⚙️</span> Configuration
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="config-btn" onclick="showPage('config')">
+      <span>⚙️</span> Settings & API Config
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div>
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <span class="topbar-sub" id="page-sub">Overview</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="refreshData()">↻ Sync</button>
+      <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add Extinguisher</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card fire">
+          <div class="stat-label">Total Extinguishers</div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-sub">Across all locations</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Active & Compliant</div>
+          <div class="stat-value" id="stat-ok">—</div>
+          <div class="stat-sub">Up to date</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">Due for Service</div>
+          <div class="stat-value" id="stat-due">—</div>
+          <div class="stat-sub">Within 30 days</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Overdue / Sent Out</div>
+          <div class="stat-value" id="stat-overdue">—</div>
+          <div class="stat-sub">Needs attention</div>
+        </div>
+      </div>
+
+      <div class="section-title">Recent Activity</div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">Latest Updates</span>
+        </div>
+        <div class="table-wrap">
+          <table id="recent-table">
+            <thead>
+              <tr>
+                <th>Ext. No.</th><th>Location</th><th>Type</th><th>Last Action</th><th>Date</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recent-body">
+              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔥</div><div class="empty-text">Connect to Google Sheets to load data</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MASTER LIST ═══ -->
+    <div class="page" id="page-masterlist">
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">All Extinguishers</span>
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="search-input" placeholder="Search number, location..." oninput="filterTable()">
+          </div>
+          <select class="filter-select" id="filter-type" onchange="filterTable()">
+            <option value="">All Types</option>
+            <option>ABC Dry Powder</option>
+            <option>CO₂</option>
+            <option>Water</option>
+            <option>Foam</option>
+            <option>Wet Chemical</option>
+          </select>
+          <select class="filter-select" id="filter-status" onchange="filterTable()">
+            <option value="">All Status</option>
+            <option value="ok">OK</option>
+            <option value="due">Due Soon</option>
+            <option value="overdue">Overdue</option>
+            <option value="pending">With Vendor</option>
+            <option value="in-store">In Storeroom</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px;"><div class="cb-wrap"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" title="Select all on this page"></div></th>
+                <th>Ext. No.</th><th>Type</th><th>Weight (kg)</th><th>Current Location</th>
+                <th>Original Location</th><th>Mfg Date</th><th>Last Refill</th><th>Next Due</th>
+                <th>Hydro Test</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="master-body">
+              <tr><td colspan="11"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">No extinguishers loaded. Configure API or add manually.</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="table-count">Showing 0 records</span>
+          <div class="page-btns" id="page-btns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── FLOATING SELECTION TOOLBAR ─── -->
+    <div class="sel-toolbar" id="sel-toolbar">
+      <div class="sel-count"><span id="sel-num">0</span> selected <span>extinguisher(s)</span></div>
+      <div class="sel-divider"></div>
+      <div class="sel-actions">
+        <button class="btn btn-primary btn-sm" onclick="openBulkRefillModal()">🔥 Send for Refill</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearSelection()">✕ Clear</button>
+      </div>
+    </div>
+
+    <!-- ═══ HYDROSTATIC TESTS ═══ -->
+    <div class="page" id="page-hydro">
+      <div style="display:flex; gap:12px; margin-bottom:20px;">
+        <button class="btn btn-primary" onclick="openHydroModal()">＋ Record Hydro Test</button>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">Hydrostatic Test Records</span>
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="hydro-search" placeholder="Search..." oninput="filterHydro()">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ext. No.</th><th>Location</th><th>Test Date</th><th>Test By</th>
+                <th>Pressure (bar)</th><th>Result</th><th>Next Due</th><th>Certificate No.</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="hydro-body">
+              <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💧</div><div class="empty-text">No hydrostatic test records found.</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ REFILLS ═══ -->
+    <div class="page" id="page-refills">
+      <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="openRefillRequestModal()">＋ New Refill Request</button>
+        <button class="btn btn-ghost" onclick="filterRefills('all')" id="refill-tab-all">All</button>
+        <button class="btn btn-ghost" onclick="filterRefills('pending')" id="refill-tab-pending">Pending</button>
+        <button class="btn btn-ghost" onclick="filterRefills('sent')" id="refill-tab-sent">Sent Out</button>
+        <button class="btn btn-ghost" onclick="filterRefills('received')" id="refill-tab-received">Received</button>
+        <button class="btn btn-ghost" onclick="filterRefills('in-store')" id="refill-tab-in-store">📦 In Storeroom</button>
+        <button class="btn btn-ghost" onclick="filterRefills('deployed')" id="refill-tab-deployed">✅ Deployed</button>
+      </div>
+      <div class="refill-grid" id="refill-list">
+        <div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">No refill records found.</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ PASSES ═══ -->
+    <div class="page" id="page-passes">
+      <div class="alert alert-info">
+        📄 Passes are generated automatically when a refill request is approved. They use your Google Docs template.
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">Generated Passes</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Pass No.</th><th>Ext. Count</th><th>Requested By</th>
+                <th>Generated On</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="passes-body">
+              <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">No passes generated yet.</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ CONFIG ═══ -->
+    <div class="page" id="page-config">
+      <div class="alert alert-warn">
+        ⚠️ Configure your Google Apps Script Web App URL and Sheet ID below. These are saved in your browser locally.
+      </div>
+
+      <div class="config-section">
+        <div class="config-section-title">🔗 Google Apps Script API</div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Apps Script Web App URL</label>
+            <input type="text" id="cfg-api-url" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
+          </div>
+          <div class="form-group">
+            <label>Google Sheet ID</label>
+            <input type="text" id="cfg-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
+          </div>
+          <div class="form-group">
+            <label>Organisation Name</label>
+            <input type="text" id="cfg-org-name" placeholder="Acme Corp">
+          </div>
+          <div class="form-group">
+            <label>Doc Template ID (Google Docs)</label>
+            <input type="text" id="cfg-template-id" placeholder="1abc...xyz (from Docs URL)">
+          </div>
+          <div class="form-group">
+            <label>Output Drive Folder ID</label>
+            <input type="text" id="cfg-folder-id" placeholder="Google Drive folder for PDFs">
+          </div>
+        </div>
+        <div style="margin-top:16px; display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
+          <button class="btn btn-ghost" onclick="testConnection()">🔌 Test Connection</button>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <div class="config-section-title">📋 Sheet Structure Guide</div>
+        <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:12px;">
+          Your Google Sheet should have these tabs with exact column names:
+        </p>
+        <div style="display:grid; gap:10px;">
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>Extinguishers</code></div>
+            <div class="url-display">ExtNo | Type | Weight | Location | MfgDate | LastRefillDate | NextRefillDue | Status | Remarks</div>
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>HydroTests</code></div>
+            <div class="url-display">TestID | ExtNo | TestDate | TestBy | Pressure | Result | NextDue | CertNo</div>
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>Refills</code></div>
+            <div class="url-display">RefillID | ExtNo | RequestDate | RequestBy | SentDate | ReceivedDate | PassNo | Status | Remarks</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <div class="config-section-title">📄 Doc Template Placeholders</div>
+        <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:12px;">
+          Use these placeholders in your Google Docs template:
+        </p>
+        <div class="url-display" style="line-height:2">
+          {{ORG_NAME}} &nbsp;|&nbsp; {{PASS_NO}} &nbsp;|&nbsp; {{EXT_NUMBER}} &nbsp;|&nbsp; {{EXT_TYPE}} &nbsp;|&nbsp; {{EXT_WEIGHT}}<br>
+          {{LOCATION}} &nbsp;|&nbsp; {{MFG_DATE}} &nbsp;|&nbsp; {{REQUEST_DATE}} &nbsp;|&nbsp; {{REQUEST_BY}} &nbsp;|&nbsp; {{REMARKS}}
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Add/Edit Extinguisher -->
+<div class="modal-overlay" id="modal-ext">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-ext-title">Add Extinguisher</div>
+      <button class="modal-close" onclick="closeModal('modal-ext')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Extinguisher Number *</label>
+          <input type="text" id="f-extno" placeholder="EXT-001">
+        </div>
+        <div class="form-group">
+          <label>Type *</label>
+          <select id="f-type">
+            <option>ABC Dry Powder</option>
+            <option>CO₂</option>
+            <option>Water</option>
+            <option>Foam</option>
+            <option>Wet Chemical</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Weight (kg)</label>
+          <input type="number" id="f-weight" placeholder="6" step="0.5">
+        </div>
+        <div class="form-group">
+          <label>Location *</label>
+          <input type="text" id="f-location" placeholder="Building A - Floor 2">
+        </div>
+        <div class="form-group">
+          <label>Manufacturing Date</label>
+          <input type="date" id="f-mfgdate">
+        </div>
+        <div class="form-group">
+          <label>Last Refill Date</label>
+          <input type="date" id="f-lastrefill">
+        </div>
+        <div class="form-group">
+          <label>Next Refill Due</label>
+          <input type="date" id="f-nextdue">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="ok">Active / OK</option>
+            <option value="due">Due Soon</option>
+            <option value="overdue">Overdue</option>
+            <option value="pending">Sent for Refill</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Remarks</label>
+          <textarea id="f-remarks" placeholder="Any notes..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-ext')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExtinguisher()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hydro Test Modal -->
+<div class="modal-overlay" id="modal-hydro">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Record Hydrostatic Test</div>
+      <button class="modal-close" onclick="closeModal('modal-hydro')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Extinguisher Number *</label>
+          <input type="text" id="h-extno" placeholder="EXT-001">
+        </div>
+        <div class="form-group">
+          <label>Test Date *</label>
+          <input type="date" id="h-testdate">
+        </div>
+        <div class="form-group">
+          <label>Tested By</label>
+          <input type="text" id="h-testby" placeholder="Vendor / Inspector name">
+        </div>
+        <div class="form-group">
+          <label>Test Pressure (bar)</label>
+          <input type="number" id="h-pressure" placeholder="25" step="0.5">
+        </div>
+        <div class="form-group">
+          <label>Result</label>
+          <select id="h-result">
+            <option value="pass">Pass ✅</option>
+            <option value="fail">Fail ❌</option>
+            <option value="condemned">Condemned 🚫</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Next Due Date</label>
+          <input type="date" id="h-nextdue">
+        </div>
+        <div class="form-group full">
+          <label>Certificate / Report Number</label>
+          <input type="text" id="h-certno" placeholder="CERT-2024-001">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-hydro')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHydroTest()">💾 Save Test</button>
+    </div>
+  </div>
+</div>
+
+<!-- Refill Request Modal -->
+<div class="modal-overlay" id="modal-refill">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">New Refill Request</div>
+      <button class="modal-close" onclick="closeModal('modal-refill')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Extinguisher Number *</label>
+          <input type="text" id="r-extno" placeholder="EXT-001">
+        </div>
+        <div class="form-group">
+          <label>Request Date</label>
+          <input type="date" id="r-reqdate">
+        </div>
+        <div class="form-group full">
+          <label>Requested By</label>
+          <input type="text" id="r-reqby" placeholder="Your name / department">
+        </div>
+        <div class="form-group full">
+          <label>Remarks</label>
+          <textarea id="r-remarks" placeholder="Reason for refill, condition notes..."></textarea>
+        </div>
+      </div>
+      <div style="margin-top:16px; padding:14px; background:rgba(255,73,16,.06); border-radius:8px; font-size:12px; color:var(--grey);">
+        🔥 A <strong style="color:var(--ember)">Refill Pass</strong> will be generated using your Google Docs template and saved to Drive.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-refill')">Cancel</button>
+      <button class="btn btn-primary" onclick="createRefillRequest()">🔥 Generate Pass & Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pass Preview Modal -->
+<div class="modal-overlay" id="modal-pass">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <div class="modal-title">Refill Pass Preview</div>
+      <button class="modal-close" onclick="closeModal('modal-pass')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="pass-preview" id="pass-preview-content">
+        <div class="pass-header">
+          <div>
+            <div class="pass-org" id="pp-org">Organisation</div>
+            <div class="pass-title">Fire Extinguisher Refill Pass</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; color:var(--grey);">PASS NO.</div>
+            <div class="pass-num" id="pp-passno">PASS-0001</div>
+          </div>
+        </div>
+        <hr class="pass-divider">
+        <div class="pass-row"><span class="pass-key">Ext. Number</span><span class="pass-val" id="pp-extno">—</span></div>
+        <div class="pass-row"><span class="pass-key">Type</span><span class="pass-val" id="pp-type">—</span></div>
+        <div class="pass-row"><span class="pass-key">Weight</span><span class="pass-val" id="pp-weight">—</span></div>
+        <div class="pass-row"><span class="pass-key">Location</span><span class="pass-val" id="pp-location">—</span></div>
+        <div class="pass-row"><span class="pass-key">Mfg Date</span><span class="pass-val" id="pp-mfgdate">—</span></div>
+        <div class="pass-row"><span class="pass-key">Request Date</span><span class="pass-val" id="pp-reqdate">—</span></div>
+        <div class="pass-row"><span class="pass-key">Requested By</span><span class="pass-val" id="pp-reqby">—</span></div>
+        <hr class="pass-divider">
+        <div class="pass-footer">
+          <div class="pass-stamp">Pending Refill</div>
+          <div style="margin-top:10px;">This pass must accompany the extinguisher to the service vendor.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pass')">Close</button>
+      <button class="btn btn-blue" onclick="printPass()">🖨️ Print</button>
+      <button class="btn btn-primary" id="btn-open-doc">📄 Open PDF in Drive</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receive Refill Modal — goes to Storeroom -->
+<div class="modal-overlay" id="modal-receive">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <div class="modal-title">📦 Mark Refill Received</div>
+      <button class="modal-close" onclick="closeModal('modal-receive')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="padding:10px 14px; background:rgba(59,130,246,.08); border:1px solid rgba(59,130,246,.2); border-radius:8px; margin-bottom:16px; font-size:12px; color:#93C5FD; line-height:1.6;">
+        📦 The extinguisher will be moved to <strong>Storeroom</strong> on receipt.<br>
+        Use <strong>📍 Deploy</strong> from the Master List to place it back at its original location.
+      </div>
+      <div id="receive-ext-info" style="margin-bottom:16px;"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Received Date</label>
+          <input type="date" id="rec-date">
+        </div>
+        <div class="form-group">
+          <label>New Weight (kg)</label>
+          <input type="number" id="rec-weight" step="0.5">
+        </div>
+        <div class="form-group">
+          <label>Next Refill Due</label>
+          <input type="date" id="rec-nextdue">
+        </div>
+        <div class="form-group">
+          <label>Received By</label>
+          <input type="text" id="rec-by" placeholder="Name / Dept">
+        </div>
+        <div class="form-group full">
+          <label>Remarks</label>
+          <textarea id="rec-remarks" placeholder="Service notes, vendor info..." style="min-height:56px;"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-receive')">Cancel</button>
+      <button class="btn btn-green" onclick="markReceived()">📦 Confirm — Move to Storeroom</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deploy Modal — move from Storeroom to location -->
+<div class="modal-overlay" id="modal-deploy">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head">
+      <div class="modal-title">📍 Deploy Extinguisher</div>
+      <button class="modal-close" onclick="closeModal('modal-deploy')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="deploy-ext-summary" style="margin-bottom:16px;"></div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Deploy To Location *</label>
+          <input type="text" id="deploy-location" placeholder="e.g. Building A - Entrance">
+          <div style="font-size:11px; color:var(--grey); margin-top:4px;" id="deploy-loc-hint"></div>
+        </div>
+        <div class="form-group full">
+          <label style="margin-bottom:6px; display:block;">Quick Fill — Original Location</label>
+          <button class="btn btn-ghost btn-sm" id="deploy-orig-btn" onclick="fillOriginalLocation()" style="font-size:12px;">
+            ↩ Use Original Location
+          </button>
+        </div>
+      </div>
+
+      <div id="deploy-substitute-alert" style="display:none; margin-top:12px; padding:12px 14px; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25); border-radius:8px; font-size:12px; color:#FCD34D; line-height:1.6;"></div>
+
+      <div style="border-top:1px solid var(--char); padding-top:14px; margin-top:14px;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Deploy Date</label>
+            <input type="date" id="deploy-date">
+          </div>
+          <div class="form-group">
+            <label>Deployed By</label>
+            <input type="text" id="deploy-by" placeholder="Name / Dept">
+          </div>
+          <div class="form-group full">
+            <label>Remarks</label>
+            <input type="text" id="deploy-remarks" placeholder="Notes...">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-deploy')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmDeploy()">📍 Deploy</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Refill Modal -->
+<div class="modal-overlay" id="modal-bulk-refill">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <div class="modal-title">🔥 Bulk Refill Request</div>
+      <button class="modal-close" onclick="closeModal('modal-bulk-refill')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <div style="font-size:13px; color:var(--grey);">Selected extinguishers for this batch:</div>
+        <button class="btn btn-ghost btn-sm" onclick="addMoreToSelection()">＋ Add More</button>
+      </div>
+
+      <!-- Selected extinguishers list -->
+      <div class="bulk-ext-list" id="bulk-ext-list"></div>
+
+      <div style="border-top:1px solid var(--char); padding-top:16px; margin-top:4px;">
+        <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:12px; text-transform:uppercase; letter-spacing:.06em;">📍 Location Actions — What happens to each location?</div>
+        <div id="bulk-loc-actions" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px; max-height:260px; overflow-y:auto;"></div>
+      </div>
+
+      <div style="border-top:1px solid var(--char); padding-top:16px; margin-top:4px;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Request Date</label>
+            <input type="date" id="bulk-reqdate">
+          </div>
+          <div class="form-group">
+            <label>Requested By</label>
+            <input type="text" id="bulk-reqby" placeholder="Name / Department">
+          </div>
+          <div class="form-group full">
+            <label>Common Remarks (applied to all)</label>
+            <textarea id="bulk-remarks" placeholder="e.g. Annual batch refill — Block B" style="min-height:60px;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px; padding:12px 14px; background:rgba(255,73,16,.06); border-radius:8px; font-size:12px; color:var(--grey); line-height:1.6;">
+        🧾 <strong style="color:var(--ember)">One combined pass</strong> will be generated listing all selected extinguishers by Sl. No. Individual receive entries are tracked per extinguisher after return.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-bulk-refill')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitBulkRefill()" id="bulk-submit-btn">
+        🔥 Generate <span id="bulk-pass-count">0</span> Pass(es)
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Passes Result Modal — Single Combined Pass -->
+<div class="modal-overlay" id="modal-bulk-result">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <div class="modal-title">✅ Refill Pass Generated</div>
+      <button class="modal-close" onclick="closeModal('modal-bulk-result')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Combined Pass Preview -->
+      <div class="pass-preview" id="combined-pass-content">
+        <div class="pass-header">
+          <div>
+            <div class="pass-org" id="cp-org">Organisation</div>
+            <div class="pass-title">Fire Extinguisher Refill Pass</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; color:var(--grey);">PASS NO.</div>
+            <div class="pass-num" id="cp-passno">PASS-0001</div>
+          </div>
+        </div>
+        <hr class="pass-divider">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 20px; margin-bottom:14px;">
+          <div class="pass-row"><span class="pass-key">Request Date</span><span class="pass-val" id="cp-reqdate">—</span></div>
+          <div class="pass-row"><span class="pass-key">Requested By</span><span class="pass-val" id="cp-reqby">—</span></div>
+          <div class="pass-row"><span class="pass-key">No. of Extinguishers</span><span class="pass-val" id="cp-count">—</span></div>
+          <div class="pass-row"><span class="pass-key">Remarks</span><span class="pass-val" id="cp-remarks">—</span></div>
+        </div>
+        <hr class="pass-divider">
+        <!-- Extinguisher table inside pass -->
+        <div style="font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--grey); margin-bottom:8px;">Extinguisher Details</div>
+        <div style="overflow-x:auto;">
+          <table id="cp-ext-table" style="width:100%; border-collapse:collapse; font-size:12px; font-family:'DM Mono',monospace;">
+            <thead>
+              <tr style="background:rgba(0,0,0,.3);">
+                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Sl.</th>
+                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Ext. No.</th>
+                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Type</th>
+                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Wt.</th>
+                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Location</th>
+                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Mfg Date</th>
+              </tr>
+            </thead>
+            <tbody id="cp-ext-body"></tbody>
+          </table>
+        </div>
+        <hr class="pass-divider">
+        <div class="pass-footer">
+          <div class="pass-stamp">Pending Refill</div>
+          <div style="margin-top:10px;">This pass must accompany the extinguishers to the service vendor.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-bulk-result')">Close</button>
+      <button class="btn btn-blue" onclick="printCombinedPass()">🖨️ Print Pass</button>
+      <button class="btn btn-primary" id="cp-open-doc" style="display:none;" onclick="">📄 Open PDF in Drive</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div style="color:var(--grey); font-size:13px;" id="loading-text">Syncing with Google Sheets...</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIGURATION
+// ═══════════════════════════════════════════════
+let CONFIG = {
+  apiUrl: '',
+  sheetId: '',
+  orgName: 'Your Organisation',
+  templateId: '',
+  folderId: ''
+};
+
+// LOCAL DATA STORE (populated from Sheets)
+let DATA = {
+  extinguishers: [],
+  hydroTests: [],
+  refills: [],
+  passes: []
+};
+
+let currentPage = 1;
+const rowsPerPage = 15;
+let filteredRows = [];
+let editingExtNo = null;
+let currentRefillId = null;
+let activeRefillFilter = 'all';
+let selectedExtNos = new Set(); // multi-select state
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadConfig();
+  setDefaultDates();
+  loadSampleData(); // Remove when live
+  renderDashboard();
+  renderMasterTable();
+  renderRefills();
+});
+
+function loadConfig() {
+  const saved = localStorage.getItem('fireguard_config');
+  if (saved) {
+    CONFIG = { ...CONFIG, ...JSON.parse(saved) };
+    document.getElementById('cfg-api-url').value = CONFIG.apiUrl || '';
+    document.getElementById('cfg-sheet-id').value = CONFIG.sheetId || '';
+    document.getElementById('cfg-org-name').value = CONFIG.orgName || '';
+    document.getElementById('cfg-template-id').value = CONFIG.templateId || '';
+    document.getElementById('cfg-folder-id').value = CONFIG.folderId || '';
+  }
+}
+
+function saveConfig() {
+  CONFIG.apiUrl = document.getElementById('cfg-api-url').value.trim();
+  CONFIG.sheetId = document.getElementById('cfg-sheet-id').value.trim();
+  CONFIG.orgName = document.getElementById('cfg-org-name').value.trim() || 'Your Organisation';
+  CONFIG.templateId = document.getElementById('cfg-template-id').value.trim();
+  CONFIG.folderId = document.getElementById('cfg-folder-id').value.trim();
+  localStorage.setItem('fireguard_config', JSON.stringify(CONFIG));
+  showToast('Configuration saved!', 'success');
+}
+
+function setDefaultDates() {
+  const today = new Date().toISOString().split('T')[0];
+  ['r-reqdate', 'h-testdate', 'rec-date'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = today;
+  });
+}
+
+// ═══════════════════════════════════════════════
+// SAMPLE DATA (for demo — remove when live)
+// ═══════════════════════════════════════════════
+function loadSampleData() {
+  DATA.extinguishers = [
+    { ExtNo:'EXT-001', Type:'ABC Dry Powder', Weight:'6', Location:'Building A - Entrance', MfgDate:'2019-03-15', LastRefillDate:'2023-01-10', NextRefillDue:'2024-01-10', Status:'overdue', CurrentLocation:'Building A - Entrance', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-002', Type:'CO₂', Weight:'4.5', Location:'Server Room B', MfgDate:'2020-06-20', LastRefillDate:'2023-06-01', NextRefillDue:'2024-06-01', Status:'ok', CurrentLocation:'Server Room B', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-003', Type:'ABC Dry Powder', Weight:'9', Location:'Warehouse Floor 1', MfgDate:'2018-11-05', LastRefillDate:'2022-11-20', NextRefillDue:'2023-11-20', Status:'overdue', CurrentLocation:'Warehouse Floor 1', OriginalLocation:'', SubstituteFor:'', Remarks:'Old unit' },
+    { ExtNo:'EXT-004', Type:'Foam', Weight:'6', Location:'Kitchen / Canteen', MfgDate:'2021-02-14', LastRefillDate:'2023-08-15', NextRefillDue:'2025-08-15', Status:'ok', CurrentLocation:'Kitchen / Canteen', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-005', Type:'CO₂', Weight:'2', Location:'Control Room', MfgDate:'2022-09-01', LastRefillDate:'2024-09-01', NextRefillDue:'2026-09-01', Status:'ok', CurrentLocation:'Control Room', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-006', Type:'Water', Weight:'9', Location:'Building C - Floor 3', MfgDate:'2020-04-22', LastRefillDate:'2023-04-22', NextRefillDue:'2024-04-22', Status:'pending', CurrentLocation:'With Vendor', OriginalLocation:'Building C - Floor 3', SubstituteFor:'', Remarks:'Sent for service' },
+    { ExtNo:'EXT-007', Type:'ABC Dry Powder', Weight:'6', Location:'Parking Level B1', MfgDate:'2021-07-30', LastRefillDate:'2023-07-30', NextRefillDue:'2025-07-30', Status:'ok', CurrentLocation:'Parking Level B1', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-008', Type:'ABC Dry Powder', Weight:'6', Location:'Storeroom', MfgDate:'2022-01-10', LastRefillDate:'2024-01-10', NextRefillDue:'2026-01-10', Status:'in-store', CurrentLocation:'Storeroom', OriginalLocation:'', SubstituteFor:'', Remarks:'Ready for deployment' },
+  ];
+  DATA.hydroTests = [
+    { TestID:'HT-001', ExtNo:'EXT-001', TestDate:'2022-03-15', TestBy:'SafeTech Pvt Ltd', Pressure:'25', Result:'pass', NextDue:'2027-03-15', CertNo:'CERT-2022-001' },
+    { TestID:'HT-002', ExtNo:'EXT-003', TestDate:'2021-11-05', TestBy:'FireCert Co.', Pressure:'25', Result:'pass', NextDue:'2026-11-05', CertNo:'CERT-2021-045' },
+  ];
+  DATA.refills = [
+    { RefillID:'RF-001', ExtNo:'EXT-006', RequestDate:'2024-05-01', RequestBy:'Safety Dept', SentDate:'2024-05-03', ReceivedDate:'', PassNo:'PASS-0001', Status:'sent', OriginalLocation:'Building C - Floor 3', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Pressure low' },
+    { RefillID:'RF-002', ExtNo:'EXT-001', RequestDate:'2024-04-20', RequestBy:'Admin', SentDate:'', ReceivedDate:'', PassNo:'PASS-0002', Status:'pending', OriginalLocation:'Building A - Entrance', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Annual refill' },
+  ];
+  DATA.passes = [
+    { PassNo:'PASS-0001', ExtNo:'EXT-006', ExtList:'', Location:'Building C - Floor 3', Type:'Water', Weight:'9', GeneratedOn:'2024-05-01', GeneratedBy:'Safety Dept', Status:'sent', DocUrl:'' },
+    { PassNo:'PASS-0002', ExtNo:'EXT-001', ExtList:'', Location:'Building A - Entrance', Type:'ABC Dry Powder', Weight:'6', GeneratedOn:'2024-04-20', GeneratedBy:'Admin', Status:'pending', DocUrl:'' },
+  ];
+}
+
+// ═══════════════════════════════════════════════
+// API CALLS
+// ═══════════════════════════════════════════════
+async function apiCall(action, payload = {}) {
+  if (!CONFIG.apiUrl) {
+    showToast('API URL not configured. Go to Configuration.', 'error');
+    return null;
+  }
+  showLoading('Communicating with Google Sheets...');
+  try {
+    const url = `${CONFIG.apiUrl}?action=${action}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    hideLoading();
+    return data;
+  } catch (e) {
+    hideLoading();
+    showToast('API Error: ' + e.message, 'error');
+    return null;
+  }
+}
+
+async function refreshData() {
+  if (!CONFIG.apiUrl) { showToast('Configure API URL first', 'error'); return; }
+  showLoading('Syncing data...');
+  const res = await apiCall('getAll');
+  if (res && res.success) {
+    DATA.extinguishers = res.extinguishers || [];
+    DATA.hydroTests = res.hydroTests || [];
+    DATA.refills = res.refills || [];
+    DATA.passes = res.passes || [];
+    renderDashboard();
+    renderMasterTable();
+    renderHydroTable();
+    renderRefills();
+    renderPasses();
+    showToast('Data synced successfully!', 'success');
+  }
+  hideLoading();
+}
+
+async function testConnection() {
+  if (!CONFIG.apiUrl) { showToast('Enter API URL first', 'error'); return; }
+  showLoading('Testing connection...');
+  const res = await apiCall('ping');
+  hideLoading();
+  if (res && res.success) showToast('✅ Connected to Google Sheets!', 'success');
+  else showToast('Connection failed. Check your URL.', 'error');
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard() {
+  const total = DATA.extinguishers.length;
+  const ok = DATA.extinguishers.filter(e => e.Status === 'ok').length;
+  const due = DATA.extinguishers.filter(e => e.Status === 'due').length;
+  const overdue = DATA.extinguishers.filter(e => e.Status === 'overdue' || e.Status === 'pending').length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-ok').textContent = ok;
+  document.getElementById('stat-due').textContent = due;
+  document.getElementById('stat-overdue').textContent = overdue;
+  const pending = DATA.refills.filter(r => r.Status !== 'received').length;
+  document.getElementById('pending-badge').textContent = pending;
+
+  // Recent table
+  const recent = [...DATA.extinguishers].slice(0, 8);
+  const tbody = document.getElementById('recent-body');
+  if (!recent.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔥</div><div class="empty-text">No data</div></div></td></tr>'; return; }
+  tbody.innerHTML = recent.map(e => `
+    <tr>
+      <td><span class="ext-num">${e.ExtNo}</span></td>
+      <td>${e.Location}</td>
+      <td>${typeTag(e.Type)}</td>
+      <td>Last Refill</td>
+      <td>${fmtDate(e.LastRefillDate)}</td>
+      <td>${statusBadge(e.Status)}</td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════
+// MASTER TABLE
+// ═══════════════════════════════════════════════
+function renderMasterTable(data) {
+  filteredRows = data || DATA.extinguishers;
+  const tbody = document.getElementById('master-body');
+  const start = (currentPage - 1) * rowsPerPage;
+  const pageRows = filteredRows.slice(start, start + rowsPerPage);
+
+  if (!filteredRows.length) {
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">No extinguishers found.</div></div></td></tr>';
+    document.getElementById('table-count').textContent = 'Showing 0 records';
+    document.getElementById('page-btns').innerHTML = '';
+    updateSelectAllState();
+    return;
+  }
+
+  tbody.innerHTML = pageRows.map(e => {
+    const isChecked = selectedExtNos.has(e.ExtNo);
+    const isPending = e.Status === 'pending';
+    const isInStore = e.Status === 'in-store';
+    const disableCb = isPending || isInStore;
+
+    // Location display
+    const currLoc = e.CurrentLocation || e.Location;
+    const origLoc = e.OriginalLocation || '';
+    let locDisplay = `<span class="loc-deployed">${currLoc}</span>`;
+    if (isPending) locDisplay = `<span style="color:var(--grey);font-size:12px;">With Vendor</span>`;
+    if (isInStore) locDisplay = `<span class="loc-store">📦 Storeroom</span>`;
+
+    // Substitute indicator
+    let subDisplay = '';
+    if (e.SubstituteFor) subDisplay = `<div style="margin-top:3px;"><span class="loc-substitute">↔ Sub for ${e.SubstituteFor}</span></div>`;
+
+    // Original location (shown when away or in store)
+    let origDisplay = origLoc
+      ? `<span style="font-size:12px;color:var(--grey);">${origLoc}</span>`
+      : `<span style="color:var(--char);font-size:11px;">—</span>`;
+
+    // Check if original location is vacant
+    const locVacant = origLoc && !DATA.extinguishers.find(ex => (ex.CurrentLocation || ex.Location) === origLoc && ex.ExtNo !== e.ExtNo && ex.Status !== 'pending');
+    if ((isPending || isInStore) && origLoc) {
+      const subAtLoc = DATA.extinguishers.find(ex => ex.SubstituteFor === e.ExtNo);
+      if (subAtLoc) origDisplay = `<span style="font-size:12px;color:var(--grey);">${origLoc}</span><div style="margin-top:2px;"><span class="loc-substitute">↔ ${subAtLoc.ExtNo} placed</span></div>`;
+      else origDisplay = `<span style="font-size:12px;color:var(--grey);">${origLoc}</span><div style="margin-top:2px;"><span class="loc-vacant">⚠ Vacant</span></div>`;
+    }
+
+    return `
+    <tr class="${isChecked ? 'selected' : ''}" id="row-${e.ExtNo}">
+      <td><div class="cb-wrap">
+        <input type="checkbox" class="row-cb" value="${e.ExtNo}"
+          ${isChecked ? 'checked' : ''}
+          ${disableCb ? `disabled title="${isPending ? 'Already sent for refill' : 'In storeroom'}"` : ''}
+          onchange="toggleRowSelect(this)">
+      </div></td>
+      <td><span class="ext-num">${e.ExtNo}</span>${subDisplay}</td>
+      <td>${typeTag(e.Type)}</td>
+      <td>${e.Weight || '—'} kg</td>
+      <td>${locDisplay}</td>
+      <td>${origDisplay}</td>
+      <td>${fmtDate(e.MfgDate)}</td>
+      <td>${fmtDate(e.LastRefillDate)}</td>
+      <td>${fmtDate(e.NextRefillDue)}</td>
+      <td>${hydroStatus(e.ExtNo)}</td>
+      <td>${statusBadge(e.Status)}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="btn btn-ghost btn-sm" onclick="editExtinguisher('${e.ExtNo}')">✏️</button>
+          ${isInStore
+            ? `<button class="btn btn-green btn-sm" onclick="openDeployModal('${e.ExtNo}')" title="Deploy to location">📍 Deploy</button>`
+            : `<button class="btn btn-blue btn-sm" onclick="quickRefill('${e.ExtNo}')" ${disableCb ? 'disabled style="opacity:.4"' : ''} title="Send for refill">🔄</button>`
+          }
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('table-count').textContent = `Showing ${start + 1}–${Math.min(start + rowsPerPage, filteredRows.length)} of ${filteredRows.length}`;
+  updateSelectAllState();
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filteredRows.length / rowsPerPage);
+  const container = document.getElementById('page-btns');
+  container.innerHTML = '';
+  for (let i = 1; i <= total; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+    btn.textContent = i;
+    btn.onclick = () => { currentPage = i; renderMasterTable(filteredRows); };
+    container.appendChild(btn);
+  }
+}
+
+function filterTable() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const type = document.getElementById('filter-type').value;
+  const status = document.getElementById('filter-status').value;
+  const filtered = DATA.extinguishers.filter(e => {
+    const matchQ = !q || e.ExtNo.toLowerCase().includes(q) || e.Location.toLowerCase().includes(q) || e.Type.toLowerCase().includes(q);
+    const matchType = !type || e.Type === type;
+    const matchStatus = !status || e.Status === status;
+    return matchQ && matchType && matchStatus;
+  });
+  currentPage = 1;
+  renderMasterTable(filtered);
+}
+
+// ═══════════════════════════════════════════════
+// HYDRO
+// ═══════════════════════════════════════════════
+function renderHydroTable(data) {
+  const rows = data || DATA.hydroTests;
+  const tbody = document.getElementById('hydro-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💧</div><div class="empty-text">No records found.</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(h => `
+    <tr>
+      <td><span class="ext-num">${h.ExtNo}</span></td>
+      <td>${getLocation(h.ExtNo)}</td>
+      <td>${fmtDate(h.TestDate)}</td>
+      <td>${h.TestBy || '—'}</td>
+      <td>${h.Pressure || '—'} bar</td>
+      <td>${h.Result === 'pass' ? '<span class="status-dot"><span class="dot dot-ok"></span>Pass</span>' : h.Result === 'fail' ? '<span class="status-dot"><span class="dot dot-due"></span>Fail</span>' : '<span class="status-dot"><span class="dot dot-due"></span>Condemned</span>'}</td>
+      <td>${fmtDate(h.NextDue)}</td>
+      <td>${h.CertNo || '—'}</td>
+      <td><button class="btn btn-red btn-sm" onclick="deleteHydro('${h.TestID}')">🗑️</button></td>
+    </tr>
+  `).join('');
+}
+
+function filterHydro() {
+  const q = document.getElementById('hydro-search').value.toLowerCase();
+  renderHydroTable(DATA.hydroTests.filter(h => h.ExtNo.toLowerCase().includes(q) || (h.TestBy||'').toLowerCase().includes(q)));
+}
+
+// ═══════════════════════════════════════════════
+// REFILLS
+// ═══════════════════════════════════════════════
+function renderRefills() {
+  const all = DATA.refills;
+  const rows = activeRefillFilter === 'all' ? all : all.filter(r => r.Status === activeRefillFilter);
+  const container = document.getElementById('refill-list');
+
+  if (!rows.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">No refill records.</div></div>';
+    return;
+  }
+
+  container.innerHTML = rows.map(r => {
+    const ext = DATA.extinguishers.find(e => e.ExtNo === r.ExtNo) || {};
+    const icons = { pending: '⏳', sent: '🚚', received: '✅', 'in-store': '📦' };
+    const iconClass = r.Status;
+
+    // Location status line
+    const origLoc = r.OriginalLocation || ext.OriginalLocation || ext.Location || '—';
+    const subExt = DATA.extinguishers.find(e => e.SubstituteFor === r.ExtNo);
+    let locLine = '';
+    if (r.Status === 'pending' || r.Status === 'sent') {
+      if (r.LocationAction === 'substitute' && r.SubstituteExtNo) {
+        locLine = `<span class="loc-substitute">↔ ${r.SubstituteExtNo} placed at ${origLoc}</span>`;
+      } else {
+        locLine = `<span class="loc-vacant">⚠ ${origLoc} is Vacant</span>`;
+      }
+    } else if (r.Status === 'received' || r.Status === 'in-store') {
+      if (ext.Status === 'in-store') {
+        locLine = `<span class="loc-store">📦 In Storeroom — awaiting deployment</span>`;
+      } else if (ext.CurrentLocation) {
+        locLine = `<span style="font-size:11px;color:var(--green);">✅ Deployed at ${ext.CurrentLocation}</span>`;
+      }
+    }
+
+    return `
+      <div class="refill-card">
+        <div class="refill-icon ${iconClass}">${icons[r.Status] || '🔄'}</div>
+        <div class="refill-info">
+          <div class="refill-num">${r.ExtNo} &nbsp;·&nbsp; Pass: ${r.PassNo}</div>
+          <div class="refill-desc">${ext.Type || '—'} &nbsp;·&nbsp; Original: <strong style="color:var(--light)">${origLoc}</strong></div>
+          <div class="refill-meta" style="margin-top:3px;">${locLine}</div>
+          <div class="refill-meta">Requested: ${fmtDate(r.RequestDate)} by ${r.RequestBy}${r.SentDate ? ' · Sent: ' + fmtDate(r.SentDate) : ''}${r.ReceivedDate ? ' · Received: ' + fmtDate(r.ReceivedDate) : ''}</div>
+        </div>
+        <div class="refill-actions">
+          ${r.Status === 'pending' ? `<button class="btn btn-blue btn-sm" onclick="openMarkSentModal('${r.RefillID}')">📦 Mark Sent</button>` : ''}
+          ${r.Status === 'sent' ? `<button class="btn btn-green btn-sm" onclick="openReceiveModal('${r.RefillID}')">📥 Receive</button>` : ''}
+          ${(r.Status === 'received' || r.Status === 'in-store') && ext.Status === 'in-store'
+            ? `<button class="btn btn-primary btn-sm" onclick="openDeployModal('${r.ExtNo}')">📍 Deploy</button>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="viewPass('${r.PassNo}')">📄 Pass</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterRefills(type) {
+  activeRefillFilter = type;
+  document.querySelectorAll('[id^="refill-tab-"]').forEach(b => b.classList.remove('btn-primary'));
+  const btn = document.getElementById('refill-tab-' + type);
+  if (btn) btn.classList.add('btn-primary');
+  renderRefills();
+}
+
+// ═══════════════════════════════════════════════
+// PASSES
+// ═══════════════════════════════════════════════
+function renderPasses() {
+  const tbody = document.getElementById('passes-body');
+  if (!DATA.passes.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">No passes generated yet.</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = DATA.passes.map(p => {
+    // Count extinguishers: ExtList JSON or comma-split ExtNo
+    let extCount = 1;
+    let extLabel = p.ExtNo;
+    try {
+      const list = JSON.parse(p.ExtList || '[]');
+      if (list.length) { extCount = list.length; extLabel = list.map(e => e.extNo).join(', '); }
+    } catch (_) {
+      extCount = p.ExtNo ? p.ExtNo.split(',').length : 1;
+    }
+    const extDisplay = extCount > 1
+      ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">${extCount} extinguishers</span>`
+      : `<span class="ext-num">${p.ExtNo}</span>`;
+    return `
+    <tr>
+      <td><span class="ext-num">${p.PassNo}</span></td>
+      <td>${extDisplay}</td>
+      <td>${p.GeneratedBy}</td>
+      <td>${fmtDate(p.GeneratedOn)}</td>
+      <td>${statusBadge(p.Status)}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="btn btn-ghost btn-sm" onclick="viewPass('${p.PassNo}')">👁️ View</button>
+          <button class="btn btn-blue btn-sm" onclick="printPassByNo('${p.PassNo}')">🖨️</button>
+          ${p.DocUrl ? `<a href="${p.DocUrl}" target="_blank" class="btn btn-ghost btn-sm">📄 PDF</a>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// Print a pass directly from passes list without opening the modal
+function printPassByNo(passNo) {
+  viewPass(passNo); // opens the combined pass modal
+  setTimeout(() => printCombinedPass(), 300); // small delay for modal to render
+}
+
+// ═══════════════════════════════════════════════
+// CRUD OPERATIONS
+// ═══════════════════════════════════════════════
+function openAddModal() {
+  editingExtNo = null;
+  document.getElementById('modal-ext-title').textContent = 'Add Extinguisher';
+  ['f-extno','f-type','f-weight','f-location','f-mfgdate','f-lastrefill','f-nextdue','f-status','f-remarks'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  openModal('modal-ext');
+}
+
+function editExtinguisher(extNo) {
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
+  if (!ext) return;
+  editingExtNo = extNo;
+  document.getElementById('modal-ext-title').textContent = 'Edit Extinguisher';
+  document.getElementById('f-extno').value = ext.ExtNo;
+  document.getElementById('f-type').value = ext.Type;
+  document.getElementById('f-weight').value = ext.Weight;
+  document.getElementById('f-location').value = ext.Location;
+  document.getElementById('f-mfgdate').value = ext.MfgDate;
+  document.getElementById('f-lastrefill').value = ext.LastRefillDate;
+  document.getElementById('f-nextdue').value = ext.NextRefillDue;
+  document.getElementById('f-status').value = ext.Status;
+  document.getElementById('f-remarks').value = ext.Remarks || '';
+  openModal('modal-ext');
+}
+
+async function saveExtinguisher() {
+  const data = {
+    ExtNo: document.getElementById('f-extno').value.trim(),
+    Type: document.getElementById('f-type').value,
+    Weight: document.getElementById('f-weight').value,
+    Location: document.getElementById('f-location').value.trim(),
+    MfgDate: document.getElementById('f-mfgdate').value,
+    LastRefillDate: document.getElementById('f-lastrefill').value,
+    NextRefillDue: document.getElementById('f-nextdue').value,
+    Status: document.getElementById('f-status').value,
+    Remarks: document.getElementById('f-remarks').value
+  };
+  if (!data.ExtNo || !data.Location) { showToast('Ext. Number and Location are required', 'error'); return; }
+
+  if (CONFIG.apiUrl) {
+    const action = editingExtNo ? 'updateExtinguisher' : 'addExtinguisher';
+    const res = await apiCall(action, data);
+    if (!res || !res.success) return;
+  }
+
+  if (editingExtNo) {
+    const idx = DATA.extinguishers.findIndex(e => e.ExtNo === editingExtNo);
+    if (idx !== -1) DATA.extinguishers[idx] = data;
+    showToast('Extinguisher updated!', 'success');
+  } else {
+    DATA.extinguishers.push(data);
+    showToast('Extinguisher added!', 'success');
+  }
+
+  closeModal('modal-ext');
+  renderMasterTable();
+  renderDashboard();
+}
+
+function openHydroModal() { openModal('modal-hydro'); }
+
+async function saveHydroTest() {
+  const data = {
+    TestID: 'HT-' + String(DATA.hydroTests.length + 1).padStart(3, '0'),
+    ExtNo: document.getElementById('h-extno').value.trim(),
+    TestDate: document.getElementById('h-testdate').value,
+    TestBy: document.getElementById('h-testby').value.trim(),
+    Pressure: document.getElementById('h-pressure').value,
+    Result: document.getElementById('h-result').value,
+    NextDue: document.getElementById('h-nextdue').value,
+    CertNo: document.getElementById('h-certno').value.trim()
+  };
+  if (!data.ExtNo) { showToast('Ext. Number is required', 'error'); return; }
+
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('addHydroTest', data);
+    if (!res || !res.success) return;
+  }
+
+  DATA.hydroTests.push(data);
+  closeModal('modal-hydro');
+  renderHydroTable();
+  showToast('Hydrostatic test recorded!', 'success');
+}
+
+function openRefillRequestModal() {
+  // If nothing selected, open bulk modal (user can type ext no manually via add-more flow)
+  if (selectedExtNos.size === 0) {
+    showToast('Select extinguishers from the Master List using checkboxes', 'info');
+    showPage('masterlist');
+    return;
+  }
+  openBulkRefillModal();
+}
+
+function requestRefillFor(extNo) {
+  selectedExtNos.add(extNo);
+  updateSelectionToolbar();
+  openBulkRefillModal();
+}
+
+async function createRefillRequest() {
+  const extNo = document.getElementById('r-extno').value.trim();
+  const reqDate = document.getElementById('r-reqdate').value;
+  const reqBy = document.getElementById('r-reqby').value.trim();
+  const remarks = document.getElementById('r-remarks').value.trim();
+
+  if (!extNo) { showToast('Ext. Number is required', 'error'); return; }
+
+  const passNo = 'PASS-' + String(DATA.passes.length + 1).padStart(4, '0');
+  const refillId = 'RF-' + String(DATA.refills.length + 1).padStart(3, '0');
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
+
+  const extDetails = [{ slNo: 1, extNo, type: ext.Type || '—', weight: ext.Weight || '—',
+                        location: ext.Location || '—', mfgDate: ext.MfgDate || '' }];
+
+  const refill = { RefillID: refillId, ExtNo: extNo, RequestDate: reqDate, RequestBy: reqBy,
+                   SentDate: '', ReceivedDate: '', PassNo: passNo, Status: 'pending', Remarks: remarks };
+  const pass = { PassNo: passNo, ExtNo: extNo, ExtList: JSON.stringify(extDetails),
+                 Location: ext.Location || '—', Type: ext.Type || '—', Weight: ext.Weight || '—',
+                 GeneratedOn: reqDate, GeneratedBy: reqBy, Remarks: remarks, Status: 'pending', DocUrl: '' };
+
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('createRefillRequest', { refill, pass, ext });
+    if (res && res.docUrl) pass.DocUrl = res.docUrl;
+  }
+
+  DATA.refills.push(refill);
+  DATA.passes.push(pass);
+
+  // Update extinguisher status
+  const extIdx = DATA.extinguishers.findIndex(e => e.ExtNo === extNo);
+  if (extIdx !== -1) DATA.extinguishers[extIdx].Status = 'pending';
+
+  closeModal('modal-refill');
+  renderRefills();
+  renderDashboard();
+  renderMasterTable();
+  renderPasses();
+
+  // Show combined pass preview (single ext)
+  showCombinedPassPreview(pass, extDetails);
+  showToast(`Pass ${passNo} generated!`, 'success');
+}
+
+function showPassPreview(pass, reqBy, reqDate, ext) {
+  document.getElementById('pp-org').textContent = CONFIG.orgName;
+  document.getElementById('pp-passno').textContent = pass.PassNo;
+  document.getElementById('pp-extno').textContent = pass.ExtNo;
+  document.getElementById('pp-type').textContent = pass.Type;
+  document.getElementById('pp-weight').textContent = pass.Weight + ' kg';
+  document.getElementById('pp-location').textContent = pass.Location;
+  document.getElementById('pp-mfgdate').textContent = fmtDate(ext.MfgDate);
+  document.getElementById('pp-reqdate').textContent = fmtDate(reqDate);
+  document.getElementById('pp-reqby').textContent = reqBy || '—';
+  if (pass.DocUrl) {
+    document.getElementById('btn-open-doc').onclick = () => window.open(pass.DocUrl, '_blank');
+    document.getElementById('btn-open-doc').style.display = '';
+  } else {
+    document.getElementById('btn-open-doc').style.display = 'none';
+  }
+  openModal('modal-pass');
+}
+
+function viewPass(passNo) {
+  const pass = DATA.passes.find(p => p.PassNo === passNo);
+  if (!pass) { showToast('Pass not found', 'error'); return; }
+  const refill = DATA.refills.find(r => r.PassNo === passNo) || {};
+  const ext = DATA.extinguishers.find(e => e.ExtNo === pass.ExtNo) || {};
+  showPassPreview(pass, refill.RequestBy || '—', pass.GeneratedOn, ext);
+}
+
+function printPass() {
+  const content = document.getElementById('pass-preview-content').innerHTML;
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Refill Pass</title><style>
+    body{font-family:monospace;background:#1a0800;color:#F0EEF5;padding:40px;}
+    .pass-org{font-size:22px;font-weight:bold;color:#FF4910;}
+    .pass-num{font-size:28px;font-weight:bold;color:#FF8C42;}
+    .pass-row{display:flex;justify-content:space-between;margin:8px 0;font-size:14px;}
+    .pass-key{color:#888;}hr{border:1px dashed rgba(255,73,16,.4);margin:16px 0;}
+    .pass-stamp{display:inline-block;border:2px solid #FF4910;color:#FF4910;padding:4px 12px;border-radius:4px;transform:rotate(-3deg);font-size:12px;}
+  </style></head><body>${content}</body></html>`);
+  w.document.close();
+  w.print();
+}
+
+// ─── MARK SENT (with location action) ────────────────────────
+let currentMarkSentRefillId = null;
+
+function openMarkSentModal(refillId) {
+  // For a single refill, just mark sent directly since location action
+  // was already captured at request time
+  markSent(refillId);
+}
+
+async function markSent(refillId) {
+  const idx = DATA.refills.findIndex(r => r.RefillID === refillId);
+  if (idx === -1) return;
+  const today = new Date().toISOString().split('T')[0];
+  DATA.refills[idx].SentDate = today;
+  DATA.refills[idx].Status = 'sent';
+
+  // Apply location action to extinguisher
+  const r = DATA.refills[idx];
+  if (r.SubstituteExtNo) {
+    const subIdx = DATA.extinguishers.findIndex(e => e.ExtNo === r.SubstituteExtNo);
+    if (subIdx !== -1) {
+      DATA.extinguishers[subIdx].CurrentLocation = r.OriginalLocation;
+      DATA.extinguishers[subIdx].SubstituteFor = r.ExtNo;
+      DATA.extinguishers[subIdx].Status = 'ok';
+    }
+  }
+
+  if (CONFIG.apiUrl) await apiCall('updateRefill', DATA.refills[idx]);
+  renderRefills();
+  renderMasterTable();
+  renderDashboard();
+  showToast('Marked as sent! Location updated.', 'success');
+}
+
+// ─── RECEIVE (→ Storeroom) ────────────────────────────────────
+function openReceiveModal(refillId) {
+  currentRefillId = refillId;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('rec-date').value = today;
+  document.getElementById('rec-weight').value = '';
+  document.getElementById('rec-nextdue').value = '';
+  document.getElementById('rec-by').value = '';
+  document.getElementById('rec-remarks').value = '';
+
+  // Show extinguisher info in modal
+  const r = DATA.refills.find(r => r.RefillID === refillId) || {};
+  const ext = DATA.extinguishers.find(e => e.ExtNo === r.ExtNo) || {};
+  const origLoc = r.OriginalLocation || ext.Location || '—';
+  const subExt = DATA.extinguishers.find(e => e.SubstituteFor === r.ExtNo);
+  document.getElementById('receive-ext-info').innerHTML = `
+    <div style="background:var(--char);border-radius:8px;padding:12px 14px;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <span class="ext-num">${r.ExtNo}</span>
+        ${typeTag(ext.Type || '—')}
+        <span style="font-size:12px;color:var(--grey);">${ext.Weight || '—'} kg</span>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:var(--grey);">
+        Original Location: <strong style="color:var(--light)">${origLoc}</strong>
+        ${subExt ? `<span class="loc-substitute" style="margin-left:8px;">↔ ${subExt.ExtNo} currently placed there</span>` : `<span class="loc-vacant" style="margin-left:8px;">⚠ Currently Vacant</span>`}
+      </div>
+    </div>`;
+  openModal('modal-receive');
+}
+
+async function markReceived() {
+  const idx = DATA.refills.findIndex(r => r.RefillID === currentRefillId);
+  if (idx === -1) return;
+  const refill = DATA.refills[idx];
+  const recDate = document.getElementById('rec-date').value;
+  const newWeight = document.getElementById('rec-weight').value;
+  const nextDue = document.getElementById('rec-nextdue').value;
+  const recBy = document.getElementById('rec-by').value;
+  const remarks = document.getElementById('rec-remarks').value;
+
+  refill.ReceivedDate = recDate;
+  refill.Status = 'received';
+  refill.Remarks = (refill.Remarks ? refill.Remarks + ' | ' : '') + `Received by ${recBy}: ${remarks}`;
+
+  // Move extinguisher to Storeroom (NOT original location)
+  const extIdx = DATA.extinguishers.findIndex(e => e.ExtNo === refill.ExtNo);
+  if (extIdx !== -1) {
+    DATA.extinguishers[extIdx].Status = 'in-store';
+    DATA.extinguishers[extIdx].CurrentLocation = 'Storeroom';
+    DATA.extinguishers[extIdx].OriginalLocation = refill.OriginalLocation || DATA.extinguishers[extIdx].Location;
+    if (newWeight) DATA.extinguishers[extIdx].Weight = newWeight;
+    if (nextDue) DATA.extinguishers[extIdx].NextRefillDue = nextDue;
+    DATA.extinguishers[extIdx].LastRefillDate = recDate;
+  }
+
+  // Update pass status
+  const passIdx = DATA.passes.findIndex(p => p.PassNo === refill.PassNo);
+  if (passIdx !== -1) DATA.passes[passIdx].Status = 'in-store';
+
+  if (CONFIG.apiUrl) await apiCall('markRefillReceived', { refill, extUpdate: DATA.extinguishers[extIdx] });
+
+  closeModal('modal-receive');
+  renderRefills();
+  renderDashboard();
+  renderMasterTable();
+  renderPasses();
+  showToast(`${refill.ExtNo} received → moved to Storeroom. Use Deploy to place it back.`, 'success');
+}
+
+// ─── DEPLOY (Storeroom → Location) ───────────────────────────
+let deployingExtNo = null;
+
+function openDeployModal(extNo) {
+  deployingExtNo = extNo;
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
+  const origLoc = ext.OriginalLocation || ext.Location || '';
+  const today = new Date().toISOString().split('T')[0];
+
+  document.getElementById('deploy-date').value = today;
+  document.getElementById('deploy-by').value = '';
+  document.getElementById('deploy-remarks').value = '';
+  document.getElementById('deploy-location').value = origLoc;
+
+  // Summary card
+  document.getElementById('deploy-ext-summary').innerHTML = `
+    <div class="deploy-card">
+      <div class="deploy-ext-header">
+        <span class="ext-num">${extNo}</span>
+        ${typeTag(ext.Type || '—')}
+        <span style="font-size:12px;color:var(--grey);">${ext.Weight || '—'} kg</span>
+        <span class="loc-store" style="margin-left:auto;">📦 In Storeroom</span>
+      </div>
+      <div class="deploy-orig-loc">
+        Original Location: <strong>${origLoc || 'Not recorded'}</strong>
+      </div>
+    </div>`;
+
+  // Hint and button
+  document.getElementById('deploy-orig-btn').textContent = origLoc
+    ? `↩ Use Original: ${origLoc}` : '(No original location recorded)';
+  document.getElementById('deploy-orig-btn').disabled = !origLoc;
+
+  // Check for substitute at original location
+  checkSubstituteAlert(origLoc, extNo);
+
+  document.getElementById('deploy-location').addEventListener('input', function() {
+    checkSubstituteAlert(this.value, extNo);
+  });
+
+  openModal('modal-deploy');
+}
+
+function checkSubstituteAlert(location, extNo) {
+  const alertEl = document.getElementById('deploy-substitute-alert');
+  const hintEl = document.getElementById('deploy-loc-hint');
+  if (!location) { alertEl.style.display = 'none'; hintEl.textContent = ''; return; }
+
+  const subHere = DATA.extinguishers.find(e =>
+    (e.CurrentLocation === location || e.Location === location) &&
+    e.SubstituteFor === extNo
+  );
+  const anySubHere = DATA.extinguishers.find(e =>
+    (e.CurrentLocation === location || e.Location === location) &&
+    e.SubstituteFor && e.ExtNo !== extNo
+  );
+
+  if (subHere) {
+    alertEl.style.display = 'block';
+    alertEl.innerHTML = `⚠️ <strong>${subHere.ExtNo}</strong> is currently placed at <strong>${location}</strong> as a substitute. Deploying here will mark it as removed from substitute duty and move it back to available/storeroom.`;
+  } else if (anySubHere) {
+    alertEl.style.display = 'block';
+    alertEl.innerHTML = `⚠️ <strong>${anySubHere.ExtNo}</strong> is at <strong>${location}</strong> as substitute for ${anySubHere.SubstituteFor}. Confirm before overriding.`;
+  } else {
+    alertEl.style.display = 'none';
+  }
+
+  // Check if vacant
+  const occupied = DATA.extinguishers.find(e =>
+    (e.CurrentLocation === location || e.Location === location) &&
+    e.ExtNo !== extNo && e.Status === 'ok'
+  );
+  hintEl.textContent = occupied ? `ℹ️ ${occupied.ExtNo} already at this location — confirm override` : '';
+  hintEl.style.color = occupied ? 'var(--yellow)' : 'var(--grey)';
+}
+
+function fillOriginalLocation() {
+  const ext = DATA.extinguishers.find(e => e.ExtNo === deployingExtNo) || {};
+  const origLoc = ext.OriginalLocation || ext.Location || '';
+  document.getElementById('deploy-location').value = origLoc;
+  checkSubstituteAlert(origLoc, deployingExtNo);
+}
+
+async function confirmDeploy() {
+  const location = document.getElementById('deploy-location').value.trim();
+  const deployDate = document.getElementById('deploy-date').value;
+  const deployBy = document.getElementById('deploy-by').value.trim();
+  const remarks = document.getElementById('deploy-remarks').value.trim();
+
+  if (!location) { showToast('Enter a deployment location', 'error'); return; }
+
+  const extIdx = DATA.extinguishers.findIndex(e => e.ExtNo === deployingExtNo);
+  if (extIdx === -1) return;
+
+  const ext = DATA.extinguishers[extIdx];
+
+  // Clear substitute at that location if it was subbing for this unit
+  const subIdx = DATA.extinguishers.findIndex(e =>
+    e.SubstituteFor === deployingExtNo &&
+    (e.CurrentLocation === location || e.Location === location)
+  );
+  if (subIdx !== -1) {
+    // Move substitute back to storeroom / available
+    DATA.extinguishers[subIdx].SubstituteFor = '';
+    DATA.extinguishers[subIdx].CurrentLocation = 'Storeroom';
+    DATA.extinguishers[subIdx].Status = 'in-store';
+    showToast(`${DATA.extinguishers[subIdx].ExtNo} removed from substitute duty → Storeroom`, 'info');
+  }
+
+  // Deploy the extinguisher
+  DATA.extinguishers[extIdx].CurrentLocation = location;
+  DATA.extinguishers[extIdx].Location = location;           // update permanent location
+  DATA.extinguishers[extIdx].OriginalLocation = '';         // clear — it's home
+  DATA.extinguishers[extIdx].SubstituteFor = '';
+  DATA.extinguishers[extIdx].Status = 'ok';
+  DATA.extinguishers[extIdx].Remarks =
+    (ext.Remarks ? ext.Remarks + ' | ' : '') + `Deployed to ${location} on ${deployDate} by ${deployBy}. ${remarks}`;
+
+  // Update refill record status to 'deployed'
+  const refillIdx = DATA.refills.findIndex(r => r.ExtNo === deployingExtNo && r.Status === 'received');
+  if (refillIdx !== -1) DATA.refills[refillIdx].Status = 'deployed';
+
+  if (CONFIG.apiUrl) await apiCall('deployExtinguisher', {
+    ExtNo: deployingExtNo, Location: location, DeployDate: deployDate,
+    DeployBy: deployBy, Remarks: remarks, SubClearedExtNo: subIdx !== -1 ? DATA.extinguishers[subIdx].ExtNo : ''
+  });
+
+  closeModal('modal-deploy');
+  renderMasterTable();
+  renderRefills();
+  renderDashboard();
+  showToast(`${deployingExtNo} deployed to ${location}!`, 'success');
+}
+
+function deleteHydro(testId) {
+  if (!confirm('Delete this hydrostatic test record?')) return;
+  DATA.hydroTests = DATA.hydroTests.filter(h => h.TestID !== testId);
+  renderHydroTable();
+  showToast('Record deleted', 'info');
+}
+
+// ═══════════════════════════════════════════════
+// MULTI-SELECT & BULK REFILL
+// ═══════════════════════════════════════════════
+
+function toggleRowSelect(cb) {
+  const extNo = cb.value;
+  const row = document.getElementById('row-' + extNo);
+  if (cb.checked) {
+    selectedExtNos.add(extNo);
+    row && row.classList.add('selected');
+  } else {
+    selectedExtNos.delete(extNo);
+    row && row.classList.remove('selected');
+  }
+  updateSelectionToolbar();
+  updateSelectAllState();
+}
+
+function toggleSelectAll(masterCb) {
+  // Only affect non-pending rows on current page
+  const start = (currentPage - 1) * rowsPerPage;
+  const pageRows = filteredRows.slice(start, start + rowsPerPage);
+  pageRows.forEach(e => {
+    if (e.Status === 'pending' || e.Status === 'in-store') return;
+    if (masterCb.checked) selectedExtNos.add(e.ExtNo);
+    else selectedExtNos.delete(e.ExtNo);
+  });
+  renderMasterTable(filteredRows); // re-render to reflect checkboxes
+  updateSelectionToolbar();
+}
+
+function updateSelectAllState() {
+  const cb = document.getElementById('select-all');
+  if (!cb) return;
+  const start = (currentPage - 1) * rowsPerPage;
+  const pageRows = filteredRows.slice(start, start + rowsPerPage).filter(e => e.Status !== 'pending' && e.Status !== 'in-store');
+  if (!pageRows.length) { cb.checked = false; cb.indeterminate = false; return; }
+  const checkedCount = pageRows.filter(e => selectedExtNos.has(e.ExtNo)).length;
+  cb.indeterminate = checkedCount > 0 && checkedCount < pageRows.length;
+  cb.checked = checkedCount === pageRows.length;
+}
+
+function updateSelectionToolbar() {
+  const toolbar = document.getElementById('sel-toolbar');
+  const count = selectedExtNos.size;
+  document.getElementById('sel-num').textContent = count;
+  if (count > 0) toolbar.classList.add('visible');
+  else toolbar.classList.remove('visible');
+}
+
+function clearSelection() {
+  selectedExtNos.clear();
+  renderMasterTable(filteredRows);
+  updateSelectionToolbar();
+}
+
+// Quick-add single extinguisher to selection and open bulk modal
+function quickRefill(extNo) {
+  selectedExtNos.add(extNo);
+  updateSelectionToolbar();
+  openBulkRefillModal();
+}
+
+function openBulkRefillModal() {
+  if (selectedExtNos.size === 0) { showToast('Select at least one extinguisher', 'error'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('bulk-reqdate').value = today;
+  document.getElementById('bulk-reqby').value = '';
+  document.getElementById('bulk-remarks').value = '';
+  document.getElementById('bulk-pass-count').textContent = selectedExtNos.size;
+  renderBulkExtList();
+  openModal('modal-bulk-refill');
+}
+
+function renderBulkExtList() {
+  const container = document.getElementById('bulk-ext-list');
+  container.innerHTML = [...selectedExtNos].map(extNo => {
+    const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
+    return `
+      <div class="bulk-ext-item" id="bulk-item-${extNo}">
+        <span class="ext-num">${extNo}</span>
+        <div class="ext-info">
+          <strong>${ext.Location || '—'}</strong>
+          ${typeTag(ext.Type || '—')} &nbsp; ${ext.Weight || '—'} kg
+        </div>
+        <div style="font-size:11px; color:var(--grey); white-space:nowrap;">${statusBadge(ext.Status || 'ok')}</div>
+        <button class="bulk-remove" onclick="removeBulkItem('${extNo}')" title="Remove">✕</button>
+      </div>`;
+  }).join('');
+  document.getElementById('bulk-pass-count').textContent = selectedExtNos.size;
+
+  // Render location action cards
+  const locContainer = document.getElementById('bulk-loc-actions');
+  if (locContainer) {
+    locContainer.innerHTML = [...selectedExtNos].map(extNo => {
+      const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
+      const availSubs = DATA.extinguishers
+        .filter(e => e.ExtNo !== extNo && e.Status !== 'pending' && e.Status !== 'in-store' && !e.SubstituteFor)
+        .map(e => `<option value="${e.ExtNo}">${e.ExtNo} — ${e.Type} (${e.CurrentLocation || e.Location})</option>`)
+        .join('');
+      return `
+        <div class="loc-action-card">
+          <div class="loc-action-header">
+            <span class="loc-action-ext">${extNo}</span>
+            <span class="loc-action-loc">📍 ${ext.Location || '—'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--grey);margin-bottom:8px;">What to do with this location while it's away?</div>
+          <div class="loc-radio-group">
+            <label class="loc-radio-btn">
+              <input type="radio" name="locaction-${extNo}" value="vacant" checked onchange="toggleSubInput('${extNo}',this.value)">
+              ⚠️ Leave Vacant
+            </label>
+            <label class="loc-radio-btn">
+              <input type="radio" name="locaction-${extNo}" value="substitute" onchange="toggleSubInput('${extNo}',this.value)">
+              ↔ Place Substitute
+            </label>
+          </div>
+          <div class="loc-sub-input" id="subinput-${extNo}">
+            <label style="font-size:11px;color:var(--grey);margin-bottom:4px;display:block;">Select Substitute Extinguisher</label>
+            <select id="subselect-${extNo}" style="width:100%;">
+              <option value="">— Select —</option>
+              ${availSubs}
+            </select>
+          </div>
+        </div>`;
+    }).join('');
+  }
+}
+
+function removeBulkItem(extNo) {
+  selectedExtNos.delete(extNo);
+  document.getElementById('bulk-item-' + extNo)?.remove();
+  document.getElementById('bulk-pass-count').textContent = selectedExtNos.size;
+  updateSelectionToolbar();
+  updateSelectAllState();
+  if (selectedExtNos.size === 0) closeModal('modal-bulk-refill');
+}
+
+function addMoreToSelection() {
+  closeModal('modal-bulk-refill');
+  showPage('masterlist');
+  showToast('Check more extinguishers, then click "Send for Refill" again', 'info');
+}
+
+function toggleSubInput(extNo, value) {
+  const el = document.getElementById('subinput-' + extNo);
+  if (el) el.classList.toggle('show', value === 'substitute');
+}
+
+async function submitBulkRefill() {
+  if (selectedExtNos.size === 0) { showToast('No extinguishers selected', 'error'); return; }
+  const reqDate = document.getElementById('bulk-reqdate').value;
+  const reqBy   = document.getElementById('bulk-reqby').value.trim();
+  const remarks = document.getElementById('bulk-remarks').value.trim();
+  if (!reqBy) { showToast('Please enter Requested By name', 'error'); return; }
+
+  const btn = document.getElementById('bulk-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating...';
+
+  // ONE pass for the whole batch
+  const passNo = 'PASS-' + String(DATA.passes.length + 1).padStart(4, '0');
+  const extNosArray = [...selectedExtNos];
+  const extDetails = extNosArray.map((extNo, idx) => {
+    const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
+    return { slNo: idx + 1, extNo, type: ext.Type || '—', weight: ext.Weight || '—',
+             location: ext.Location || '—', mfgDate: ext.MfgDate || '' };
+  });
+
+  // Collect location actions per extinguisher
+  const locActions = {};
+  extNosArray.forEach(extNo => {
+    const radioVal = document.querySelector(`input[name="locaction-${extNo}"]:checked`)?.value || 'vacant';
+    const subExtNo = radioVal === 'substitute' ? (document.getElementById('subselect-' + extNo)?.value || '') : '';
+    locActions[extNo] = { action: radioVal, subExtNo };
+  });
+
+  // Combined pass record — store extinguisher list as JSON string
+  const combinedPass = {
+    PassNo: passNo,
+    ExtNo: extNosArray.join(', '),          // comma-list for display
+    ExtList: JSON.stringify(extDetails),    // full detail for rendering
+    Location: extDetails.map(e => e.location).join(' | '),
+    Type: [...new Set(extDetails.map(e => e.type))].join(', '),
+    Weight: extDetails.map(e => e.weight + ' kg').join(', '),
+    GeneratedOn: reqDate,
+    GeneratedBy: reqBy,
+    Remarks: remarks,
+    Status: 'pending',
+    DocUrl: ''
+  };
+
+  // Individual refill records per extinguisher (for receive tracking)
+  const refillRecords = [];
+  for (const extNo of extNosArray) {
+    const refillId = 'RF-' + String(DATA.refills.length + refillRecords.length + 1).padStart(3, '0');
+    const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
+    const la = locActions[extNo] || { action: 'vacant', subExtNo: '' };
+    refillRecords.push({
+      RefillID: refillId, ExtNo: extNo, RequestDate: reqDate, RequestBy: reqBy,
+      SentDate: '', ReceivedDate: '', PassNo: passNo, Status: 'pending',
+      OriginalLocation: ext.Location || ext.CurrentLocation || '',
+      LocationAction: la.action,
+      SubstituteExtNo: la.subExtNo,
+      Remarks: remarks
+    });
+  }
+
+  // Save to backend if configured
+  if (CONFIG.apiUrl) {
+    try {
+      const res = await apiCall('createBatchRefillRequest', {
+        pass: combinedPass, refills: refillRecords, extDetails
+      });
+      if (res && res.docUrl) combinedPass.DocUrl = res.docUrl;
+    } catch (_) {}
+  }
+
+  // Save locally
+  DATA.passes.push(combinedPass);
+  refillRecords.forEach(r => DATA.refills.push(r));
+
+  // Update all extinguisher statuses to pending + record original location
+  extNosArray.forEach(extNo => {
+    const idx = DATA.extinguishers.findIndex(e => e.ExtNo === extNo);
+    if (idx !== -1) {
+      DATA.extinguishers[idx].OriginalLocation = DATA.extinguishers[idx].Location || DATA.extinguishers[idx].CurrentLocation || '';
+      DATA.extinguishers[idx].CurrentLocation = 'With Vendor';
+      DATA.extinguishers[idx].Status = 'pending';
+    }
+  });
+
+  closeModal('modal-bulk-refill');
+  clearSelection();
+  renderDashboard();
+  renderMasterTable();
+  renderRefills();
+  renderPasses();
+
+  // Show combined pass preview
+  showCombinedPassPreview(combinedPass, extDetails);
+
+  btn.disabled = false;
+  btn.innerHTML = `🔥 Generate <span id="bulk-pass-count">0</span> Pass(es)`;
+  showToast(`Pass ${passNo} generated for ${extNosArray.length} extinguishers!`, 'success');
+}
+
+function showCombinedPassPreview(pass, extDetails) {
+  document.getElementById('cp-org').textContent = CONFIG.orgName;
+  document.getElementById('cp-passno').textContent = pass.PassNo;
+  document.getElementById('cp-reqdate').textContent = fmtDate(pass.GeneratedOn);
+  document.getElementById('cp-reqby').textContent = pass.GeneratedBy;
+  document.getElementById('cp-count').textContent = extDetails.length;
+  document.getElementById('cp-remarks').textContent = pass.Remarks || '—';
+
+  const tbody = document.getElementById('cp-ext-body');
+  tbody.innerHTML = extDetails.map(e => `
+    <tr style="border-top:1px solid rgba(255,255,255,.04);">
+      <td style="padding:7px 10px; color:var(--ember); font-weight:700;">${e.slNo}</td>
+      <td style="padding:7px 10px; color:var(--ember);">${e.extNo}</td>
+      <td style="padding:7px 10px; color:var(--light);">${e.type}</td>
+      <td style="padding:7px 10px; color:var(--light);">${e.weight} kg</td>
+      <td style="padding:7px 10px; color:var(--light); font-size:11px;">${e.location}</td>
+      <td style="padding:7px 10px; color:var(--grey);">${fmtDate(e.mfgDate)}</td>
+    </tr>`).join('');
+
+  const openDocBtn = document.getElementById('cp-open-doc');
+  if (pass.DocUrl) {
+    openDocBtn.style.display = '';
+    openDocBtn.onclick = () => window.open(pass.DocUrl, '_blank');
+  } else {
+    openDocBtn.style.display = 'none';
+  }
+  openModal('modal-bulk-result');
+}
+
+function viewPass(passNo) {
+  const pass = DATA.passes.find(p => p.PassNo === passNo);
+  if (!pass) { showToast('Pass not found', 'error'); return; }
+  let extDetails;
+  try { extDetails = JSON.parse(pass.ExtList || '[]'); } catch (_) { extDetails = []; }
+  // Fallback: build from single ExtNo if ExtList is missing
+  if (!extDetails.length && pass.ExtNo) {
+    const ext = DATA.extinguishers.find(e => e.ExtNo === pass.ExtNo) || {};
+    extDetails = [{ slNo:1, extNo: pass.ExtNo, type: pass.Type, weight: pass.Weight,
+                    location: pass.Location, mfgDate: ext.MfgDate || '' }];
+  }
+  showCombinedPassPreview(pass, extDetails);
+}
+
+function printCombinedPass() {
+  const passNo  = document.getElementById('cp-passno').textContent;
+  const org     = document.getElementById('cp-org').textContent;
+  const reqDate = document.getElementById('cp-reqdate').textContent;
+  const reqBy   = document.getElementById('cp-reqby').textContent;
+  const count   = document.getElementById('cp-count').textContent;
+  const remarks = document.getElementById('cp-remarks').textContent;
+
+  const rows = [...document.querySelectorAll('#cp-ext-body tr')].map(tr => {
+    const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+    return `<tr><td>${cells[0]}</td><td>${cells[1]}</td><td>${cells[2]}</td><td>${cells[3]}</td><td>${cells[4]}</td><td>${cells[5]}</td></tr>`;
+  }).join('');
+
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Refill Pass ${passNo}</title>
+  <style>
+    body { font-family: 'Courier New', monospace; background: #fff; color: #111; padding: 36px 40px; max-width: 720px; margin: 0 auto; font-size: 13px; }
+    .org { font-size: 22px; font-weight: bold; font-family: Arial, sans-serif; }
+    .title { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; margin-top: 2px; }
+    .passno { font-size: 24px; font-weight: bold; color: #c93300; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin: 14px 0; font-size: 12px; }
+    .meta-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #ddd; }
+    .meta-key { color: #888; }
+    hr { border: none; border-top: 1px dashed #bbb; margin: 14px 0; }
+    .section-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #888; margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead tr { background: #f5f5f5; }
+    th { padding: 7px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #555; border-bottom: 2px solid #ddd; }
+    td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+    td:first-child { color: #c93300; font-weight: bold; }
+    .stamp { display: inline-block; border: 2px solid #c93300; color: #c93300; padding: 4px 14px; border-radius: 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; transform: rotate(-3deg); margin: 14px 0 8px; }
+    .sig-block { margin-top: 28px; display: flex; justify-content: space-between; font-size: 12px; color: #555; }
+    .sig-line { border-top: 1px solid #999; width: 200px; padding-top: 4px; text-align: center; }
+    @media print { body { padding: 20px; } }
+  </style></head><body>
+  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div><div class="org">${org}</div><div class="title">Fire Extinguisher Refill Pass</div></div>
+    <div style="text-align:right;"><div style="font-size:10px;color:#888;">PASS NO.</div><div class="passno">${passNo}</div></div>
+  </div>
+  <hr>
+  <div class="meta-grid">
+    <div class="meta-row"><span class="meta-key">Request Date</span><span>${reqDate}</span></div>
+    <div class="meta-row"><span class="meta-key">Requested By</span><span>${reqBy}</span></div>
+    <div class="meta-row"><span class="meta-key">No. of Extinguishers</span><span>${count}</span></div>
+    <div class="meta-row"><span class="meta-key">Remarks</span><span>${remarks}</span></div>
+  </div>
+  <hr>
+  <div class="section-label">Extinguisher Details</div>
+  <table>
+    <thead><tr><th>Sl.</th><th>Ext. No.</th><th>Type</th><th>Weight</th><th>Location</th><th>Mfg Date</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div style="margin-top:16px;"><div class="stamp">Pending Refill</div></div>
+  <div class="sig-block">
+    <div class="sig-line">Authorised Signature</div>
+    <div class="sig-line">Date</div>
+    <div class="sig-line">Vendor Stamp</div>
+  </div>
+  </body></html>`);
+  w.document.close();
+  w.print();
+}
+function getLocation(extNo) {
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
+  return ext ? ext.Location : '—';
+}
+
+function hydroStatus(extNo) {
+  const test = DATA.hydroTests.filter(h => h.ExtNo === extNo).sort((a,b) => new Date(b.TestDate) - new Date(a.TestDate))[0];
+  if (!test) return '<span style="color:var(--grey); font-size:11px;">No record</span>';
+  const next = new Date(test.NextDue);
+  const today = new Date();
+  const diff = (next - today) / (1000*60*60*24);
+  if (diff < 0) return `<span class="status-dot"><span class="dot dot-due"></span>Overdue</span>`;
+  if (diff < 180) return `<span class="status-dot"><span class="dot dot-warn"></span>Due soon</span>`;
+  return `<span class="status-dot"><span class="dot dot-ok"></span>${fmtDate(test.NextDue)}</span>`;
+}
+
+function typeTag(type) {
+  if (!type) return '—';
+  const cls = type.includes('ABC') ? 'tag-abc' : type.includes('CO') ? 'tag-co2' : type.includes('Water') ? 'tag-water' : 'tag-dry';
+  return `<span class="tag ${cls}">${type}</span>`;
+}
+
+function statusBadge(status) {
+  const map = {
+    ok:        ['dot-ok',      'Active'],
+    due:       ['dot-warn',    'Due Soon'],
+    overdue:   ['dot-due',     'Overdue'],
+    pending:   ['dot-pending', 'With Vendor'],
+    received:  ['dot-ok',      'Received'],
+    sent:      ['dot-pending', 'Sent Out'],
+    'in-store':['dot-pending', 'In Storeroom'],
+    deployed:  ['dot-ok',      'Deployed']
+  };
+  const [dot, label] = map[status] || ['dot-warn', status];
+  return `<span class="status-dot"><span class="dot ${dot}"></span>${label}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
+  catch { return d; }
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+const pageTitles = {
+  dashboard: ['Dashboard', 'Overview'],
+  masterlist: ['Master List', 'All Extinguishers'],
+  hydro: ['Hydrostatic Tests', 'Pressure Test Records'],
+  refills: ['Refills', 'Refill Requests & Tracking'],
+  passes: ['Passes / Requests', 'Generated Documents'],
+  config: ['Configuration', 'API & Settings']
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelector(`.nav-item[onclick="showPage('${id}')"]`)?.classList.add('active');
+  const [title, sub] = pageTitles[id] || [id, ''];
+  document.getElementById('page-title').textContent = title;
+  document.getElementById('page-sub').textContent = ' · ' + sub;
+
+  if (id === 'hydro') renderHydroTable();
+  if (id === 'passes') renderPasses();
+  if (id === 'refills') renderRefills();
+  if (id === 'masterlist') renderMasterTable();
+
+  // Hide selection toolbar when not on master list
+  if (id !== 'masterlist') {
+    document.getElementById('sel-toolbar').classList.remove('visible');
+  } else {
+    updateSelectionToolbar();
+  }
+
+  // Close sidebar on mobile
+  if (window.innerWidth <= 900) document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function showToast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function showLoading(msg = 'Loading...') {
+  document.getElementById('loading-text').textContent = msg;
+  document.getElementById('loading').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+</script>
+</body>
+</html>
