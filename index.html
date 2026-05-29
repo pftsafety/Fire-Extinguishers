@@ -3,33 +3,44 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FireGuard — Extinguisher Management Portal</title>
+<title>Fire Extinguisher Management Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
   :root {
-    --fire: #FF4910;
-    --fire-dark: #C93300;
-    --fire-glow: rgba(255,73,16,0.15);
-    --ember: #FF8C42;
-    --smoke: #1A1A1F;
-    --ash: #2C2C35;
-    --char: #3D3D4A;
-    --grey: #8888A0;
-    --light: #F0EEF5;
-    --white: #FFFFFF;
-    --green: #22C55E;
-    --yellow: #F59E0B;
-    --red: #EF4444;
-    --blue: #3B82F6;
+    --fire:      #D93B00;
+    --fire-dark: #B52E00;
+    --fire-glow: rgba(217,59,0,0.12);
+    --ember:     #C84B0A;
+    --bg:        #F4F5F7;
+    --surface:   #FFFFFF;
+    --surface2:  #F0F1F4;
+    --border:    #E0E2E8;
+    --border2:   #CDD0D8;
+    --grey:      #6B7280;
+    --body:      #1F2937;
+    --muted:     #9CA3AF;
+    --white:     #FFFFFF;
+    --green:     #16A34A;
+    --green-bg:  #DCFCE7;
+    --green-bd:  #86EFAC;
+    --yellow:    #B45309;
+    --yellow-bg: #FEF9C3;
+    --yellow-bd: #FDE047;
+    --red:       #DC2626;
+    --red-bg:    #FEE2E2;
+    --red-bd:    #FCA5A5;
+    --blue:      #1D4ED8;
+    --blue-bg:   #DBEAFE;
+    --blue-bd:   #93C5FD;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    background: var(--smoke);
-    color: var(--light);
+    background: var(--bg);
+    color: var(--body);
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     min-height: 100vh;
@@ -40,15 +51,16 @@
   .sidebar {
     position: fixed; top: 0; left: 0;
     width: 240px; height: 100vh;
-    background: var(--ash);
-    border-right: 1px solid var(--char);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
     z-index: 100;
     transition: transform .3s ease;
+    box-shadow: 2px 0 8px rgba(0,0,0,.05);
   }
   .sidebar-logo {
-    padding: 24px 20px 20px;
-    border-bottom: 1px solid var(--char);
+    padding: 20px 20px 18px;
+    border-bottom: 1px solid var(--border);
   }
   .logo-mark {
     display: flex; align-items: center; gap: 10px;
@@ -59,15 +71,14 @@
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
     font-size: 18px;
-    box-shadow: 0 0 20px var(--fire-glow);
+    box-shadow: 0 2px 8px var(--fire-glow);
   }
-  .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; }
-  .logo-sub { font-size: 10px; color: var(--grey); letter-spacing: .08em; text-transform: uppercase; margin-top: 1px; }
+  .logo-sub { font-size: 11px; color: var(--grey); letter-spacing: .04em; margin-top: 1px; }
 
-  .nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+  .nav { padding: 14px 10px; flex: 1; overflow-y: auto; }
   .nav-section-label {
     font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
-    color: var(--grey); padding: 8px 8px 6px; margin-top: 8px;
+    color: var(--muted); padding: 8px 8px 6px; margin-top: 8px;
   }
   .nav-item {
     display: flex; align-items: center; gap: 10px;
@@ -76,8 +87,8 @@
     font-size: 13.5px; font-weight: 400; color: var(--grey);
     margin-bottom: 2px;
   }
-  .nav-item:hover { background: var(--char); color: var(--light); }
-  .nav-item.active { background: var(--fire-glow); color: var(--fire); font-weight: 500; }
+  .nav-item:hover { background: var(--surface2); color: var(--body); }
+  .nav-item.active { background: var(--fire-glow); color: var(--fire); font-weight: 600; }
   .nav-item .icon { width: 18px; text-align: center; font-size: 15px; }
   .nav-badge {
     margin-left: auto; background: var(--fire); color: #fff;
@@ -86,7 +97,7 @@
   }
 
   .sidebar-footer {
-    padding: 16px; border-top: 1px solid var(--char);
+    padding: 14px 16px; border-top: 1px solid var(--border);
     font-size: 11px; color: var(--grey);
   }
   .config-btn {
@@ -94,19 +105,20 @@
     padding: 8px 10px; border-radius: 6px;
     cursor: pointer; transition: all .15s;
   }
-  .config-btn:hover { background: var(--char); color: var(--light); }
+  .config-btn:hover { background: var(--surface2); color: var(--body); }
 
   /* ─── MAIN ─── */
   .main { margin-left: 240px; min-height: 100vh; }
   .topbar {
     position: sticky; top: 0; z-index: 50;
-    background: rgba(26,26,31,0.92); backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--char);
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
     padding: 0 28px; height: 56px;
     display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
   }
-  .topbar-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
-  .topbar-sub { color: var(--grey); font-size: 12px; margin-left: 4px; }
+  .topbar-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--body); }
+  .topbar-sub { color: var(--muted); font-size: 12px; margin-left: 2px; }
   .topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 
   .btn {
@@ -116,16 +128,16 @@
     cursor: pointer; transition: all .15s; text-decoration: none;
   }
   .btn-primary { background: var(--fire); color: #fff; }
-  .btn-primary:hover { background: var(--fire-dark); box-shadow: 0 0 20px var(--fire-glow); }
-  .btn-ghost { background: transparent; color: var(--grey); border: 1px solid var(--char); }
-  .btn-ghost:hover { border-color: var(--grey); color: var(--light); }
+  .btn-primary:hover { background: var(--fire-dark); box-shadow: 0 2px 10px var(--fire-glow); }
+  .btn-ghost { background: transparent; color: var(--grey); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--border2); color: var(--body); background: var(--surface2); }
   .btn-sm { padding: 5px 11px; font-size: 12px; }
-  .btn-green { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
-  .btn-green:hover { background: rgba(34,197,94,.25); }
-  .btn-blue { background: rgba(59,130,246,.15); color: var(--blue); border: 1px solid rgba(59,130,246,.3); }
-  .btn-blue:hover { background: rgba(59,130,246,.25); }
-  .btn-red { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
-  .btn-red:hover { background: rgba(239,68,68,.25); }
+  .btn-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+  .btn-green:hover { background: #bbf7d0; }
+  .btn-blue { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-bd); }
+  .btn-blue:hover { background: #bfdbfe; }
+  .btn-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-bd); }
+  .btn-red:hover { background: #fecaca; }
 
   .content { padding: 28px; }
 
@@ -137,15 +149,15 @@
   /* ─── STAT CARDS ─── */
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
   .stat-card {
-    background: var(--ash); border: 1px solid var(--char);
+    background: var(--surface); border: 1px solid var(--border);
     border-radius: 12px; padding: 20px;
     position: relative; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
   }
   .stat-card::before {
     content: ''; position: absolute; top: 0; right: 0;
     width: 80px; height: 80px; border-radius: 50%;
-    transform: translate(30%, -30%);
-    opacity: .12;
+    transform: translate(30%, -30%); opacity: .08;
   }
   .stat-card.fire::before { background: var(--fire); }
   .stat-card.green::before { background: var(--green); }
@@ -157,36 +169,38 @@
   .stat-card.green .stat-value { color: var(--green); }
   .stat-card.yellow .stat-value { color: var(--yellow); }
   .stat-card.red .stat-value { color: var(--red); }
-  .stat-sub { font-size: 11px; color: var(--grey); margin-top: 4px; }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
   /* ─── TABLE ─── */
   .table-card {
-    background: var(--ash); border: 1px solid var(--char);
+    background: var(--surface); border: 1px solid var(--border);
     border-radius: 12px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
   }
   .table-header {
-    padding: 16px 20px; display: flex; align-items: center; gap: 12px;
-    border-bottom: 1px solid var(--char);
+    padding: 14px 20px; display: flex; align-items: center;
+    border-bottom: 1px solid var(--border);
     flex-wrap: wrap; gap: 10px;
+    background: var(--surface);
   }
-  .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+  .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--body); }
   .search-box {
     display: flex; align-items: center; gap: 8px;
-    background: var(--char); border: 1px solid transparent;
+    background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 7px 12px; transition: all .15s;
     flex: 1; max-width: 280px;
   }
-  .search-box:focus-within { border-color: var(--fire); background: rgba(255,73,16,.05); }
+  .search-box:focus-within { border-color: var(--fire); background: #fff7f5; }
   .search-box input {
     background: none; border: none; outline: none;
-    color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--body); font-family: 'DM Sans', sans-serif; font-size: 13px;
     width: 100%;
   }
-  .search-box input::placeholder { color: var(--grey); }
+  .search-box input::placeholder { color: var(--muted); }
   .filter-select {
-    background: var(--char); border: 1px solid var(--char);
+    background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 7px 10px;
-    color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--body); font-family: 'DM Sans', sans-serif; font-size: 13px;
     outline: none; cursor: pointer;
   }
   .filter-select:focus { border-color: var(--fire); }
@@ -196,42 +210,44 @@
   th {
     padding: 10px 16px; text-align: left;
     font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--grey); background: rgba(0,0,0,.2);
-    font-weight: 500; white-space: nowrap;
+    color: var(--grey); background: var(--surface2);
+    font-weight: 600; white-space: nowrap;
+    border-bottom: 1px solid var(--border);
   }
-  td { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.04); font-size: 13px; }
-  tr:hover td { background: rgba(255,255,255,.02); }
+  td { padding: 11px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--body); }
+  tr:hover td { background: #fafbfc; }
   .ext-num {
     font-family: 'DM Mono', monospace; font-size: 12px;
-    color: var(--ember); font-weight: 500;
+    color: var(--ember); font-weight: 600;
   }
   .tag {
     display: inline-block; padding: 2px 8px; border-radius: 4px;
     font-size: 11px; font-weight: 500;
   }
-  .tag-abc { background: rgba(59,130,246,.15); color: var(--blue); }
-  .tag-co2 { background: rgba(255,140,66,.15); color: var(--ember); }
-  .tag-dry { background: rgba(245,158,11,.15); color: var(--yellow); }
-  .tag-water { background: rgba(34,197,94,.15); color: var(--green); }
+  .tag-abc { background: var(--blue-bg); color: var(--blue); }
+  .tag-co2 { background: #FFF7ED; color: #C2410C; }
+  .tag-dry { background: var(--yellow-bg); color: var(--yellow); }
+  .tag-water { background: var(--green-bg); color: var(--green); }
   .status-dot {
     display: inline-flex; align-items: center; gap: 5px;
     font-size: 12px;
   }
   .dot { width: 6px; height: 6px; border-radius: 50%; }
-  .dot-ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
-  .dot-warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
-  .dot-due { background: var(--red); box-shadow: 0 0 6px var(--red); }
-  .dot-pending { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+  .dot-ok   { background: var(--green); }
+  .dot-warn { background: var(--yellow); }
+  .dot-due  { background: var(--red); }
+  .dot-pending { background: var(--blue); }
 
   .actions-cell { display: flex; gap: 6px; }
   .pagination {
-    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
-    border-top: 1px solid var(--char); font-size: 12px; color: var(--grey);
+    padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid var(--border); font-size: 12px; color: var(--grey);
+    background: var(--surface);
   }
   .page-btns { display: flex; gap: 4px; }
   .page-btn {
-    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--char);
-    background: none; color: var(--grey); cursor: pointer;
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--grey); cursor: pointer;
     display: flex; align-items: center; justify-content: center; font-size: 12px;
     transition: all .15s;
   }
@@ -240,90 +256,93 @@
   /* ─── MODAL ─── */
   .modal-overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+    background: rgba(0,0,0,.4); backdrop-filter: blur(4px);
     z-index: 200; align-items: center; justify-content: center;
     padding: 20px;
   }
   .modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
   .modal {
-    background: var(--ash); border: 1px solid var(--char);
+    background: var(--surface); border: 1px solid var(--border);
     border-radius: 16px; width: 100%; max-width: 600px;
     max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15);
   }
   .modal-head {
-    padding: 20px 24px; border-bottom: 1px solid var(--char);
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; background: var(--ash); z-index: 1;
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
   }
-  .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; color: var(--body); }
   .modal-close {
     width: 30px; height: 30px; border-radius: 8px;
-    background: var(--char); border: none; color: var(--grey);
+    background: var(--surface2); border: none; color: var(--grey);
     cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
     transition: all .15s;
   }
-  .modal-close:hover { color: var(--light); }
+  .modal-close:hover { background: var(--border); color: var(--body); }
   .modal-body { padding: 24px; }
   .modal-footer {
-    padding: 16px 24px; border-top: 1px solid var(--char);
+    padding: 14px 24px; border-top: 1px solid var(--border);
     display: flex; justify-content: flex-end; gap: 10px;
-    position: sticky; bottom: 0; background: var(--ash);
+    position: sticky; bottom: 0; background: var(--surface);
   }
 
   /* ─── FORM ─── */
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .form-group { display: flex; flex-direction: column; gap: 6px; }
   .form-group.full { grid-column: 1 / -1; }
-  label { font-size: 12px; font-weight: 500; color: var(--grey); text-transform: uppercase; letter-spacing: .06em; }
+  label { font-size: 12px; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: .06em; }
   input[type="text"], input[type="date"], input[type="number"], select, textarea {
-    background: var(--char); border: 1px solid rgba(255,255,255,.08);
+    background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 9px 12px;
-    color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--body); font-family: 'DM Sans', sans-serif; font-size: 13px;
     outline: none; transition: all .15s; width: 100%;
   }
-  input:focus, select:focus, textarea:focus { border-color: var(--fire); background: rgba(255,73,16,.04); }
+  input:focus, select:focus, textarea:focus { border-color: var(--fire); background: #fff7f5; box-shadow: 0 0 0 3px rgba(217,59,0,.08); }
   textarea { resize: vertical; min-height: 80px; }
-  select option { background: var(--ash); }
+  select option { background: var(--surface); color: var(--body); }
 
   /* ─── REFILL CARD ─── */
-  .refill-grid { display: grid; gap: 14px; }
+  .refill-grid { display: grid; gap: 12px; }
   .refill-card {
-    background: var(--ash); border: 1px solid var(--char);
-    border-radius: 12px; padding: 18px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px;
     display: flex; align-items: center; gap: 16px;
-    transition: all .15s;
+    transition: all .15s; box-shadow: 0 1px 3px rgba(0,0,0,.04);
   }
-  .refill-card:hover { border-color: rgba(255,255,255,.12); }
+  .refill-card:hover { border-color: var(--border2); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
   .refill-icon {
     width: 44px; height: 44px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-size: 22px; flex-shrink: 0;
   }
-  .refill-icon.pending { background: rgba(59,130,246,.12); }
-  .refill-icon.sent { background: rgba(245,158,11,.12); }
-  .refill-icon.received { background: rgba(34,197,94,.12); }
+  .refill-icon.pending  { background: var(--blue-bg); }
+  .refill-icon.sent     { background: var(--yellow-bg); }
+  .refill-icon.received { background: var(--green-bg); }
+  .refill-icon.in-store { background: var(--blue-bg); }
+  .refill-icon.deployed { background: var(--green-bg); }
   .refill-info { flex: 1; }
-  .refill-num { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ember); }
-  .refill-desc { font-size: 13px; font-weight: 500; margin: 2px 0; }
+  .refill-num  { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ember); font-weight: 600; }
+  .refill-desc { font-size: 13px; font-weight: 500; margin: 2px 0; color: var(--body); }
   .refill-meta { font-size: 11px; color: var(--grey); }
   .refill-actions { display: flex; gap: 8px; }
 
   /* ─── PASS PREVIEW ─── */
   .pass-preview {
-    background: linear-gradient(135deg, #1a0800 0%, #2d0e00 100%);
-    border: 1px solid rgba(255,73,16,.3);
+    background: #FFF8F5;
+    border: 1px solid #FDDCCC;
     border-radius: 12px; padding: 24px;
     font-family: 'DM Mono', monospace;
-    box-shadow: 0 0 40px rgba(255,73,16,.1);
+    box-shadow: 0 2px 12px rgba(217,59,0,.08);
   }
   .pass-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
   .pass-org { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--fire); }
   .pass-title { font-size: 11px; color: var(--grey); letter-spacing: .1em; text-transform: uppercase; }
   .pass-num { font-size: 22px; font-weight: 700; color: var(--ember); }
-  .pass-divider { border: none; border-top: 1px dashed rgba(255,73,16,.3); margin: 16px 0; }
+  .pass-divider { border: none; border-top: 1px dashed #FDDCCC; margin: 16px 0; }
   .pass-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
   .pass-key { color: var(--grey); }
-  .pass-val { color: var(--light); font-weight: 500; }
+  .pass-val { color: var(--body); font-weight: 500; }
   .pass-footer { margin-top: 16px; text-align: center; font-size: 10px; color: var(--grey); letter-spacing: .08em; }
   .pass-stamp {
     display: inline-block; border: 2px solid var(--fire);
@@ -332,26 +351,26 @@
     transform: rotate(-3deg);
   }
 
-  /* ─── HISTORY TABLE ─── */
+  /* ─── SECTION TITLE ─── */
   .section-title {
     font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
-    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--body);
   }
-  .section-title::after {
-    content: ''; flex: 1; height: 1px; background: var(--char);
-  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
   /* ─── CONFIG PAGE ─── */
   .config-section {
-    background: var(--ash); border: 1px solid var(--char);
+    background: var(--surface); border: 1px solid var(--border);
     border-radius: 12px; padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
   }
   .config-section-title {
     font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
-    margin-bottom: 16px; color: var(--ember);
+    margin-bottom: 16px; color: var(--body);
   }
   .url-display {
-    background: var(--char); border-radius: 8px; padding: 10px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
     font-family: 'DM Mono', monospace; font-size: 12px; color: var(--grey);
     word-break: break-all;
   }
@@ -360,25 +379,23 @@
   .alert {
     padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
   }
-  .alert-info { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25); color: #93C5FD; }
-  .alert-warn { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25); color: #FCD34D; }
+  .alert-info { background: var(--blue-bg); border: 1px solid var(--blue-bd); color: var(--blue); }
+  .alert-warn { background: var(--yellow-bg); border: 1px solid var(--yellow-bd); color: var(--yellow); }
 
   /* ─── EMPTY STATE ─── */
-  .empty-state {
-    text-align: center; padding: 60px 20px; color: var(--grey);
-  }
-  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: .4; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: .5; }
   .empty-text { font-size: 14px; }
 
   /* ─── TOAST ─── */
   .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
   .toast {
-    background: var(--ash); border: 1px solid var(--char);
+    background: var(--surface); border: 1px solid var(--border);
     border-radius: 10px; padding: 12px 16px;
     display: flex; align-items: center; gap: 10px;
-    font-size: 13px; min-width: 240px;
+    font-size: 13px; min-width: 240px; color: var(--body);
     animation: slideIn .3s ease;
-    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
   }
   @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   .toast.success { border-left: 3px solid var(--green); }
@@ -388,14 +405,14 @@
   /* ─── LOADING ─── */
   .loading-overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,.6); z-index: 999;
+    background: rgba(255,255,255,.75); z-index: 999;
     align-items: center; justify-content: center;
     flex-direction: column; gap: 16px;
   }
   .loading-overlay.show { display: flex; }
   .spinner {
     width: 40px; height: 40px; border-radius: 50%;
-    border: 3px solid var(--char);
+    border: 3px solid var(--border);
     border-top-color: var(--fire);
     animation: spin 0.8s linear infinite;
   }
@@ -416,50 +433,41 @@
 
   /* ─── LOCATION TRACKING ─── */
   .loc-vacant {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 11px; color: var(--red);
-    background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25);
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+    color: var(--red); background: var(--red-bg); border: 1px solid var(--red-bd);
     border-radius: 4px; padding: 1px 7px;
   }
   .loc-substitute {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 11px; color: var(--yellow);
-    background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.25);
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+    color: var(--yellow); background: var(--yellow-bg); border: 1px solid var(--yellow-bd);
     border-radius: 4px; padding: 1px 7px;
   }
   .loc-store {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 11px; color: var(--blue);
-    background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25);
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+    color: var(--blue); background: var(--blue-bg); border: 1px solid var(--blue-bd);
     border-radius: 4px; padding: 1px 7px;
   }
-  .loc-deployed {
-    font-size: 12px; color: var(--light);
-  }
+  .loc-deployed { font-size: 12px; color: var(--body); }
   .loc-action-card {
-    background: var(--char); border-radius: 8px; padding: 12px 14px;
-    border: 1px solid rgba(255,255,255,.06); margin-bottom: 8px;
+    background: var(--surface2); border-radius: 8px; padding: 12px 14px;
+    border: 1px solid var(--border); margin-bottom: 8px;
   }
-  .loc-action-header {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
-  }
+  .loc-action-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   .loc-action-ext { font-family: 'DM Mono',monospace; font-size: 12px; color: var(--ember); font-weight: 700; }
   .loc-action-loc { font-size: 12px; color: var(--grey); flex: 1; }
   .loc-radio-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
   .loc-radio-btn {
     display: flex; align-items: center; gap: 6px; cursor: pointer;
-    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--char);
-    background: var(--smoke); font-size: 12px; transition: all .15s;
-    user-select: none;
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); font-size: 12px; transition: all .15s;
+    user-select: none; color: var(--body);
   }
-  .loc-radio-btn:has(input:checked) {
-    border-color: var(--fire); background: rgba(255,73,16,.08); color: var(--light);
-  }
+  .loc-radio-btn:has(input:checked) { border-color: var(--fire); background: #FFF5F2; color: var(--fire); }
   .loc-radio-btn input[type="radio"] { accent-color: var(--fire); margin: 0; }
   .loc-sub-input { display: none; margin-top: 8px; }
   .loc-sub-input.show { display: block; }
   .deploy-card {
-    background: var(--ash); border: 1px solid rgba(59,130,246,.3);
+    background: var(--blue-bg); border: 1px solid var(--blue-bd);
     border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
   }
   .deploy-ext-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
@@ -467,45 +475,35 @@
   .deploy-orig-loc strong { color: var(--blue); }
 
   /* ─── HAMBURGER ─── */
-  .hamburger {
-    display: none; background: none; border: none; color: var(--light);
-    font-size: 20px; cursor: pointer; padding: 4px;
-  }
+  .hamburger { display: none; background: none; border: none; color: var(--body); font-size: 20px; cursor: pointer; padding: 4px; }
   @media (max-width: 900px) { .hamburger { display: block; } }
 
   /* ─── CHECKBOX ─── */
-  .cb-wrap {
-    display: flex; align-items: center; justify-content: center;
-  }
-  input[type="checkbox"] {
-    width: 16px; height: 16px; accent-color: var(--fire);
-    cursor: pointer; border-radius: 4px;
-  }
-  tr.selected td { background: rgba(255,73,16,.06) !important; }
+  .cb-wrap { display: flex; align-items: center; justify-content: center; }
+  input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--fire); cursor: pointer; border-radius: 4px; }
+  tr.selected td { background: #FFF5F2 !important; }
   tr.selected td:first-child { border-left: 3px solid var(--fire); }
 
   /* ─── SELECTION TOOLBAR ─── */
   .sel-toolbar {
     position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
-    background: var(--ash); border: 1px solid var(--fire);
+    background: var(--surface); border: 1px solid var(--border);
+    border-top: 3px solid var(--fire);
     border-radius: 14px; padding: 12px 20px;
     display: flex; align-items: center; gap: 16px;
-    box-shadow: 0 8px 40px rgba(255,73,16,.25), 0 2px 12px rgba(0,0,0,.5);
+    box-shadow: 0 8px 32px rgba(0,0,0,.15);
     z-index: 150; transition: transform .3s cubic-bezier(.34,1.56,.64,1);
     min-width: 380px;
   }
   .sel-toolbar.visible { transform: translateX(-50%) translateY(0); }
-  .sel-count {
-    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
-    color: var(--fire); white-space: nowrap;
-  }
-  .sel-count span { color: var(--light); font-size: 12px; font-family: 'DM Sans',sans-serif; font-weight: 400; }
-  .sel-divider { width: 1px; height: 24px; background: var(--char); }
+  .sel-count { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--fire); white-space: nowrap; }
+  .sel-count span { color: var(--body); font-size: 12px; font-family: 'DM Sans',sans-serif; font-weight: 400; }
+  .sel-divider { width: 1px; height: 24px; background: var(--border); }
   .sel-actions { display: flex; gap: 8px; align-items: center; flex: 1; }
   .btn-clear { background: none; border: none; color: var(--grey); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 6px; }
-  .btn-clear:hover { color: var(--light); background: var(--char); }
+  .btn-clear:hover { color: var(--body); background: var(--surface2); }
 
-  /* ─── BULK REFILL MODAL ─── */
+  /* ─── BULK EXT LIST ─── */
   .bulk-ext-list {
     display: flex; flex-direction: column; gap: 8px;
     max-height: 280px; overflow-y: auto;
@@ -513,31 +511,28 @@
   }
   .bulk-ext-item {
     display: flex; align-items: center; gap: 12px;
-    background: var(--char); border-radius: 8px; padding: 10px 14px;
-    border: 1px solid rgba(255,255,255,.06);
+    background: var(--surface2); border-radius: 8px; padding: 10px 14px;
+    border: 1px solid var(--border);
   }
   .bulk-ext-item .ext-num { min-width: 70px; }
   .bulk-ext-item .ext-info { flex: 1; font-size: 12px; color: var(--grey); }
-  .bulk-ext-item .ext-info strong { color: var(--light); display: block; font-size: 13px; }
+  .bulk-ext-item .ext-info strong { color: var(--body); display: block; font-size: 13px; }
   .bulk-remove {
-    background: none; border: none; color: var(--grey); cursor: pointer;
+    background: none; border: none; color: var(--muted); cursor: pointer;
     font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: all .15s;
   }
-  .bulk-remove:hover { color: var(--red); background: rgba(239,68,68,.1); }
+  .bulk-remove:hover { color: var(--red); background: var(--red-bg); }
 
   /* ─── BATCH PASSES PREVIEW ─── */
-  .batch-pass-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px;
-  }
+  .batch-pass-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; }
   .batch-pass-mini {
-    background: linear-gradient(135deg, #1a0800 0%, #2d0e00 100%);
-    border: 1px solid rgba(255,73,16,.3); border-radius: 8px;
-    padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px;
+    background: #FFF8F5; border: 1px solid #FDDCCC;
+    border-radius: 8px; padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px;
   }
   .batch-pass-mini .bpm-passno { color: var(--ember); font-weight: 700; font-size: 13px; margin-bottom: 6px; }
   .batch-pass-mini .bpm-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
   .batch-pass-mini .bpm-key { color: var(--grey); }
-  .batch-pass-mini .bpm-val { color: var(--light); }
+  .batch-pass-mini .bpm-val { color: var(--body); }
 </style>
 </head>
 <body>
@@ -546,10 +541,10 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-mark">
-      <div class="logo-icon">🔥</div>
+      <div class="logo-icon">🧯</div>
       <div>
-        <div class="logo-text">FireGuard</div>
-        <div class="logo-sub">Extinguisher Portal</div>
+        <div class="logo-sub" style="font-size:12px; color:var(--body); font-weight:600; letter-spacing:0; text-transform:none;">Extinguisher Management</div>
+        <div class="logo-sub">Fire Safety Portal</div>
       </div>
     </div>
   </div>
@@ -777,68 +772,120 @@
     <!-- ═══ CONFIG ═══ -->
     <div class="page" id="page-config">
       <div class="alert alert-warn">
-        ⚠️ Configure your Google Apps Script Web App URL and Sheet ID below. These are saved in your browser locally.
+        ⚠️ Configure your Google Apps Script Web App URL below. Settings are saved in your browser only.
+      </div>
+
+      <!-- Connection error alert — shown after failed test -->
+      <div class="alert" id="connection-error-alert"
+        style="display:none; background:var(--red-bg); border:1px solid var(--red-bd); color:var(--red); font-size:13px; line-height:1.8; margin-bottom:0;">
       </div>
 
       <div class="config-section">
         <div class="config-section-title">🔗 Google Apps Script API</div>
+
         <div class="form-grid">
           <div class="form-group full">
-            <label>Apps Script Web App URL</label>
-            <input type="text" id="cfg-api-url" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
+            <label>Apps Script Web App URL  <span id="url-status" style="margin-left:8px; font-size:11px;"></span></label>
+            <input type="text" id="cfg-api-url"
+              placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+              oninput="validateApiUrl(this.value)">
+            <div id="url-hint" style="font-size:11px; color:var(--grey); margin-top:5px; line-height:1.5;"></div>
           </div>
           <div class="form-group">
             <label>Google Sheet ID</label>
-            <input type="text" id="cfg-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
+            <input type="text" id="cfg-sheet-id"
+              placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
           </div>
           <div class="form-group">
             <label>Organisation Name</label>
             <input type="text" id="cfg-org-name" placeholder="Acme Corp">
           </div>
           <div class="form-group">
-            <label>Doc Template ID (Google Docs)</label>
-            <input type="text" id="cfg-template-id" placeholder="1abc...xyz (from Docs URL)">
+            <label>Doc Template ID (Google Docs) <span style="color:var(--grey);font-weight:400;">optional</span></label>
+            <input type="text" id="cfg-template-id" placeholder="Document ID from Docs URL">
           </div>
           <div class="form-group">
-            <label>Output Drive Folder ID</label>
+            <label>Output Drive Folder ID <span style="color:var(--grey);font-weight:400;">optional</span></label>
             <input type="text" id="cfg-folder-id" placeholder="Google Drive folder for PDFs">
           </div>
         </div>
-        <div style="margin-top:16px; display:flex; gap:10px;">
+
+        <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
           <button class="btn btn-ghost" onclick="testConnection()">🔌 Test Connection</button>
+          <a id="cfg-open-url" href="#" target="_blank"
+            style="display:none; font-size:12px; color:var(--blue); padding:4px 8px; border-radius:6px; background:var(--blue-bg);">
+            🔗 Open API URL in browser
+          </a>
+        </div>
+      </div>
+
+      <!-- Deployment checklist -->
+      <div class="config-section">
+        <div class="config-section-title">🚀 Deployment Checklist — Fix "Failed to fetch"</div>
+        <div style="font-size:13px; color:var(--grey); line-height:2; counter-reset:step;">
+
+          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
+            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">1</span>
+            <span>Open your Apps Script project → <strong style="color:var(--body);">Deploy → New deployment</strong> (or Manage deployments → Edit)</span>
+          </div>
+          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
+            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">2</span>
+            <span>Set <strong style="color:var(--body);">Execute as: Me</strong> and <strong style="color:var(--body);">Who has access: Anyone</strong> — not "Anyone within domain" (GitHub Pages is external)</span>
+          </div>
+          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
+            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">3</span>
+            <span>Copy the URL ending in <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">/exec</code> — not <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">/dev</code> (dev URLs block external access)</span>
+          </div>
+          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
+            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">4</span>
+            <span>After <em>any</em> code change, you must <strong style="color:var(--body);">create a new version</strong> — existing deployments do not auto-update</span>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">5</span>
+            <span>Grant permissions when prompted — click <strong style="color:var(--body);">Review permissions → Advanced → Go to app (unsafe) → Allow</strong></span>
+          </div>
+
+          <div style="margin-top:14px; padding:10px 14px; background:var(--blue-bg); border:1px solid var(--blue-bd); border-radius:8px; font-size:12px; color:var(--blue);">
+            💡 <strong>Why GET not POST?</strong> Apps Script handles CORS automatically for GET requests.
+            POST with <code>Content-Type: application/json</code> triggers a CORS preflight that Apps Script cannot respond to — causing "Failed to fetch". This portal uses GET with a <code>?payload=</code> param to avoid this entirely.
+          </div>
         </div>
       </div>
 
       <div class="config-section">
-        <div class="config-section-title">📋 Sheet Structure Guide</div>
-        <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:12px;">
-          Your Google Sheet should have these tabs with exact column names:
+        <div class="config-section-title">📋 Sheet Tab & Column Reference</div>
+        <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:14px;">
+          Run <code style="background:var(--surface2);padding:1px 6px;border-radius:3px;">setupSheets()</code> in Apps Script editor to create all tabs automatically.
         </p>
-        <div style="display:grid; gap:10px;">
+        <div style="display:grid; gap:12px;">
           <div>
             <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>Extinguishers</code></div>
-            <div class="url-display">ExtNo | Type | Weight | Location | MfgDate | LastRefillDate | NextRefillDue | Status | Remarks</div>
-          </div>
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>HydroTests</code></div>
-            <div class="url-display">TestID | ExtNo | TestDate | TestBy | Pressure | Result | NextDue | CertNo</div>
+            <div class="url-display" style="font-size:11px; line-height:1.8;">ExtNo | Type | Weight | Location | CurrentLocation | OriginalLocation | SubstituteFor | MfgDate | LastRefillDate | NextRefillDue | Status | Remarks | CreatedAt | UpdatedAt</div>
           </div>
           <div>
             <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>Refills</code></div>
-            <div class="url-display">RefillID | ExtNo | RequestDate | RequestBy | SentDate | ReceivedDate | PassNo | Status | Remarks</div>
+            <div class="url-display" style="font-size:11px; line-height:1.8;">RefillID | ExtNo | RequestDate | RequestBy | SentDate | ReceivedDate | PassNo | Status | OriginalLocation | LocationAction | SubstituteExtNo | Remarks | CreatedAt | UpdatedAt</div>
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>Passes</code></div>
+            <div class="url-display" style="font-size:11px; line-height:1.8;">PassNo | ExtNo | ExtList | Location | Type | Weight | GeneratedOn | GeneratedBy | Remarks | Status | DocUrl | CreatedAt</div>
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>HydroTests</code></div>
+            <div class="url-display" style="font-size:11px; line-height:1.8;">TestID | ExtNo | TestDate | TestBy | Pressure | Result | NextDue | CertNo | CreatedAt</div>
           </div>
         </div>
       </div>
 
       <div class="config-section">
-        <div class="config-section-title">📄 Doc Template Placeholders</div>
+        <div class="config-section-title">📄 Google Docs Template Placeholders</div>
         <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:12px;">
-          Use these placeholders in your Google Docs template:
+          Use these exact placeholders in your Google Docs template (the Word download does not use the template — it builds the file directly in the browser):
         </p>
-        <div class="url-display" style="line-height:2">
-          {{ORG_NAME}} &nbsp;|&nbsp; {{PASS_NO}} &nbsp;|&nbsp; {{EXT_NUMBER}} &nbsp;|&nbsp; {{EXT_TYPE}} &nbsp;|&nbsp; {{EXT_WEIGHT}}<br>
-          {{LOCATION}} &nbsp;|&nbsp; {{MFG_DATE}} &nbsp;|&nbsp; {{REQUEST_DATE}} &nbsp;|&nbsp; {{REQUEST_BY}} &nbsp;|&nbsp; {{REMARKS}}
+        <div class="url-display" style="line-height:2.2; font-size:12px;">
+          <span style="color:var(--ember);">{{ORG_NAME}}</span> &nbsp; <span style="color:var(--ember);">{{PASS_NO}}</span> &nbsp; <span style="color:var(--ember);">{{REQUEST_DATE}}</span> &nbsp; <span style="color:var(--ember);">{{REQUEST_BY}}</span><br>
+          <span style="color:var(--ember);">{{EXT_COUNT}}</span> &nbsp; <span style="color:var(--ember);">{{REMARKS}}</span> &nbsp; <span style="color:var(--ember);">{{EXT_TABLE}}</span> &nbsp; <span style="color:var(--ember);">{{GENERATED_DATE}}</span>
         </div>
       </div>
     </div>
@@ -989,7 +1036,7 @@
           <textarea id="r-remarks" placeholder="Reason for refill, condition notes..."></textarea>
         </div>
       </div>
-      <div style="margin-top:16px; padding:14px; background:rgba(255,73,16,.06); border-radius:8px; font-size:12px; color:var(--grey);">
+      <div style="margin-top:16px; padding:14px; background:var(--fire-glow); border-radius:8px; font-size:12px; color:var(--grey);">
         🔥 A <strong style="color:var(--ember)">Refill Pass</strong> will be generated using your Google Docs template and saved to Drive.
       </div>
     </div>
@@ -1050,7 +1097,7 @@
       <button class="modal-close" onclick="closeModal('modal-receive')">✕</button>
     </div>
     <div class="modal-body">
-      <div style="padding:10px 14px; background:rgba(59,130,246,.08); border:1px solid rgba(59,130,246,.2); border-radius:8px; margin-bottom:16px; font-size:12px; color:#93C5FD; line-height:1.6;">
+      <div style="padding:10px 14px; background:var(--blue-bg); border:1px solid var(--blue-bd); border-radius:8px; margin-bottom:16px; font-size:12px; color:var(--blue); line-height:1.6;">
         📦 The extinguisher will be moved to <strong>Storeroom</strong> on receipt.<br>
         Use <strong>📍 Deploy</strong> from the Master List to place it back at its original location.
       </div>
@@ -1109,9 +1156,9 @@
         </div>
       </div>
 
-      <div id="deploy-substitute-alert" style="display:none; margin-top:12px; padding:12px 14px; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25); border-radius:8px; font-size:12px; color:#FCD34D; line-height:1.6;"></div>
+      <div id="deploy-substitute-alert" style="display:none; margin-top:12px; padding:12px 14px; background:var(--yellow-bg); border:1px solid var(--yellow-bd); border-radius:8px; font-size:12px; color:var(--yellow); line-height:1.6;"></div>
 
-      <div style="border-top:1px solid var(--char); padding-top:14px; margin-top:14px;">
+      <div style="border-top:1px solid var(--border); padding-top:14px; margin-top:14px;">
         <div class="form-grid">
           <div class="form-group">
             <label>Deploy Date</label>
@@ -1151,12 +1198,12 @@
       <!-- Selected extinguishers list -->
       <div class="bulk-ext-list" id="bulk-ext-list"></div>
 
-      <div style="border-top:1px solid var(--char); padding-top:16px; margin-top:4px;">
+      <div style="border-top:1px solid var(--border); padding-top:16px; margin-top:4px;">
         <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:12px; text-transform:uppercase; letter-spacing:.06em;">📍 Location Actions — What happens to each location?</div>
         <div id="bulk-loc-actions" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px; max-height:260px; overflow-y:auto;"></div>
       </div>
 
-      <div style="border-top:1px solid var(--char); padding-top:16px; margin-top:4px;">
+      <div style="border-top:1px solid var(--border); padding-top:16px; margin-top:4px;">
         <div class="form-grid">
           <div class="form-group">
             <label>Request Date</label>
@@ -1173,7 +1220,7 @@
         </div>
       </div>
 
-      <div style="margin-top:14px; padding:12px 14px; background:rgba(255,73,16,.06); border-radius:8px; font-size:12px; color:var(--grey); line-height:1.6;">
+      <div style="margin-top:14px; padding:12px 14px; background:var(--fire-glow); border-radius:8px; font-size:12px; color:var(--grey); line-height:1.6;">
         🧾 <strong style="color:var(--ember)">One combined pass</strong> will be generated listing all selected extinguishers by Sl. No. Individual receive entries are tracked per extinguisher after return.
       </div>
     </div>
@@ -1299,21 +1346,57 @@ function loadConfig() {
   const saved = localStorage.getItem('fireguard_config');
   if (saved) {
     CONFIG = { ...CONFIG, ...JSON.parse(saved) };
-    document.getElementById('cfg-api-url').value = CONFIG.apiUrl || '';
-    document.getElementById('cfg-sheet-id').value = CONFIG.sheetId || '';
-    document.getElementById('cfg-org-name').value = CONFIG.orgName || '';
-    document.getElementById('cfg-template-id').value = CONFIG.templateId || '';
-    document.getElementById('cfg-folder-id').value = CONFIG.folderId || '';
+    document.getElementById('cfg-api-url').value    = CONFIG.apiUrl    || '';
+    document.getElementById('cfg-sheet-id').value   = CONFIG.sheetId   || '';
+    document.getElementById('cfg-org-name').value   = CONFIG.orgName   || '';
+    document.getElementById('cfg-template-id').value= CONFIG.templateId|| '';
+    document.getElementById('cfg-folder-id').value  = CONFIG.folderId  || '';
+    if (CONFIG.apiUrl) validateApiUrl(CONFIG.apiUrl);
+  }
+}
+
+function validateApiUrl(val) {
+  const statusEl = document.getElementById('url-status');
+  const hintEl   = document.getElementById('url-hint');
+  const openEl   = document.getElementById('cfg-open-url');
+  if (!val) {
+    statusEl.textContent = '';
+    hintEl.textContent = '';
+    if (openEl) openEl.style.display = 'none';
+    return;
+  }
+  const isExec  = val.includes('/exec');
+  const isDev   = val.includes('/dev');
+  const isGas   = val.includes('script.google.com/macros/s/');
+  if (isDev) {
+    statusEl.innerHTML = '<span style="color:var(--red);">⚠ /dev URL</span>';
+    hintEl.innerHTML   = '❌ <strong>/dev</strong> URLs block external access. Use the <strong>/exec</strong> URL from Manage Deployments.';
+  } else if (!isGas) {
+    statusEl.innerHTML = '<span style="color:var(--yellow);">⚠ Check URL</span>';
+    hintEl.textContent = 'URL should start with https://script.google.com/macros/s/…/exec';
+  } else if (isExec) {
+    statusEl.innerHTML = '<span style="color:var(--green);">✓ Looks good</span>';
+    hintEl.textContent = '';
+  }
+  if (openEl) {
+    openEl.href = val + '?action=ping';
+    openEl.style.display = 'inline-flex';
   }
 }
 
 function saveConfig() {
-  CONFIG.apiUrl = document.getElementById('cfg-api-url').value.trim();
-  CONFIG.sheetId = document.getElementById('cfg-sheet-id').value.trim();
-  CONFIG.orgName = document.getElementById('cfg-org-name').value.trim() || 'Your Organisation';
+  CONFIG.apiUrl     = document.getElementById('cfg-api-url').value.trim();
+  CONFIG.sheetId    = document.getElementById('cfg-sheet-id').value.trim();
+  CONFIG.orgName    = document.getElementById('cfg-org-name').value.trim() || 'Your Organisation';
   CONFIG.templateId = document.getElementById('cfg-template-id').value.trim();
-  CONFIG.folderId = document.getElementById('cfg-folder-id').value.trim();
+  CONFIG.folderId   = document.getElementById('cfg-folder-id').value.trim();
   localStorage.setItem('fireguard_config', JSON.stringify(CONFIG));
+
+  // Hide any previous error alert
+  const alertEl = document.getElementById('connection-error-alert');
+  if (alertEl) alertEl.style.display = 'none';
+
+  validateApiUrl(CONFIG.apiUrl);
   showToast('Configuration saved!', 'success');
 }
 
@@ -1354,57 +1437,122 @@ function loadSampleData() {
 }
 
 // ═══════════════════════════════════════════════
-// API CALLS
+// API CALLS  — All requests use GET to avoid CORS
+// preflight. Apps Script handles GET CORS natively.
+// Payload is JSON-encoded as a query parameter.
 // ═══════════════════════════════════════════════
-async function apiCall(action, payload = {}) {
+async function apiCall(action, payload = {}, silent = false) {
   if (!CONFIG.apiUrl) {
-    showToast('API URL not configured. Go to Configuration.', 'error');
+    showToast('API URL not configured. Go to ⚙️ Configuration.', 'error');
     return null;
   }
-  showLoading('Communicating with Google Sheets...');
+  if (!silent) showLoading('Syncing with Google Sheets...');
+
   try {
-    const url = `${CONFIG.apiUrl}?action=${action}`;
+    // Encode payload as URL param — avoids Content-Type:application/json
+    // which triggers a CORS preflight that Apps Script cannot respond to
+    const payloadStr = encodeURIComponent(JSON.stringify(payload));
+    const url = `${CONFIG.apiUrl}?action=${encodeURIComponent(action)}&payload=${payloadStr}`;
+
+    // Apps Script Web Apps redirect to a new URL on execution.
+    // 'follow' is default but we set it explicitly for clarity.
     const res = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' }
+      method: 'GET',
+      redirect: 'follow'
     });
-    const data = await res.json();
-    hideLoading();
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} — ${res.statusText}`);
+    }
+
+    const text = await res.text();
+
+    // Guard: Apps Script sometimes returns an HTML error page
+    if (text.trim().startsWith('<')) {
+      throw new Error('Apps Script returned HTML instead of JSON. Check deployment permissions (must be "Anyone").');
+    }
+
+    const data = JSON.parse(text);
+    if (!silent) hideLoading();
     return data;
+
   } catch (e) {
-    hideLoading();
-    showToast('API Error: ' + e.message, 'error');
+    if (!silent) hideLoading();
+
+    // Detailed diagnostics to help user fix the issue
+    let msg = e.message || 'Unknown error';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Load failed')) {
+      msg = 'Cannot reach Apps Script.\n\n'
+          + '• Check the Web App URL in ⚙️ Configuration\n'
+          + '• Re-deploy script: Deploy → Manage Deployments → ✏️ Edit → New version\n'
+          + '• Set "Who has access" to Anyone (not just domain users)\n'
+          + '• Make sure the URL ends in /exec not /dev';
+    } else if (msg.includes('HTML instead of JSON')) {
+      msg = 'Script returned an error page.\n'
+          + 'Open the URL in a browser tab to see the actual error.';
+    }
+
+    if (!silent) showToast('API Error: ' + msg, 'error');
+    console.error('[FireGuard API]', action, e);
     return null;
   }
 }
 
 async function refreshData() {
-  if (!CONFIG.apiUrl) { showToast('Configure API URL first', 'error'); return; }
-  showLoading('Syncing data...');
-  const res = await apiCall('getAll');
+  if (!CONFIG.apiUrl) { showToast('Configure API URL first in ⚙️ Configuration', 'error'); return; }
+  showLoading('Syncing data from Google Sheets...');
+  const res = await apiCall('getAll', {}, true);
+  hideLoading();
   if (res && res.success) {
     DATA.extinguishers = res.extinguishers || [];
-    DATA.hydroTests = res.hydroTests || [];
-    DATA.refills = res.refills || [];
-    DATA.passes = res.passes || [];
+    DATA.hydroTests    = res.hydroTests    || [];
+    DATA.refills       = res.refills       || [];
+    DATA.passes        = res.passes        || [];
     renderDashboard();
     renderMasterTable();
     renderHydroTable();
     renderRefills();
     renderPasses();
-    showToast('Data synced successfully!', 'success');
+    showToast(`Synced — ${DATA.extinguishers.length} extinguishers loaded`, 'success');
+  } else {
+    const errMsg = res?.error || 'No response from server';
+    showToast('Sync failed: ' + errMsg, 'error');
   }
-  hideLoading();
 }
 
 async function testConnection() {
   if (!CONFIG.apiUrl) { showToast('Enter API URL first', 'error'); return; }
-  showLoading('Testing connection...');
-  const res = await apiCall('ping');
+
+  const btn = document.querySelector('[onclick="testConnection()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Testing...'; }
+
+  showLoading('Testing connection to Google Sheets...');
+  const res = await apiCall('ping', {}, true);
   hideLoading();
-  if (res && res.success) showToast('✅ Connected to Google Sheets!', 'success');
-  else showToast('Connection failed. Check your URL.', 'error');
+
+  if (btn) { btn.disabled = false; btn.textContent = '🔌 Test Connection'; }
+
+  if (res && res.success) {
+    showToast('✅ Connected! Apps Script is running.', 'success');
+    // Show server timestamp to confirm live connection
+    if (res.ts) console.log('[FireGuard] Server time:', res.ts);
+  } else {
+    const hint = res?.error || 'No response';
+    showToast('❌ Connection failed: ' + hint, 'error');
+
+    // Show inline diagnostics in config page
+    const alertEl = document.getElementById('connection-error-alert');
+    if (alertEl) {
+      alertEl.style.display = 'block';
+      alertEl.innerHTML = `
+        <strong>Connection failed.</strong> Common fixes:<br>
+        1. In Apps Script → <strong>Deploy → Manage deployments → ✏️ Edit</strong> → set version to <em>New version</em> → re-deploy<br>
+        2. "Who has access" must be <strong>Anyone</strong> (not domain-restricted for GitHub Pages)<br>
+        3. Copy the URL ending in <code>/exec</code> — not <code>/dev</code><br>
+        4. <a href="${CONFIG.apiUrl}?action=ping" target="_blank" style="color:var(--blue);">Open API URL in new tab</a> to check for errors
+      `;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1475,7 +1623,7 @@ function renderMasterTable(data) {
     // Original location (shown when away or in store)
     let origDisplay = origLoc
       ? `<span style="font-size:12px;color:var(--grey);">${origLoc}</span>`
-      : `<span style="color:var(--char);font-size:11px;">—</span>`;
+      : `<span style="color:var(--muted);font-size:11px;">—</span>`;
 
     // Check if original location is vacant
     const locVacant = origLoc && !DATA.extinguishers.find(ex => (ex.CurrentLocation || ex.Location) === origLoc && ex.ExtNo !== e.ExtNo && ex.Status !== 'pending');
@@ -1618,7 +1766,7 @@ function renderRefills() {
         <div class="refill-icon ${iconClass}">${icons[r.Status] || '🔄'}</div>
         <div class="refill-info">
           <div class="refill-num">${r.ExtNo} &nbsp;·&nbsp; Pass: ${r.PassNo}</div>
-          <div class="refill-desc">${ext.Type || '—'} &nbsp;·&nbsp; Original: <strong style="color:var(--light)">${origLoc}</strong></div>
+          <div class="refill-desc">${ext.Type || '—'} &nbsp;·&nbsp; Original: <strong style="color:var(--body)">${origLoc}</strong></div>
           <div class="refill-meta" style="margin-top:3px;">${locLine}</div>
           <div class="refill-meta">Requested: ${fmtDate(r.RequestDate)} by ${r.RequestBy}${r.SentDate ? ' · Sent: ' + fmtDate(r.SentDate) : ''}${r.ReceivedDate ? ' · Received: ' + fmtDate(r.ReceivedDate) : ''}</div>
         </div>
@@ -2224,12 +2372,12 @@ function printPass() {
   const content = document.getElementById('pass-preview-content').innerHTML;
   const w = window.open('', '_blank');
   w.document.write(`<html><head><title>Refill Pass</title><style>
-    body{font-family:monospace;background:#1a0800;color:#F0EEF5;padding:40px;}
-    .pass-org{font-size:22px;font-weight:bold;color:#FF4910;}
-    .pass-num{font-size:28px;font-weight:bold;color:#FF8C42;}
+    body{font-family:monospace;background:#fff;color:#111;padding:40px;}
+    .pass-org{font-size:22px;font-weight:bold;color:#D93B00;}
+    .pass-num{font-size:28px;font-weight:bold;color:#C84B0A;}
     .pass-row{display:flex;justify-content:space-between;margin:8px 0;font-size:14px;}
-    .pass-key{color:#888;}hr{border:1px dashed rgba(255,73,16,.4);margin:16px 0;}
-    .pass-stamp{display:inline-block;border:2px solid #FF4910;color:#FF4910;padding:4px 12px;border-radius:4px;transform:rotate(-3deg);font-size:12px;}
+    .pass-key{color:#888;}hr{border:1px dashed #FDDCCC;margin:16px 0;}
+    .pass-stamp{display:inline-block;border:2px solid #D93B00;color:#D93B00;padding:4px 12px;border-radius:4px;transform:rotate(-3deg);font-size:12px;}
   </style></head><body>${content}</body></html>`);
   w.document.close();
   w.print();
@@ -2285,14 +2433,14 @@ function openReceiveModal(refillId) {
   const origLoc = r.OriginalLocation || ext.Location || '—';
   const subExt = DATA.extinguishers.find(e => e.SubstituteFor === r.ExtNo);
   document.getElementById('receive-ext-info').innerHTML = `
-    <div style="background:var(--char);border-radius:8px;padding:12px 14px;">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
       <div style="display:flex;gap:12px;align-items:center;">
         <span class="ext-num">${r.ExtNo}</span>
         ${typeTag(ext.Type || '—')}
         <span style="font-size:12px;color:var(--grey);">${ext.Weight || '—'} kg</span>
       </div>
       <div style="margin-top:8px;font-size:12px;color:var(--grey);">
-        Original Location: <strong style="color:var(--light)">${origLoc}</strong>
+        Original Location: <strong style="color:var(--body)">${origLoc}</strong>
         ${subExt ? `<span class="loc-substitute" style="margin-left:8px;">↔ ${subExt.ExtNo} currently placed there</span>` : `<span class="loc-vacant" style="margin-left:8px;">⚠ Currently Vacant</span>`}
       </div>
     </div>`;
@@ -2736,12 +2884,12 @@ function showCombinedPassPreview(pass, extDetails) {
 
   const tbody = document.getElementById('cp-ext-body');
   tbody.innerHTML = extDetails.map(e => `
-    <tr style="border-top:1px solid rgba(255,255,255,.04);">
+    <tr style="border-top:1px solid var(--border);">
       <td style="padding:7px 10px; color:var(--ember); font-weight:700;">${e.slNo}</td>
       <td style="padding:7px 10px; color:var(--ember);">${e.extNo}</td>
-      <td style="padding:7px 10px; color:var(--light);">${e.type}</td>
-      <td style="padding:7px 10px; color:var(--light);">${e.weight} kg</td>
-      <td style="padding:7px 10px; color:var(--light); font-size:11px;">${e.location}</td>
+      <td style="padding:7px 10px; color:var(--body);">${e.type}</td>
+      <td style="padding:7px 10px; color:var(--body);">${e.weight} kg</td>
+      <td style="padding:7px 10px; color:var(--body); font-size:11px;">${e.location}</td>
       <td style="padding:7px 10px; color:var(--grey);">${fmtDate(e.mfgDate)}</td>
     </tr>`).join('');
 
@@ -2786,20 +2934,21 @@ function printCombinedPass() {
   w.document.write(`<!DOCTYPE html><html><head><title>Refill Pass ${passNo}</title>
   <style>
     body { font-family: 'Courier New', monospace; background: #fff; color: #111; padding: 36px 40px; max-width: 720px; margin: 0 auto; font-size: 13px; }
-    .org { font-size: 22px; font-weight: bold; font-family: Arial, sans-serif; }
+    .org { font-size: 22px; font-weight: bold; font-family: Arial, sans-serif; color: #D93B00; }
     .title { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; margin-top: 2px; }
-    .passno { font-size: 24px; font-weight: bold; color: #c93300; }
+    .passno { font-size: 24px; font-weight: bold; color: #C84B0A; }
     .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin: 14px 0; font-size: 12px; }
     .meta-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #ddd; }
     .meta-key { color: #888; }
     hr { border: none; border-top: 1px dashed #bbb; margin: 14px 0; }
     .section-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #888; margin-bottom: 6px; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    thead tr { background: #f5f5f5; }
-    th { padding: 7px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #555; border-bottom: 2px solid #ddd; }
-    td { padding: 7px 10px; border-bottom: 1px solid #eee; }
-    td:first-child { color: #c93300; font-weight: bold; }
-    .stamp { display: inline-block; border: 2px solid #c93300; color: #c93300; padding: 4px 14px; border-radius: 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; transform: rotate(-3deg); margin: 14px 0 8px; }
+    thead tr { background: #FFF0EB; }
+    th { padding: 7px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #C84B0A; border-bottom: 2px solid #FDDCCC; }
+    td { padding: 7px 10px; border-bottom: 1px solid #F3F4F6; color: #111; }
+    td:first-child { color: #D93B00; font-weight: bold; }
+    tr:nth-child(even) td { background: #FAFAFA; }
+    .stamp { display: inline-block; border: 2px solid #D93B00; color: #D93B00; padding: 4px 14px; border-radius: 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; transform: rotate(-3deg); margin: 14px 0 8px; }
     .sig-block { margin-top: 28px; display: flex; justify-content: space-between; font-size: 12px; color: #555; }
     .sig-line { border-top: 1px solid #999; width: 200px; padding-top: 4px; text-align: center; }
     @media print { body { padding: 20px; } }
