@@ -5,43 +5,66 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fire Extinguisher Management Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
   :root {
-    --fire:      #D93B00;
-    --fire-dark: #B52E00;
-    --fire-glow: rgba(217,59,0,0.12);
-    --ember:     #C84B0A;
-    --bg:        #F4F5F7;
-    --surface:   #FFFFFF;
-    --surface2:  #F0F1F4;
-    --border:    #E0E2E8;
-    --border2:   #CDD0D8;
-    --grey:      #6B7280;
-    --body:      #1F2937;
-    --muted:     #9CA3AF;
-    --white:     #FFFFFF;
-    --green:     #16A34A;
-    --green-bg:  #DCFCE7;
-    --green-bd:  #86EFAC;
-    --yellow:    #B45309;
-    --yellow-bg: #FEF9C3;
-    --yellow-bd: #FDE047;
-    --red:       #DC2626;
-    --red-bg:    #FEE2E2;
-    --red-bd:    #FCA5A5;
-    --blue:      #1D4ED8;
-    --blue-bg:   #DBEAFE;
-    --blue-bd:   #93C5FD;
+    /* ── Brand / Accent ── */
+    --accent:      #0F6FBF;
+    --accent-dark: #0A5490;
+    --accent-glow: rgba(15,111,191,0.12);
+    --accent2:     #0891B2;   /* teal for secondary highlights */
+
+    /* ── Page surfaces ── */
+    --bg:          #F0F4F8;
+    --surface:     #FFFFFF;
+    --surface2:    #F8FAFC;
+    --surface3:    #EEF2F7;
+
+    /* ── Borders ── */
+    --border:      #DDE3EC;
+    --border2:     #C8D1DE;
+
+    /* ── Text ── */
+    --body:        #1A2332;
+    --grey:        #5A6880;
+    --muted:       #8FA0B4;
+    --white:       #FFFFFF;
+
+    /* ── Semantic colours ── */
+    --green:       #0D7F4A;
+    --green-bg:    #D1FAE5;
+    --green-bd:    #6EE7B7;
+
+    --yellow:      #92680A;
+    --yellow-bg:   #FEF3C7;
+    --yellow-bd:   #FCD34D;
+
+    --red:         #B91C1C;
+    --red-bg:      #FEE2E2;
+    --red-bd:      #FCA5A5;
+
+    --blue:        #1D4ED8;
+    --blue-bg:     #DBEAFE;
+    --blue-bd:     #93C5FD;
+
+    /* ── Sidebar specific ── */
+    --sidebar-bg:  #0F1E2E;
+    --sidebar-surface: #172435;
+    --sidebar-border:  #243347;
+    --sidebar-text:    #94A8BF;
+    --sidebar-active-bg: rgba(15,111,191,0.18);
+    --sidebar-active:    #4DA6FF;
   }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     background: var(--bg);
     color: var(--body);
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
     min-height: 100vh;
     overflow-x: hidden;
@@ -51,61 +74,67 @@
   .sidebar {
     position: fixed; top: 0; left: 0;
     width: 240px; height: 100vh;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
     display: flex; flex-direction: column;
     z-index: 100;
     transition: transform .3s ease;
-    box-shadow: 2px 0 8px rgba(0,0,0,.05);
+    box-shadow: 2px 0 12px rgba(0,0,0,.15);
   }
   .sidebar-logo {
     padding: 20px 20px 18px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--sidebar-border);
   }
   .logo-mark {
     display: flex; align-items: center; gap: 10px;
   }
   .logo-icon {
     width: 36px; height: 36px;
-    background: var(--fire);
+    background: var(--accent);
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
     font-size: 18px;
-    box-shadow: 0 2px 8px var(--fire-glow);
+    box-shadow: 0 2px 8px rgba(15,111,191,0.35);
   }
-  .logo-sub { font-size: 11px; color: var(--grey); letter-spacing: .04em; margin-top: 1px; }
+  .logo-sub { font-size: 11px; color: var(--sidebar-text); letter-spacing: .02em; margin-top: 1px; }
+  .logo-sub.primary { font-size: 12px; color: #E2EAF4; font-weight: 600; letter-spacing: 0; text-transform: none; }
 
   .nav { padding: 14px 10px; flex: 1; overflow-y: auto; }
   .nav-section-label {
     font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
-    color: var(--muted); padding: 8px 8px 6px; margin-top: 8px;
+    color: var(--sidebar-border); padding: 8px 8px 6px; margin-top: 8px;
+    font-weight: 600;
   }
   .nav-item {
     display: flex; align-items: center; gap: 10px;
     padding: 9px 12px; border-radius: 8px;
     cursor: pointer; transition: all .15s;
-    font-size: 13.5px; font-weight: 400; color: var(--grey);
-    margin-bottom: 2px;
+    font-size: 13.5px; font-weight: 400; color: var(--sidebar-text);
+    margin-bottom: 2px; font-family: 'Inter', sans-serif;
   }
-  .nav-item:hover { background: var(--surface2); color: var(--body); }
-  .nav-item.active { background: var(--fire-glow); color: var(--fire); font-weight: 600; }
+  .nav-item:hover { background: var(--sidebar-surface); color: #E2EAF4; }
+  .nav-item.active {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-active);
+    font-weight: 600;
+  }
   .nav-item .icon { width: 18px; text-align: center; font-size: 15px; }
   .nav-badge {
-    margin-left: auto; background: var(--fire); color: #fff;
+    margin-left: auto; background: var(--accent); color: #fff;
     font-size: 10px; padding: 1px 6px; border-radius: 20px;
-    font-family: 'DM Mono', monospace;
+    font-family: 'JetBrains Mono', monospace;
   }
 
   .sidebar-footer {
-    padding: 14px 16px; border-top: 1px solid var(--border);
-    font-size: 11px; color: var(--grey);
+    padding: 14px 16px; border-top: 1px solid var(--sidebar-border);
+    font-size: 11px; color: var(--sidebar-text);
   }
   .config-btn {
     display: flex; align-items: center; gap: 8px;
     padding: 8px 10px; border-radius: 6px;
     cursor: pointer; transition: all .15s;
   }
-  .config-btn:hover { background: var(--surface2); color: var(--body); }
+  .config-btn:hover { background: var(--sidebar-surface); color: #E2EAF4; }
 
   /* ─── MAIN ─── */
   .main { margin-left: 240px; min-height: 100vh; }
@@ -117,18 +146,18 @@
     display: flex; align-items: center; gap: 12px;
     box-shadow: 0 1px 4px rgba(0,0,0,.06);
   }
-  .topbar-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--body); }
+  .topbar-title { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; color: var(--body); }
   .topbar-sub { color: var(--muted); font-size: 12px; margin-left: 2px; }
   .topbar-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 
   .btn {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 16px; border-radius: 8px; border: none;
-    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
     cursor: pointer; transition: all .15s; text-decoration: none;
   }
-  .btn-primary { background: var(--fire); color: #fff; }
-  .btn-primary:hover { background: var(--fire-dark); box-shadow: 0 2px 10px var(--fire-glow); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-dark); box-shadow: 0 2px 10px var(--accent-glow); }
   .btn-ghost { background: transparent; color: var(--grey); border: 1px solid var(--border); }
   .btn-ghost:hover { border-color: var(--border2); color: var(--body); background: var(--surface2); }
   .btn-sm { padding: 5px 11px; font-size: 12px; }
@@ -159,13 +188,13 @@
     width: 80px; height: 80px; border-radius: 50%;
     transform: translate(30%, -30%); opacity: .08;
   }
-  .stat-card.fire::before { background: var(--fire); }
+  .stat-card.fire::before { background: var(--accent); }
   .stat-card.green::before { background: var(--green); }
   .stat-card.yellow::before { background: var(--yellow); }
   .stat-card.red::before { background: var(--red); }
   .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--grey); margin-bottom: 8px; }
-  .stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; }
-  .stat-card.fire .stat-value { color: var(--fire); }
+  .stat-value { font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 800; }
+  .stat-card.fire .stat-value { color: var(--accent); }
   .stat-card.green .stat-value { color: var(--green); }
   .stat-card.yellow .stat-value { color: var(--yellow); }
   .stat-card.red .stat-value { color: var(--red); }
@@ -183,27 +212,27 @@
     flex-wrap: wrap; gap: 10px;
     background: var(--surface);
   }
-  .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--body); }
+  .table-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 15px; color: var(--body); }
   .search-box {
     display: flex; align-items: center; gap: 8px;
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 7px 12px; transition: all .15s;
     flex: 1; max-width: 280px;
   }
-  .search-box:focus-within { border-color: var(--fire); background: #fff7f5; }
+  .search-box:focus-within { border-color: var(--accent); background: var(--surface2); }
   .search-box input {
     background: none; border: none; outline: none;
-    color: var(--body); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--body); font-family: 'Inter', sans-serif; font-size: 13px;
     width: 100%;
   }
   .search-box input::placeholder { color: var(--muted); }
   .filter-select {
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 7px 10px;
-    color: var(--body); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--body); font-family: 'Inter', sans-serif; font-size: 13px;
     outline: none; cursor: pointer;
   }
-  .filter-select:focus { border-color: var(--fire); }
+  .filter-select:focus { border-color: var(--accent); }
 
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
@@ -217,8 +246,8 @@
   td { padding: 11px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--body); }
   tr:hover td { background: #fafbfc; }
   .ext-num {
-    font-family: 'DM Mono', monospace; font-size: 12px;
-    color: var(--ember); font-weight: 600;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--accent); font-weight: 600;
   }
   .tag {
     display: inline-block; padding: 2px 8px; border-radius: 4px;
@@ -251,7 +280,7 @@
     display: flex; align-items: center; justify-content: center; font-size: 12px;
     transition: all .15s;
   }
-  .page-btn:hover, .page-btn.active { background: var(--fire); border-color: var(--fire); color: #fff; }
+  .page-btn:hover, .page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
   /* ─── MODAL ─── */
   .modal-overlay {
@@ -272,7 +301,7 @@
     display: flex; align-items: center; justify-content: space-between;
     position: sticky; top: 0; background: var(--surface); z-index: 1;
   }
-  .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; color: var(--body); }
+  .modal-title { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; color: var(--body); }
   .modal-close {
     width: 30px; height: 30px; border-radius: 8px;
     background: var(--surface2); border: none; color: var(--grey);
@@ -295,10 +324,10 @@
   input[type="text"], input[type="date"], input[type="number"], select, textarea {
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 9px 12px;
-    color: var(--body); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--body); font-family: 'Inter', sans-serif; font-size: 13px;
     outline: none; transition: all .15s; width: 100%;
   }
-  input:focus, select:focus, textarea:focus { border-color: var(--fire); background: #fff7f5; box-shadow: 0 0 0 3px rgba(217,59,0,.08); }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); background: var(--surface2); box-shadow: 0 0 0 3px rgba(15,111,191,.10); }
   textarea { resize: vertical; min-height: 80px; }
   select option { background: var(--surface); color: var(--body); }
 
@@ -322,38 +351,38 @@
   .refill-icon.in-store { background: var(--blue-bg); }
   .refill-icon.deployed { background: var(--green-bg); }
   .refill-info { flex: 1; }
-  .refill-num  { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ember); font-weight: 600; }
+  .refill-num  { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); font-weight: 600; }
   .refill-desc { font-size: 13px; font-weight: 500; margin: 2px 0; color: var(--body); }
   .refill-meta { font-size: 11px; color: var(--grey); }
   .refill-actions { display: flex; gap: 8px; }
 
   /* ─── PASS PREVIEW ─── */
   .pass-preview {
-    background: #FFF8F5;
-    border: 1px solid #FDDCCC;
+    background: #F0F7FF;
+    border: 1px solid #DBEAFE;
     border-radius: 12px; padding: 24px;
-    font-family: 'DM Mono', monospace;
+    font-family: 'JetBrains Mono', monospace;
     box-shadow: 0 2px 12px rgba(217,59,0,.08);
   }
   .pass-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-  .pass-org { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--fire); }
+  .pass-org { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; color: var(--accent); }
   .pass-title { font-size: 11px; color: var(--grey); letter-spacing: .1em; text-transform: uppercase; }
-  .pass-num { font-size: 22px; font-weight: 700; color: var(--ember); }
-  .pass-divider { border: none; border-top: 1px dashed #FDDCCC; margin: 16px 0; }
+  .pass-num { font-size: 22px; font-weight: 700; color: var(--accent2); }
+  .pass-divider { border: none; border-top: 1px dashed #DBEAFE; margin: 16px 0; }
   .pass-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
   .pass-key { color: var(--grey); }
   .pass-val { color: var(--body); font-weight: 500; }
   .pass-footer { margin-top: 16px; text-align: center; font-size: 10px; color: var(--grey); letter-spacing: .08em; }
   .pass-stamp {
-    display: inline-block; border: 2px solid var(--fire);
-    color: var(--fire); padding: 4px 12px; border-radius: 4px;
+    display: inline-block; border: 2px solid var(--accent);
+    color: var(--accent); padding: 4px 12px; border-radius: 4px;
     font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
     transform: rotate(-3deg);
   }
 
   /* ─── SECTION TITLE ─── */
   .section-title {
-    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700;
     margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--body);
   }
   .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
@@ -365,13 +394,13 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.04);
   }
   .config-section-title {
-    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
+    font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 14px;
     margin-bottom: 16px; color: var(--body);
   }
   .url-display {
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 10px 14px;
-    font-family: 'DM Mono', monospace; font-size: 12px; color: var(--grey);
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--grey);
     word-break: break-all;
   }
   .copy-row { display: flex; gap: 8px; align-items: center; }
@@ -413,7 +442,7 @@
   .spinner {
     width: 40px; height: 40px; border-radius: 50%;
     border: 3px solid var(--border);
-    border-top-color: var(--fire);
+    border-top-color: var(--accent);
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -453,7 +482,7 @@
     border: 1px solid var(--border); margin-bottom: 8px;
   }
   .loc-action-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .loc-action-ext { font-family: 'DM Mono',monospace; font-size: 12px; color: var(--ember); font-weight: 700; }
+  .loc-action-ext { font-family: 'JetBrains Mono',monospace; font-size: 12px; color: var(--accent2); font-weight: 700; }
   .loc-action-loc { font-size: 12px; color: var(--grey); flex: 1; }
   .loc-radio-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
   .loc-radio-btn {
@@ -462,8 +491,8 @@
     background: var(--surface); font-size: 12px; transition: all .15s;
     user-select: none; color: var(--body);
   }
-  .loc-radio-btn:has(input:checked) { border-color: var(--fire); background: #FFF5F2; color: var(--fire); }
-  .loc-radio-btn input[type="radio"] { accent-color: var(--fire); margin: 0; }
+  .loc-radio-btn:has(input:checked) { border-color: var(--accent); background: #EFF6FF; color: var(--accent); }
+  .loc-radio-btn input[type="radio"] { accent-color: var(--accent); margin: 0; }
   .loc-sub-input { display: none; margin-top: 8px; }
   .loc-sub-input.show { display: block; }
   .deploy-card {
@@ -480,15 +509,15 @@
 
   /* ─── CHECKBOX ─── */
   .cb-wrap { display: flex; align-items: center; justify-content: center; }
-  input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--fire); cursor: pointer; border-radius: 4px; }
-  tr.selected td { background: #FFF5F2 !important; }
-  tr.selected td:first-child { border-left: 3px solid var(--fire); }
+  input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; border-radius: 4px; }
+  tr.selected td { background: #EFF6FF !important; }
+  tr.selected td:first-child { border-left: 3px solid var(--accent); }
 
   /* ─── SELECTION TOOLBAR ─── */
   .sel-toolbar {
     position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
     background: var(--surface); border: 1px solid var(--border);
-    border-top: 3px solid var(--fire);
+    border-top: 3px solid var(--accent);
     border-radius: 14px; padding: 12px 20px;
     display: flex; align-items: center; gap: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,.15);
@@ -496,8 +525,8 @@
     min-width: 380px;
   }
   .sel-toolbar.visible { transform: translateX(-50%) translateY(0); }
-  .sel-count { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--fire); white-space: nowrap; }
-  .sel-count span { color: var(--body); font-size: 12px; font-family: 'DM Sans',sans-serif; font-weight: 400; }
+  .sel-count { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 14px; color: var(--accent); white-space: nowrap; }
+  .sel-count span { color: var(--body); font-size: 12px; font-family: 'Inter',sans-serif; font-weight: 400; }
   .sel-divider { width: 1px; height: 24px; background: var(--border); }
   .sel-actions { display: flex; gap: 8px; align-items: center; flex: 1; }
   .btn-clear { background: none; border: none; color: var(--grey); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 6px; }
@@ -526,10 +555,10 @@
   /* ─── BATCH PASSES PREVIEW ─── */
   .batch-pass-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; }
   .batch-pass-mini {
-    background: #FFF8F5; border: 1px solid #FDDCCC;
-    border-radius: 8px; padding: 12px; font-family: 'DM Mono', monospace; font-size: 11px;
+    background: #F0F7FF; border: 1px solid #DBEAFE;
+    border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
   }
-  .batch-pass-mini .bpm-passno { color: var(--ember); font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .batch-pass-mini .bpm-passno { color: var(--accent2); font-weight: 700; font-size: 13px; margin-bottom: 6px; }
   .batch-pass-mini .bpm-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
   .batch-pass-mini .bpm-key { color: var(--grey); }
   .batch-pass-mini .bpm-val { color: var(--body); }
@@ -543,7 +572,7 @@
     <div class="logo-mark">
       <div class="logo-icon">🧯</div>
       <div>
-        <div class="logo-sub" style="font-size:12px; color:var(--body); font-weight:600; letter-spacing:0; text-transform:none;">Extinguisher Management</div>
+        <div class="logo-sub primary">Extinguisher Management</div>
         <div class="logo-sub">Fire Safety Portal</div>
       </div>
     </div>
@@ -797,16 +826,50 @@
               placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
           </div>
           <div class="form-group">
-            <label>Organisation Name</label>
-            <input type="text" id="cfg-org-name" placeholder="Acme Corp">
-          </div>
-          <div class="form-group">
             <label>Doc Template ID (Google Docs) <span style="color:var(--grey);font-weight:400;">optional</span></label>
             <input type="text" id="cfg-template-id" placeholder="Document ID from Docs URL">
           </div>
           <div class="form-group">
             <label>Output Drive Folder ID <span style="color:var(--grey);font-weight:400;">optional</span></label>
             <input type="text" id="cfg-folder-id" placeholder="Google Drive folder for PDFs">
+          </div>
+        </div>
+
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+          <div style="font-size:12px; font-weight:700; color:var(--body); text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px;">📄 Note / Gatepass Template Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Organisation Name</label>
+              <input type="text" id="cfg-org-name" placeholder="HLL Lifecare Limited">
+            </div>
+            <div class="form-group">
+              <label>Organisation Subtitle</label>
+              <input type="text" id="cfg-org-subtitle" placeholder="(A Government of India Enterprise)">
+            </div>
+            <div class="form-group">
+              <label>Factory / Unit Name</label>
+              <input type="text" id="cfg-factory-name" placeholder="PEROORKADA FACTORY">
+            </div>
+            <div class="form-group">
+              <label>Location / City</label>
+              <input type="text" id="cfg-factory-loc" placeholder="THIRUVANANTHAPURAM">
+            </div>
+            <div class="form-group">
+              <label>AMC / Vendor Name</label>
+              <input type="text" id="cfg-vendor-name" placeholder="M/S Red Firelines">
+            </div>
+            <div class="form-group">
+              <label>Addressee (To:)</label>
+              <input type="text" id="cfg-addressee" placeholder="Security Inspector">
+            </div>
+            <div class="form-group">
+              <label>Signatory Name</label>
+              <input type="text" id="cfg-signatory-name" placeholder="GOKUL V BABU">
+            </div>
+            <div class="form-group">
+              <label>Signatory Designation</label>
+              <input type="text" id="cfg-signatory-desig" placeholder="SM (Safety &amp; Environment)">
+            </div>
           </div>
         </div>
 
@@ -826,23 +889,23 @@
         <div style="font-size:13px; color:var(--grey); line-height:2; counter-reset:step;">
 
           <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">1</span>
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">1</span>
             <span>Open your Apps Script project → <strong style="color:var(--body);">Deploy → New deployment</strong> (or Manage deployments → Edit)</span>
           </div>
           <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">2</span>
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">2</span>
             <span>Set <strong style="color:var(--body);">Execute as: Me</strong> and <strong style="color:var(--body);">Who has access: Anyone</strong> — not "Anyone within domain" (GitHub Pages is external)</span>
           </div>
           <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">3</span>
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">3</span>
             <span>Copy the URL ending in <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">/exec</code> — not <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">/dev</code> (dev URLs block external access)</span>
           </div>
           <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">4</span>
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">4</span>
             <span>After <em>any</em> code change, you must <strong style="color:var(--body);">create a new version</strong> — existing deployments do not auto-update</span>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start;">
-            <span style="background:var(--fire);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">5</span>
+            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">5</span>
             <span>Grant permissions when prompted — click <strong style="color:var(--body);">Review permissions → Advanced → Go to app (unsafe) → Allow</strong></span>
           </div>
 
@@ -860,19 +923,19 @@
         </p>
         <div style="display:grid; gap:12px;">
           <div>
-            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>Extinguishers</code></div>
+            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Extinguishers</code></div>
             <div class="url-display" style="font-size:11px; line-height:1.8;">ExtNo | Type | Weight | Location | CurrentLocation | OriginalLocation | SubstituteFor | MfgDate | LastRefillDate | NextRefillDue | Status | Remarks | CreatedAt | UpdatedAt</div>
           </div>
           <div>
-            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>Refills</code></div>
+            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Refills</code></div>
             <div class="url-display" style="font-size:11px; line-height:1.8;">RefillID | ExtNo | RequestDate | RequestBy | SentDate | ReceivedDate | PassNo | Status | OriginalLocation | LocationAction | SubstituteExtNo | Remarks | CreatedAt | UpdatedAt</div>
           </div>
           <div>
-            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>Passes</code></div>
+            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Passes</code></div>
             <div class="url-display" style="font-size:11px; line-height:1.8;">PassNo | ExtNo | ExtList | Location | Type | Weight | GeneratedOn | GeneratedBy | Remarks | Status | DocUrl | CreatedAt</div>
           </div>
           <div>
-            <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:4px;">Tab: <code>HydroTests</code></div>
+            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>HydroTests</code></div>
             <div class="url-display" style="font-size:11px; line-height:1.8;">TestID | ExtNo | TestDate | TestBy | Pressure | Result | NextDue | CertNo | CreatedAt</div>
           </div>
         </div>
@@ -884,8 +947,8 @@
           Use these exact placeholders in your Google Docs template (the Word download does not use the template — it builds the file directly in the browser):
         </p>
         <div class="url-display" style="line-height:2.2; font-size:12px;">
-          <span style="color:var(--ember);">{{ORG_NAME}}</span> &nbsp; <span style="color:var(--ember);">{{PASS_NO}}</span> &nbsp; <span style="color:var(--ember);">{{REQUEST_DATE}}</span> &nbsp; <span style="color:var(--ember);">{{REQUEST_BY}}</span><br>
-          <span style="color:var(--ember);">{{EXT_COUNT}}</span> &nbsp; <span style="color:var(--ember);">{{REMARKS}}</span> &nbsp; <span style="color:var(--ember);">{{EXT_TABLE}}</span> &nbsp; <span style="color:var(--ember);">{{GENERATED_DATE}}</span>
+          <span style="color:var(--accent);">{{ORG_NAME}}</span> &nbsp; <span style="color:var(--accent);">{{PASS_NO}}</span> &nbsp; <span style="color:var(--accent);">{{REQUEST_DATE}}</span> &nbsp; <span style="color:var(--accent);">{{REQUEST_BY}}</span><br>
+          <span style="color:var(--accent);">{{EXT_COUNT}}</span> &nbsp; <span style="color:var(--accent);">{{REMARKS}}</span> &nbsp; <span style="color:var(--accent);">{{EXT_TABLE}}</span> &nbsp; <span style="color:var(--accent);">{{GENERATED_DATE}}</span>
         </div>
       </div>
     </div>
@@ -905,8 +968,14 @@
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group">
-          <label>Extinguisher Number *</label>
-          <input type="text" id="f-extno" placeholder="EXT-001">
+          <label>Extinguisher Number *
+            <span id="extno-auto-badge" style="margin-left:6px; font-size:10px; background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-bd); border-radius:10px; padding:1px 7px; font-weight:500; text-transform:none; letter-spacing:0;">Auto</span>
+          </label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <input type="text" id="f-extno" placeholder="EXT-001" oninput="onExtNoInput(this.value)" style="flex:1;">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="autoFillExtNo()" title="Auto-generate next number" id="extno-regen-btn" style="white-space:nowrap; flex-shrink:0;">↻ Next</button>
+          </div>
+          <div id="extno-hint" style="font-size:11px; margin-top:4px; min-height:16px;"></div>
         </div>
         <div class="form-group">
           <label>Type *</label>
@@ -1036,8 +1105,8 @@
           <textarea id="r-remarks" placeholder="Reason for refill, condition notes..."></textarea>
         </div>
       </div>
-      <div style="margin-top:16px; padding:14px; background:var(--fire-glow); border-radius:8px; font-size:12px; color:var(--grey);">
-        🔥 A <strong style="color:var(--ember)">Refill Pass</strong> will be generated using your Google Docs template and saved to Drive.
+      <div style="margin-top:16px; padding:14px; background:var(--accent-glow); border-radius:8px; font-size:12px; color:var(--grey);">
+        🔥 A <strong style="color:var(--accent2)">Refill Pass</strong> will be generated using your Google Docs template and saved to Drive.
       </div>
     </div>
     <div class="modal-footer">
@@ -1048,47 +1117,6 @@
 </div>
 
 <!-- Pass Preview Modal -->
-<div class="modal-overlay" id="modal-pass">
-  <div class="modal" style="max-width:480px;">
-    <div class="modal-head">
-      <div class="modal-title">Refill Pass Preview</div>
-      <button class="modal-close" onclick="closeModal('modal-pass')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="pass-preview" id="pass-preview-content">
-        <div class="pass-header">
-          <div>
-            <div class="pass-org" id="pp-org">Organisation</div>
-            <div class="pass-title">Fire Extinguisher Refill Pass</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px; color:var(--grey);">PASS NO.</div>
-            <div class="pass-num" id="pp-passno">PASS-0001</div>
-          </div>
-        </div>
-        <hr class="pass-divider">
-        <div class="pass-row"><span class="pass-key">Ext. Number</span><span class="pass-val" id="pp-extno">—</span></div>
-        <div class="pass-row"><span class="pass-key">Type</span><span class="pass-val" id="pp-type">—</span></div>
-        <div class="pass-row"><span class="pass-key">Weight</span><span class="pass-val" id="pp-weight">—</span></div>
-        <div class="pass-row"><span class="pass-key">Location</span><span class="pass-val" id="pp-location">—</span></div>
-        <div class="pass-row"><span class="pass-key">Mfg Date</span><span class="pass-val" id="pp-mfgdate">—</span></div>
-        <div class="pass-row"><span class="pass-key">Request Date</span><span class="pass-val" id="pp-reqdate">—</span></div>
-        <div class="pass-row"><span class="pass-key">Requested By</span><span class="pass-val" id="pp-reqby">—</span></div>
-        <hr class="pass-divider">
-        <div class="pass-footer">
-          <div class="pass-stamp">Pending Refill</div>
-          <div style="margin-top:10px;">This pass must accompany the extinguisher to the service vendor.</div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-pass')">Close</button>
-      <button class="btn btn-blue" onclick="printPass()">🖨️ Print</button>
-      <button class="btn btn-primary" id="btn-open-doc">📄 Open PDF in Drive</button>
-    </div>
-  </div>
-</div>
-
 <!-- Receive Refill Modal — goes to Storeroom -->
 <div class="modal-overlay" id="modal-receive">
   <div class="modal" style="max-width:480px;">
@@ -1199,7 +1227,7 @@
       <div class="bulk-ext-list" id="bulk-ext-list"></div>
 
       <div style="border-top:1px solid var(--border); padding-top:16px; margin-top:4px;">
-        <div style="font-size:12px; font-weight:600; color:var(--ember); margin-bottom:12px; text-transform:uppercase; letter-spacing:.06em;">📍 Location Actions — What happens to each location?</div>
+        <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:12px; text-transform:uppercase; letter-spacing:.06em;">📍 Location Actions — What happens to each location?</div>
         <div id="bulk-loc-actions" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px; max-height:260px; overflow-y:auto;"></div>
       </div>
 
@@ -1220,8 +1248,8 @@
         </div>
       </div>
 
-      <div style="margin-top:14px; padding:12px 14px; background:var(--fire-glow); border-radius:8px; font-size:12px; color:var(--grey); line-height:1.6;">
-        🧾 <strong style="color:var(--ember)">One combined pass</strong> will be generated listing all selected extinguishers by Sl. No. Individual receive entries are tracked per extinguisher after return.
+      <div style="margin-top:14px; padding:12px 14px; background:var(--accent-glow); border-radius:8px; font-size:12px; color:var(--grey); line-height:1.6;">
+        🧾 <strong style="color:var(--accent2)">One combined pass</strong> will be generated listing all selected extinguishers by Sl. No. Individual receive entries are tracked per extinguisher after return.
       </div>
     </div>
     <div class="modal-footer">
@@ -1264,15 +1292,12 @@
         <!-- Extinguisher table inside pass -->
         <div style="font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--grey); margin-bottom:8px;">Extinguisher Details</div>
         <div style="overflow-x:auto;">
-          <table id="cp-ext-table" style="width:100%; border-collapse:collapse; font-size:12px; font-family:'DM Mono',monospace;">
+          <table id="cp-ext-table" style="width:100%; border-collapse:collapse; font-size:12px; font-family:'JetBrains Mono',monospace; border:1px solid var(--border);">
             <thead>
-              <tr style="background:rgba(0,0,0,.3);">
-                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Sl.</th>
-                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Ext. No.</th>
-                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Type</th>
-                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Wt.</th>
-                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Location</th>
-                <th style="padding:6px 10px; text-align:left; color:var(--grey); font-size:10px; letter-spacing:.06em;">Mfg Date</th>
+              <tr style="background:var(--surface3);">
+                <th style="padding:7px 12px; text-align:center; color:var(--grey); font-size:10px; letter-spacing:.06em; border:1px solid var(--border); width:60px;">Sl No</th>
+                <th style="padding:7px 12px; text-align:center; color:var(--grey); font-size:10px; letter-spacing:.06em; border:1px solid var(--border);">Item</th>
+                <th style="padding:7px 12px; text-align:center; color:var(--grey); font-size:10px; letter-spacing:.06em; border:1px solid var(--border);">Cylinder No</th>
               </tr>
             </thead>
             <tbody id="cp-ext-body"></tbody>
@@ -1309,7 +1334,14 @@
 let CONFIG = {
   apiUrl: '',
   sheetId: '',
-  orgName: 'Your Organisation',
+  orgName: 'HLL Lifecare Limited',
+  orgSubtitle: '(A Government of India Enterprise)',
+  factoryName: 'PEROORKADA FACTORY',
+  factoryLocation: 'THIRUVANANTHAPURAM',
+  vendorName: 'M/S Red Firelines',
+  signatoryName: 'GOKUL V BABU',
+  signatoryDesig: 'SM (Safety & Environment)',
+  addressee: 'Security Inspector',
   templateId: '',
   folderId: ''
 };
@@ -1346,11 +1378,19 @@ function loadConfig() {
   const saved = localStorage.getItem('fireguard_config');
   if (saved) {
     CONFIG = { ...CONFIG, ...JSON.parse(saved) };
-    document.getElementById('cfg-api-url').value    = CONFIG.apiUrl    || '';
-    document.getElementById('cfg-sheet-id').value   = CONFIG.sheetId   || '';
-    document.getElementById('cfg-org-name').value   = CONFIG.orgName   || '';
-    document.getElementById('cfg-template-id').value= CONFIG.templateId|| '';
-    document.getElementById('cfg-folder-id').value  = CONFIG.folderId  || '';
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    set('cfg-api-url',        CONFIG.apiUrl);
+    set('cfg-sheet-id',       CONFIG.sheetId);
+    set('cfg-org-name',       CONFIG.orgName);
+    set('cfg-org-subtitle',   CONFIG.orgSubtitle);
+    set('cfg-factory-name',   CONFIG.factoryName);
+    set('cfg-factory-loc',    CONFIG.factoryLocation);
+    set('cfg-vendor-name',    CONFIG.vendorName);
+    set('cfg-signatory-name', CONFIG.signatoryName);
+    set('cfg-signatory-desig',CONFIG.signatoryDesig);
+    set('cfg-addressee',      CONFIG.addressee);
+    set('cfg-template-id',    CONFIG.templateId);
+    set('cfg-folder-id',      CONFIG.folderId);
     if (CONFIG.apiUrl) validateApiUrl(CONFIG.apiUrl);
   }
 }
@@ -1385,17 +1425,22 @@ function validateApiUrl(val) {
 }
 
 function saveConfig() {
-  CONFIG.apiUrl     = document.getElementById('cfg-api-url').value.trim();
-  CONFIG.sheetId    = document.getElementById('cfg-sheet-id').value.trim();
-  CONFIG.orgName    = document.getElementById('cfg-org-name').value.trim() || 'Your Organisation';
-  CONFIG.templateId = document.getElementById('cfg-template-id').value.trim();
-  CONFIG.folderId   = document.getElementById('cfg-folder-id').value.trim();
+  const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  CONFIG.apiUrl          = get('cfg-api-url');
+  CONFIG.sheetId         = get('cfg-sheet-id');
+  CONFIG.orgName         = get('cfg-org-name')        || 'Organisation';
+  CONFIG.orgSubtitle     = get('cfg-org-subtitle');
+  CONFIG.factoryName     = get('cfg-factory-name');
+  CONFIG.factoryLocation = get('cfg-factory-loc');
+  CONFIG.vendorName      = get('cfg-vendor-name');
+  CONFIG.signatoryName   = get('cfg-signatory-name');
+  CONFIG.signatoryDesig  = get('cfg-signatory-desig');
+  CONFIG.addressee       = get('cfg-addressee');
+  CONFIG.templateId      = get('cfg-template-id');
+  CONFIG.folderId        = get('cfg-folder-id');
   localStorage.setItem('fireguard_config', JSON.stringify(CONFIG));
-
-  // Hide any previous error alert
   const alertEl = document.getElementById('connection-error-alert');
   if (alertEl) alertEl.style.display = 'none';
-
   validateApiUrl(CONFIG.apiUrl);
   showToast('Configuration saved!', 'success');
 }
@@ -1810,7 +1855,7 @@ function renderPasses() {
       extCount = p.ExtNo ? p.ExtNo.split(',').length : 1;
     }
     const extDisplay = extCount > 1
-      ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">${extCount} extinguishers</span>`
+      ? `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">${extCount} extinguishers</span>`
       : `<span class="ext-num">${p.ExtNo}</span>`;
     return `
     <tr>
@@ -1840,17 +1885,20 @@ function viewAndDownload(passNo) {
 // WORD (.docx) DOWNLOAD — Browser-side generation
 // ═══════════════════════════════════════════════
 async function downloadPassAsDocx() {
-  // Collect data from the currently displayed pass preview
   const passNo  = document.getElementById('cp-passno').textContent.trim();
-  const org     = document.getElementById('cp-org').textContent.trim();
+  const org     = CONFIG.orgName || document.getElementById('cp-org').textContent.trim();
   const reqDate = document.getElementById('cp-reqdate').textContent.trim();
   const reqBy   = document.getElementById('cp-reqby').textContent.trim();
   const count   = document.getElementById('cp-count').textContent.trim();
   const remarks = document.getElementById('cp-remarks').textContent.trim();
 
-  const rows = [...document.querySelectorAll('#cp-ext-body tr')].map(tr => {
+  // Read grouped rows from table: [sl, item, cylinders]
+  // Skip the last "Total" row — we add it ourselves in buildDocxBlob
+  const allRows = [...document.querySelectorAll('#cp-ext-body tr')];
+  const dataRows = allRows.slice(0, -1); // exclude total row
+  const rows = dataRows.map(tr => {
     const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
-    return { sl: cells[0]||'', extNo: cells[1]||'', type: cells[2]||'', weight: cells[3]||'', location: cells[4]||'', mfgDate: cells[5]||'' };
+    return { sl: cells[0] || '', item: cells[1] || '', cylinders: cells[2] || '' };
   });
 
   const btn = document.getElementById('btn-download-docx');
@@ -1869,338 +1917,302 @@ async function downloadPassAsDocx() {
 }
 
 async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows }) {
-  // ── Helper: escape XML special characters ──────────────────
-  const x = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+  // ── CONFIG values pulled from global CONFIG ──────────────────
+  const orgSubtitle  = CONFIG.orgSubtitle  || '';
+  const factoryName  = CONFIG.factoryName  || '';
+  const factoryLoc   = CONFIG.factoryLocation || '';
+  const vendorName   = CONFIG.vendorName   || 'the AMC agency';
+  const sigName      = CONFIG.signatoryName|| '';
+  const sigDesig     = CONFIG.signatoryDesig|| '';
+  const addressee    = CONFIG.addressee    || 'Security Inspector';
 
-  // ── Helper: a simple paragraph ─────────────────────────────
-  const para = (text, opts = {}) => {
-    const { bold=false, size=22, color='000000', spaceAfter=80, spaceBefore=0,
-            align='left', italic=false, font='Arial' } = opts;
-    return `<w:p>
-      <w:pPr>
-        <w:spacing w:before="${spaceBefore}" w:after="${spaceAfter}"/>
-        <w:jc w:val="${align}"/>
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-          ${bold ? '<w:b/><w:bCs/>' : ''}
-          ${italic ? '<w:i/><w:iCs/>' : ''}
-          <w:color w:val="${color}"/>
-          <w:sz w:val="${size}"/><w:szCs w:val="${size}"/>
-          <w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}"/>
-        </w:rPr>
-        <w:t xml:space="preserve">${x(text)}</w:t>
-      </w:r>
-    </w:p>`;
+  // ── Helpers ───────────────────────────────────────────────────
+  const x = s => String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  // Run of text with formatting options
+  const run = (text, opts = {}) => {
+    const { bold=false, sz=20, color='000000', font='Georgia',
+            underline=false, italic=false } = opts;
+    return `<w:r><w:rPr>
+      ${bold    ? '<w:b/><w:bCs/>' : ''}
+      ${italic  ? '<w:i/><w:iCs/>' : ''}
+      ${underline ? '<w:u w:val="single"/>' : ''}
+      <w:color w:val="${color}"/>
+      <w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>
+      <w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}"/>
+    </w:rPr><w:t xml:space="preserve">${x(text)}</w:t></w:r>`;
   };
 
-  // ── Helper: horizontal rule via bottom border on paragraph ──
-  const hrPara = (color='C93300') => `<w:p>
-    <w:pPr>
-      <w:spacing w:before="60" w:after="60"/>
-      <w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="${color}"/></w:pBdr>
-    </w:pPr>
-  </w:p>`;
+  // Paragraph wrapper
+  const para = (runs, opts = {}) => {
+    const { align='left', spaceBefore=0, spaceAfter=120,
+            indent=0, keepLines=false } = opts;
+    return `<w:p><w:pPr>
+      <w:jc w:val="${align}"/>
+      <w:spacing w:before="${spaceBefore}" w:after="${spaceAfter}"/>
+      ${indent ? `<w:ind w:left="${indent}"/>` : ''}
+      ${keepLines ? '<w:keepLines/>' : ''}
+    </w:pPr>${runs}</w:p>`;
+  };
 
-  // ── Helper: two-column info row (key | value) ───────────────
-  // Uses a 2-column table row inside the meta table
-  const metaRow = (key, val) => `
-    <w:tr>
-      <w:tc>
-        <w:tcPr>
-          <w:tcW w:w="2200" w:type="dxa"/>
-          <w:tcBorders>
-            <w:top w:val="none" w:sz="0"/><w:left w:val="none" w:sz="0"/>
-            <w:bottom w:val="none" w:sz="0"/><w:right w:val="none" w:sz="0"/>
-          </w:tcBorders>
-          <w:shading w:val="clear" w:color="auto" w:fill="F5F5F5"/>
-        </w:tcPr>
-        <w:p><w:pPr><w:spacing w:before="40" w:after="40"/></w:pPr>
-          <w:r><w:rPr><w:color w:val="666666"/><w:sz w:val="18"/><w:szCs w:val="18"/>
-            <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
-          </w:rPr><w:t xml:space="preserve">${x(key)}</w:t></w:r>
-        </w:p>
-      </w:tc>
-      <w:tc>
-        <w:tcPr>
-          <w:tcW w:w="6826" w:type="dxa"/>
-          <w:tcBorders>
-            <w:top w:val="none" w:sz="0"/><w:left w:val="none" w:sz="0"/>
-            <w:bottom w:val="none" w:sz="0"/><w:right w:val="none" w:sz="0"/>
-          </w:tcBorders>
-        </w:tcPr>
-        <w:p><w:pPr><w:spacing w:before="40" w:after="40"/></w:pPr>
-          <w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/>
-            <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
-          </w:rPr><w:t xml:space="preserve">${x(val)}</w:t></w:r>
-        </w:p>
-      </w:tc>
-    </w:tr>`;
+  // Empty paragraph spacer
+  const spacer = (after=120) =>
+    `<w:p><w:pPr><w:spacing w:before="0" w:after="${after}"/></w:pPr></w:p>`;
 
-  // ── Header: Org name + Pass No side by side ─────────────────
-  const headerTable = `
-  <w:tbl>
-    <w:tblPr>
-      <w:tblW w:w="9026" w:type="dxa"/>
-      <w:tblBorders>
-        <w:top w:val="none"/><w:left w:val="none"/>
-        <w:bottom w:val="none"/><w:right w:val="none"/>
-        <w:insideH w:val="none"/><w:insideV w:val="none"/>
-      </w:tblBorders>
-    </w:tblPr>
-    <w:tr>
-      <w:tc>
-        <w:tcPr><w:tcW w:w="5500" w:type="dxa"/></w:tcPr>
-        <w:p><w:pPr><w:spacing w:before="0" w:after="40"/></w:pPr>
-          <w:r><w:rPr><w:b/><w:bCs/><w:color w:val="C93300"/><w:sz w:val="40"/><w:szCs w:val="40"/>
-            <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
-          </w:rPr><w:t>${x(org)}</w:t></w:r>
-        </w:p>
-        <w:p><w:pPr><w:spacing w:before="0" w:after="80"/></w:pPr>
-          <w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/>
-            <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
-          </w:rPr><w:t>FIRE EXTINGUISHER REFILL PASS</w:t></w:r>
-        </w:p>
-      </w:tc>
-      <w:tc>
-        <w:tcPr><w:tcW w:w="3526" w:type="dxa"/></w:tcPr>
-        <w:p><w:pPr><w:jc w:val="right"/><w:spacing w:before="0" w:after="20"/></w:pPr>
-          <w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/>
-            <w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>
-          </w:rPr><w:t>PASS NO.</w:t></w:r>
-        </w:p>
-        <w:p><w:pPr><w:jc w:val="right"/><w:spacing w:before="0" w:after="80"/></w:pPr>
-          <w:r><w:rPr><w:b/><w:bCs/><w:color w:val="C93300"/><w:sz w:val="36"/><w:szCs w:val="36"/>
-            <w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>
-          </w:rPr><w:t>${x(passNo)}</w:t></w:r>
-        </w:p>
-      </w:tc>
-    </w:tr>
-  </w:tbl>`;
+  // ── 1. Letterhead ─────────────────────────────────────────────
+  // Company name centred bold
+  const letterhead = [
+    para(run(org, { bold:true, sz:28, font:'Arial' }), { align:'center', spaceAfter:40 }),
+    para(run(orgSubtitle, { sz:18, font:'Arial' }), { align:'center', spaceAfter:40 }),
+    para(run(factoryName, { bold:true, sz:20, font:'Arial' }), { align:'center', spaceAfter:40 }),
+    para(run(factoryLoc,  { bold:true, sz:20, font:'Arial', underline:true }), { align:'center', spaceAfter:200 }),
+  ].join('');
 
-  // ── Meta info table (key/value pairs) ───────────────────────
-  const metaTable = `
-  <w:tbl>
-    <w:tblPr>
-      <w:tblW w:w="9026" w:type="dxa"/>
-      <w:tblBorders>
-        <w:top w:val="none"/><w:left w:val="none"/>
-        <w:bottom w:val="none"/><w:right w:val="none"/>
-        <w:insideH w:val="none"/><w:insideV w:val="none"/>
-      </w:tblBorders>
-      <w:tblCellMar>
-        <w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/>
-        <w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>
-      </w:tblCellMar>
-    </w:tblPr>
-    ${metaRow('Request Date', reqDate)}
-    ${metaRow('Requested By', reqBy)}
-    ${metaRow('No. of Extinguishers', count)}
-    ${metaRow('Remarks', remarks || '—')}
-  </w:tbl>`;
+  // ── 2. "NOTE" centred underlined ─────────────────────────────
+  const noteTitle = para(
+    run('NOTE', { bold:true, sz:24, underline:true, font:'Georgia' }),
+    { align:'center', spaceBefore:0, spaceAfter:200 }
+  );
 
-  // ── Section label ────────────────────────────────────────────
-  const sectionLabel = para('EXTINGUISHER DETAILS', {
-    bold: true, size: 17, color: '888888', spaceAfter: 60, spaceBefore: 120
-  });
+  // ── 3. Date right-aligned ────────────────────────────────────
+  const dateLine = para(
+    run(reqDate, { sz:20 }),
+    { align:'right', spaceAfter:200 }
+  );
 
-  // ── Extinguisher detail table ────────────────────────────────
-  const colWidths = [600, 1100, 1600, 700, 3226, 1100]; // sum = 8326 (+700 margin)
-  const hdBg = 'C93300';
-  const hdFg = 'FFFFFF';
-  const hdLabels = ['Sl.', 'Ext. No.', 'Type', 'Weight', 'Location', 'Mfg Date'];
+  // ── 4. Subject ───────────────────────────────────────────────
+  const subjectLine = para(
+    run('Sub : Request for sending Fire Extinguishers for refilling Regd;', { bold:true, sz:20 }),
+    { spaceAfter:120 }
+  );
 
-  const cellBorder = `
-    <w:tcBorders>
-      <w:top w:val="single" w:sz="2" w:color="DDDDDD"/>
-      <w:left w:val="single" w:sz="2" w:color="DDDDDD"/>
-      <w:bottom w:val="single" w:sz="2" w:color="DDDDDD"/>
-      <w:right w:val="single" w:sz="2" w:color="DDDDDD"/>
-    </w:tcBorders>`;
+  // ── 5. Body ──────────────────────────────────────────────────
+  const bodyText = para(
+    run(`The following Fire Extinguishers are sent for refilling to the AMC agency ${vendorName}. Kindly note that these items are being issued on a returnable basis`, { sz:20 }),
+    { spaceAfter:200 }
+  );
 
-  const hdRow = `<w:tr>
-    ${hdLabels.map((label, i) => `
-    <w:tc>
+  // ── 6. Extinguisher table ────────────────────────────────────
+  const border = `<w:tcBorders>
+    <w:top    w:val="single" w:sz="4" w:color="000000"/>
+    <w:left   w:val="single" w:sz="4" w:color="000000"/>
+    <w:bottom w:val="single" w:sz="4" w:color="000000"/>
+    <w:right  w:val="single" w:sz="4" w:color="000000"/>
+  </w:tcBorders>`;
+
+  const tcell = (text, width, opts = {}) => {
+    const { bold=false, align='left', shade='' } = opts;
+    return `<w:tc>
       <w:tcPr>
-        <w:tcW w:w="${colWidths[i]}" w:type="dxa"/>
-        ${cellBorder}
-        <w:shading w:val="clear" w:color="auto" w:fill="${hdBg}"/>
+        <w:tcW w:w="${width}" w:type="dxa"/>
+        ${border}
+        ${shade ? `<w:shd w:val="clear" w:color="auto" w:fill="${shade}"/>` : ''}
       </w:tcPr>
-      <w:p><w:pPr><w:spacing w:before="80" w:after="80"/></w:pPr>
-        <w:r><w:rPr><w:b/><w:bCs/><w:color w:val="${hdFg}"/><w:sz w:val="18"/><w:szCs w:val="18"/>
-          <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
-        </w:rPr><w:t>${x(label)}</w:t></w:r>
-      </w:p>
-    </w:tc>`).join('')}
+      ${para(run(text, { bold, sz:20, font:'Georgia' }),
+             { align, spaceBefore:60, spaceAfter:60 })}
+    </w:tc>`;
+  };
+
+  // Column widths: Sl No=700, Item=4326, Cylinder no=4000  (total=9026)
+  const hdRow = `<w:tr>
+    ${tcell('Sl No',       700,  { bold:true, align:'center', shade:'D9D9D9' })}
+    ${tcell('Item',        4326, { bold:true, align:'center', shade:'D9D9D9' })}
+    ${tcell('Cylinder no', 4000, { bold:true, align:'center', shade:'D9D9D9' })}
   </w:tr>`;
 
-  const dataRows = rows.map((r, idx) => {
-    const bg = idx % 2 === 0 ? 'FFFFFF' : 'FFF3F0';
-    const vals = [r.sl, r.extNo, r.type, r.weight, r.location, r.mfgDate];
-    return `<w:tr>
-      ${vals.map((v, i) => `
-      <w:tc>
-        <w:tcPr>
-          <w:tcW w:w="${colWidths[i]}" w:type="dxa"/>
-          ${cellBorder}
-          <w:shading w:val="clear" w:color="auto" w:fill="${bg}"/>
-        </w:tcPr>
-        <w:p><w:pPr><w:spacing w:before="80" w:after="80"/></w:pPr>
-          <w:r><w:rPr>
-            ${i === 0 || i === 1 ? '<w:b/><w:bCs/><w:color w:val="C93300"/>' : '<w:color w:val="111111"/>'}
-            <w:sz w:val="18"/><w:szCs w:val="18"/>
-            <w:rFonts w:ascii="${i===1?'Courier New':'Arial'}" w:hAnsi="${i===1?'Courier New':'Arial'}"/>
-          </w:rPr><w:t xml:space="preserve">${x(v)}</w:t></w:r>
-        </w:p>
-      </w:tc>`).join('')}
-    </w:tr>`;
-  }).join('');
+  // rows now: { sl, item, cylinders } — already grouped by caller
+  const dataRows = rows.map(r => `<w:tr>
+    ${tcell(String(r.sl),    700,  { align:'center' })}
+    ${tcell(r.item,          4326, { align:'center' })}
+    ${tcell(r.cylinders,     4000, { align:'center' })}
+  </w:tr>`).join('');
 
-  const extTable = `
-  <w:tbl>
+  // Total row
+  const totalRow = `<w:tr>
+    ${tcell('Total', 700,  { bold:true, align:'center', shade:'EEEEEE' })}
+    ${tcell('',      4326, { bold:true, shade:'EEEEEE' })}
+    ${tcell(`${count} Nos.`, 4000, { bold:true, align:'center', shade:'EEEEEE' })}
+  </w:tr>`;
+
+  const extTable = `<w:tbl>
     <w:tblPr>
       <w:tblW w:w="9026" w:type="dxa"/>
-      <w:tblLook w:val="04A0"/>
+      <w:tblBorders>
+        <w:top    w:val="single" w:sz="4" w:color="000000"/>
+        <w:left   w:val="single" w:sz="4" w:color="000000"/>
+        <w:bottom w:val="single" w:sz="4" w:color="000000"/>
+        <w:right  w:val="single" w:sz="4" w:color="000000"/>
+        <w:insideH w:val="single" w:sz="4" w:color="000000"/>
+        <w:insideV w:val="single" w:sz="4" w:color="000000"/>
+      </w:tblBorders>
     </w:tblPr>
     <w:tblGrid>
-      ${colWidths.map(w => `<w:gridCol w:w="${w}"/>`).join('')}
+      <w:gridCol w:w="700"/>
+      <w:gridCol w:w="4326"/>
+      <w:gridCol w:w="4000"/>
     </w:tblGrid>
     ${hdRow}
     ${dataRows}
+    ${totalRow}
   </w:tbl>`;
 
-  // ── Signature block ─────────────────────────────────────────
-  const sigLineCell = (label, width) => `
-    <w:tc>
-      <w:tcPr>
-        <w:tcW w:w="${width}" w:type="dxa"/>
-        <w:tcBorders>
-          <w:top w:val="none"/><w:left w:val="none"/>
-          <w:bottom w:val="none"/><w:right w:val="none"/>
-        </w:tcBorders>
-      </w:tcPr>
-      <w:p>
-        <w:pPr>
-          <w:spacing w:before="600" w:after="40"/>
-          <w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="999999"/></w:pBdr>
-        </w:pPr>
-      </w:p>
-      <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="40" w:after="0"/></w:pPr>
-        <w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="16"/><w:szCs w:val="16"/>
-          <w:rFonts w:ascii="Arial" w:hAnsi="Arial"/>
-        </w:rPr><w:t>${x(label)}</w:t></w:r>
-      </w:p>
-    </w:tc>`;
+  // ── 7. Signatory block (right-aligned) ───────────────────────
+  const signatory = [
+    spacer(400),
+    para(run(sigName,  { bold:true, sz:20 }), { align:'right', spaceAfter:40 }),
+    para(run(sigDesig, { bold:true, sz:20 }), { align:'right', spaceAfter:400 }),
+  ].join('');
 
-  const sigTable = `
-  <w:tbl>
-    <w:tblPr>
-      <w:tblW w:w="9026" w:type="dxa"/>
-      <w:tblBorders>
-        <w:top w:val="none"/><w:left w:val="none"/>
-        <w:bottom w:val="none"/><w:right w:val="none"/>
-        <w:insideH w:val="none"/><w:insideV w:val="none"/>
-      </w:tblBorders>
-    </w:tblPr>
-    <w:tr>
-      ${sigLineCell('Authorised Signature', 3000)}
-      <w:tc><w:tcPr><w:tcW w:w="300" w:type="dxa"/></w:tcPr><w:p/></w:tc>
-      ${sigLineCell('Date', 2000)}
-      <w:tc><w:tcPr><w:tcW w:w="300" w:type="dxa"/></w:tcPr><w:p/></w:tc>
-      ${sigLineCell('Vendor Stamp', 3426)}
-    </w:tr>
-  </w:tbl>`;
+  // ── 8. Addressee block ───────────────────────────────────────
+  const addressBlock = [
+    para(run('To,', { sz:20 }), { spaceAfter:40 }),
+    para(run('', { sz:20 }), { spaceAfter:40 }),
+    para(run(addressee, { bold:true, sz:20 }), { spaceAfter:200 }),
+  ].join('');
 
-  // ── Assemble document.xml ───────────────────────────────────
+  // ── 9. Pass number footnote ──────────────────────────────────
+  const passFooter = para(
+    run(`Pass No: ${passNo}`, { sz:16, color:'888888' }),
+    { spaceAfter:0 }
+  );
+
+  // ── Assemble document.xml ────────────────────────────────────
+  const NS = `xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+    mc:Ignorable="w14"`;
+
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
-  xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"
-  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:o="urn:schemas-microsoft-com:office:office"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-  xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
-  xmlns:v="urn:schemas-microsoft-com:vml"
-  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
-  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-  xmlns:w10="urn:schemas-microsoft-com:office:word"
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
-  xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"
-  xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
-  xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
-  xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml"
-  xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
-  xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex"
-  xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
-  xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
-  xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
-  xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
-  mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
+<w:document ${NS}>
 <w:body>
   <w:sectPr>
     <w:pgSz w:w="11906" w:h="16838"/>
     <w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080"
              w:header="708" w:footer="708" w:gutter="0"/>
   </w:sectPr>
-
-  ${headerTable}
-  ${hrPara('C93300')}
-
-  ${metaTable}
-  ${hrPara('DDDDDD')}
-
-  ${sectionLabel}
+  ${letterhead}
+  ${noteTitle}
+  ${dateLine}
+  ${subjectLine}
+  ${bodyText}
   ${extTable}
-
-  ${para('')}
-  ${hrPara('C93300')}
-  ${para('This pass must accompany the extinguishers to the service vendor.', {
-    italic: true, size: 18, color: '555555', align: 'center', spaceAfter: 200
-  })}
-
-  ${sigTable}
+  ${signatory}
+  ${addressBlock}
+  ${passFooter}
 </w:body>
 </w:document>`;
 
-  // ── Build .docx ZIP ─────────────────────────────────────────
+  // ── Build .docx ZIP ──────────────────────────────────────────
   const zip = new JSZip();
-
   zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="xml"  ContentType="application/xml"/>
   <Override PartName="/word/document.xml"
     ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
 </Types>`);
-
   zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1"
     Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
     Target="word/document.xml"/>
 </Relationships>`);
-
   zip.file('word/document.xml', documentXml);
-
   zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 </Relationships>`);
 
-  return await zip.generateAsync({ type: 'blob',
-    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  return await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
 }
 
 // ═══════════════════════════════════════════════
 // CRUD OPERATIONS
 // ═══════════════════════════════════════════════
+// ── Auto-number helpers ──────────────────────────────────────
+
+function getNextExtNo() {
+  const existing = DATA.extinguishers.map(e => e.ExtNo);
+  if (!existing.length) return 'EXT-001';
+
+  // Detect prefix pattern: split on last hyphen+digits group
+  // e.g. "EXT-007" → prefix "EXT-", num 7
+  //      "FE/PKD/001" → prefix "FE/PKD/", num 1
+  const pattern = /^(.*?)(\d+)$/;
+  let maxNum = 0;
+  let prefix = 'EXT-';
+  let padLen  = 3;
+
+  existing.forEach(id => {
+    const m = id.match(pattern);
+    if (m) {
+      const n = parseInt(m[2], 10);
+      if (n > maxNum) {
+        maxNum  = n;
+        prefix  = m[1];
+        padLen  = m[2].length; // preserve zero-padding length
+      }
+    }
+  });
+
+  const next = maxNum + 1;
+  return prefix + String(next).padStart(padLen, '0');
+}
+
+function autoFillExtNo() {
+  const next = getNextExtNo();
+  const input = document.getElementById('f-extno');
+  input.value = next;
+  onExtNoInput(next);
+}
+
+function onExtNoInput(val) {
+  const hintEl = document.getElementById('extno-hint');
+  const badgeEl = document.getElementById('extno-auto-badge');
+  if (!hintEl) return;
+  if (!val.trim()) {
+    hintEl.textContent = '';
+    return;
+  }
+  const exists = DATA.extinguishers.find(e => e.ExtNo.toLowerCase() === val.trim().toLowerCase());
+  if (exists && !editingExtNo) {
+    hintEl.innerHTML = `<span style="color:var(--red);">⚠ ${val} already exists — choose a different number</span>`;
+    if (badgeEl) badgeEl.style.display = 'none';
+  } else {
+    hintEl.innerHTML = `<span style="color:var(--green);">✓ Available</span>`;
+    if (badgeEl) badgeEl.style.display = '';
+  }
+}
+
 function openAddModal() {
   editingExtNo = null;
   document.getElementById('modal-ext-title').textContent = 'Add Extinguisher';
-  ['f-extno','f-type','f-weight','f-location','f-mfgdate','f-lastrefill','f-nextdue','f-status','f-remarks'].forEach(id => {
+
+  // Clear all fields
+  ['f-type','f-weight','f-location','f-mfgdate','f-lastrefill','f-nextdue','f-status','f-remarks'].forEach(id => {
     const el = document.getElementById(id);
     if (el.tagName === 'SELECT') el.selectedIndex = 0;
     else el.value = '';
   });
+
+  // Auto-fill next number
+  const nextNo = getNextExtNo();
+  document.getElementById('f-extno').value = nextNo;
+
+  // Reset hint
+  const hintEl = document.getElementById('extno-hint');
+  if (hintEl) hintEl.textContent = '';
+  const badgeEl = document.getElementById('extno-auto-badge');
+  if (badgeEl) badgeEl.style.display = '';
+  const regenBtn = document.getElementById('extno-regen-btn');
+  if (regenBtn) regenBtn.style.display = '';
+
   openModal('modal-ext');
 }
 
@@ -2218,15 +2230,41 @@ function editExtinguisher(extNo) {
   document.getElementById('f-nextdue').value = ext.NextRefillDue;
   document.getElementById('f-status').value = ext.Status;
   document.getElementById('f-remarks').value = ext.Remarks || '';
+
+  // Hide auto-number badge and regen button when editing
+  const badgeEl = document.getElementById('extno-auto-badge');
+  if (badgeEl) badgeEl.style.display = 'none';
+  const regenBtn = document.getElementById('extno-regen-btn');
+  if (regenBtn) regenBtn.style.display = 'none';
+  const hintEl = document.getElementById('extno-hint');
+  if (hintEl) hintEl.textContent = '';
+
   openModal('modal-ext');
 }
 
 async function saveExtinguisher() {
+  const extNoVal = document.getElementById('f-extno').value.trim();
+
+  // Duplicate check on add
+  if (!editingExtNo) {
+    const dup = DATA.extinguishers.find(e => e.ExtNo.toLowerCase() === extNoVal.toLowerCase());
+    if (dup) {
+      const hintEl = document.getElementById('extno-hint');
+      if (hintEl) hintEl.innerHTML = `<span style="color:var(--red);">⚠ ${extNoVal} already exists — choose a different number</span>`;
+      document.getElementById('f-extno').focus();
+      showToast(`${extNoVal} already exists`, 'error');
+      return;
+    }
+  }
+
   const data = {
-    ExtNo: document.getElementById('f-extno').value.trim(),
+    ExtNo: extNoVal,
     Type: document.getElementById('f-type').value,
     Weight: document.getElementById('f-weight').value,
     Location: document.getElementById('f-location').value.trim(),
+    CurrentLocation: document.getElementById('f-location').value.trim(),
+    OriginalLocation: '',
+    SubstituteFor: '',
     MfgDate: document.getElementById('f-mfgdate').value,
     LastRefillDate: document.getElementById('f-lastrefill').value,
     NextRefillDue: document.getElementById('f-nextdue').value,
@@ -2243,11 +2281,11 @@ async function saveExtinguisher() {
 
   if (editingExtNo) {
     const idx = DATA.extinguishers.findIndex(e => e.ExtNo === editingExtNo);
-    if (idx !== -1) DATA.extinguishers[idx] = data;
+    if (idx !== -1) DATA.extinguishers[idx] = { ...DATA.extinguishers[idx], ...data };
     showToast('Extinguisher updated!', 'success');
   } else {
     DATA.extinguishers.push(data);
-    showToast('Extinguisher added!', 'success');
+    showToast(`${data.ExtNo} added!`, 'success');
   }
 
   closeModal('modal-ext');
@@ -2341,47 +2379,7 @@ async function createRefillRequest() {
   showToast(`Pass ${passNo} generated!`, 'success');
 }
 
-function showPassPreview(pass, reqBy, reqDate, ext) {
-  document.getElementById('pp-org').textContent = CONFIG.orgName;
-  document.getElementById('pp-passno').textContent = pass.PassNo;
-  document.getElementById('pp-extno').textContent = pass.ExtNo;
-  document.getElementById('pp-type').textContent = pass.Type;
-  document.getElementById('pp-weight').textContent = pass.Weight + ' kg';
-  document.getElementById('pp-location').textContent = pass.Location;
-  document.getElementById('pp-mfgdate').textContent = fmtDate(ext.MfgDate);
-  document.getElementById('pp-reqdate').textContent = fmtDate(reqDate);
-  document.getElementById('pp-reqby').textContent = reqBy || '—';
-  if (pass.DocUrl) {
-    document.getElementById('btn-open-doc').onclick = () => window.open(pass.DocUrl, '_blank');
-    document.getElementById('btn-open-doc').style.display = '';
-  } else {
-    document.getElementById('btn-open-doc').style.display = 'none';
-  }
-  openModal('modal-pass');
-}
-
-function viewPass(passNo) {
-  const pass = DATA.passes.find(p => p.PassNo === passNo);
-  if (!pass) { showToast('Pass not found', 'error'); return; }
-  const refill = DATA.refills.find(r => r.PassNo === passNo) || {};
-  const ext = DATA.extinguishers.find(e => e.ExtNo === pass.ExtNo) || {};
-  showPassPreview(pass, refill.RequestBy || '—', pass.GeneratedOn, ext);
-}
-
-function printPass() {
-  const content = document.getElementById('pass-preview-content').innerHTML;
-  const w = window.open('', '_blank');
-  w.document.write(`<html><head><title>Refill Pass</title><style>
-    body{font-family:monospace;background:#fff;color:#111;padding:40px;}
-    .pass-org{font-size:22px;font-weight:bold;color:#D93B00;}
-    .pass-num{font-size:28px;font-weight:bold;color:#C84B0A;}
-    .pass-row{display:flex;justify-content:space-between;margin:8px 0;font-size:14px;}
-    .pass-key{color:#888;}hr{border:1px dashed #FDDCCC;margin:16px 0;}
-    .pass-stamp{display:inline-block;border:2px solid #D93B00;color:#D93B00;padding:4px 12px;border-radius:4px;transform:rotate(-3deg);font-size:12px;}
-  </style></head><body>${content}</body></html>`);
-  w.document.close();
-  w.print();
-}
+// showPassPreview, first viewPass, printPass removed — use showCombinedPassPreview / viewPass / printCombinedPass
 
 // ─── MARK SENT (with location action) ────────────────────────
 let currentMarkSentRefillId = null;
@@ -2874,6 +2872,19 @@ async function submitBulkRefill() {
   showToast(`Pass ${passNo} generated for ${extNosArray.length} extinguishers!`, 'success');
 }
 
+// ── Group extDetails by Type+Weight for pass table ──────────
+// Returns: [{ slNo, item, cylinders: ['EXT-001','EXT-003'...], count }]
+function groupExtDetails(extDetails) {
+  const map = new Map();
+  extDetails.forEach(e => {
+    const key = `${e.type}||${e.weight}`;
+    if (!map.has(key)) map.set(key, { item: `${e.type} ${e.weight} kg`, cylinders: [] });
+    map.get(key).cylinders.push(e.extNo);
+  });
+  let sl = 1;
+  return [...map.values()].map(g => ({ slNo: sl++, item: g.item, cylinders: g.cylinders }));
+}
+
 function showCombinedPassPreview(pass, extDetails) {
   document.getElementById('cp-org').textContent = CONFIG.orgName;
   document.getElementById('cp-passno').textContent = pass.PassNo;
@@ -2882,23 +2893,30 @@ function showCombinedPassPreview(pass, extDetails) {
   document.getElementById('cp-count').textContent = extDetails.length;
   document.getElementById('cp-remarks').textContent = pass.Remarks || '—';
 
+  const grouped = groupExtDetails(extDetails);
+  const total   = extDetails.length;
+
+  const tdStyle  = 'padding:7px 12px; border:1px solid var(--border);';
   const tbody = document.getElementById('cp-ext-body');
-  tbody.innerHTML = extDetails.map(e => `
-    <tr style="border-top:1px solid var(--border);">
-      <td style="padding:7px 10px; color:var(--ember); font-weight:700;">${e.slNo}</td>
-      <td style="padding:7px 10px; color:var(--ember);">${e.extNo}</td>
-      <td style="padding:7px 10px; color:var(--body);">${e.type}</td>
-      <td style="padding:7px 10px; color:var(--body);">${e.weight} kg</td>
-      <td style="padding:7px 10px; color:var(--body); font-size:11px;">${e.location}</td>
-      <td style="padding:7px 10px; color:var(--grey);">${fmtDate(e.mfgDate)}</td>
-    </tr>`).join('');
+  tbody.innerHTML = grouped.map(g => `
+    <tr>
+      <td style="${tdStyle} text-align:center; color:var(--accent); font-weight:700;">${g.slNo}</td>
+      <td style="${tdStyle} color:var(--body); font-weight:500;">${g.item}</td>
+      <td style="${tdStyle} color:var(--accent);">${g.cylinders.join(', ')}</td>
+    </tr>`).join('') +
+    `<tr style="background:var(--surface3);">
+      <td colspan="2" style="${tdStyle} text-align:right; font-weight:700; color:var(--body);">Total</td>
+      <td style="${tdStyle} font-weight:700; color:var(--accent);">${total} Nos.</td>
+    </tr>`;
 
   const openDocBtn = document.getElementById('cp-open-doc');
-  if (pass.DocUrl) {
-    openDocBtn.style.display = '';
-    openDocBtn.onclick = () => window.open(pass.DocUrl, '_blank');
-  } else {
-    openDocBtn.style.display = 'none';
+  if (openDocBtn) {
+    if (pass.DocUrl) {
+      openDocBtn.style.display = '';
+      openDocBtn.onclick = () => window.open(pass.DocUrl, '_blank');
+    } else {
+      openDocBtn.style.display = 'none';
+    }
   }
   openModal('modal-bulk-result');
 }
@@ -2918,68 +2936,113 @@ function viewPass(passNo) {
 }
 
 function printCombinedPass() {
-  const passNo  = document.getElementById('cp-passno').textContent;
-  const org     = document.getElementById('cp-org').textContent;
-  const reqDate = document.getElementById('cp-reqdate').textContent;
-  const reqBy   = document.getElementById('cp-reqby').textContent;
-  const count   = document.getElementById('cp-count').textContent;
-  const remarks = document.getElementById('cp-remarks').textContent;
+  const passNo  = document.getElementById('cp-passno').textContent.trim();
+  const org     = document.getElementById('cp-org').textContent.trim();
+  const reqDate = document.getElementById('cp-reqdate').textContent.trim();
+  const reqBy   = document.getElementById('cp-reqby').textContent.trim();
+  const remarks = document.getElementById('cp-remarks').textContent.trim();
 
-  const rows = [...document.querySelectorAll('#cp-ext-body tr')].map(tr => {
+  const orgSubtitle  = CONFIG.orgSubtitle  || '';
+  const factoryName  = CONFIG.factoryName  || '';
+  const factoryLoc   = CONFIG.factoryLocation || '';
+  const vendorName   = CONFIG.vendorName   || 'the AMC agency';
+  const sigName      = CONFIG.signatoryName|| '';
+  const sigDesig     = CONFIG.signatoryDesig|| '';
+  const addressee    = CONFIG.addressee    || 'Security Inspector';
+
+  // Build grouped rows from the modal table (skip the last "Total" row)
+  const allTrs = [...document.querySelectorAll('#cp-ext-body tr')];
+  const tableRows = allTrs.slice(0, -1).map(tr => {
     const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
-    return `<tr><td>${cells[0]}</td><td>${cells[1]}</td><td>${cells[2]}</td><td>${cells[3]}</td><td>${cells[4]}</td><td>${cells[5]}</td></tr>`;
+    // cells: [sl, item, cylinders]
+    return `<tr>
+      <td style="text-align:center;">${cells[0]}</td>
+      <td style="text-align:center;">${cells[1]}</td>
+      <td>${cells[2]}</td>
+    </tr>`;
   }).join('');
+
+  const totalTr = allTrs[allTrs.length - 1];
+  const totalCells = totalTr ? [...totalTr.querySelectorAll('td')].map(td => td.textContent.trim()) : ['Total','',count+' Nos.'];
+  const totalRow = `<tr style="background:#e8e8e8; font-weight:bold;">
+    <td style="text-align:center;">${totalCells[0]}</td>
+    <td style="text-align:right;">${totalCells[1]}</td>
+    <td>${totalCells[2]}</td>
+  </tr>`;
 
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><title>Refill Pass ${passNo}</title>
   <style>
-    body { font-family: 'Courier New', monospace; background: #fff; color: #111; padding: 36px 40px; max-width: 720px; margin: 0 auto; font-size: 13px; }
-    .org { font-size: 22px; font-weight: bold; font-family: Arial, sans-serif; color: #D93B00; }
-    .title { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #888; margin-top: 2px; }
-    .passno { font-size: 24px; font-weight: bold; color: #C84B0A; }
-    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin: 14px 0; font-size: 12px; }
-    .meta-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #ddd; }
-    .meta-key { color: #888; }
-    hr { border: none; border-top: 1px dashed #bbb; margin: 14px 0; }
-    .section-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #888; margin-bottom: 6px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    thead tr { background: #FFF0EB; }
-    th { padding: 7px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #C84B0A; border-bottom: 2px solid #FDDCCC; }
-    td { padding: 7px 10px; border-bottom: 1px solid #F3F4F6; color: #111; }
-    td:first-child { color: #D93B00; font-weight: bold; }
-    tr:nth-child(even) td { background: #FAFAFA; }
-    .stamp { display: inline-block; border: 2px solid #D93B00; color: #D93B00; padding: 4px 14px; border-radius: 4px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; transform: rotate(-3deg); margin: 14px 0 8px; }
-    .sig-block { margin-top: 28px; display: flex; justify-content: space-between; font-size: 12px; color: #555; }
-    .sig-line { border-top: 1px solid #999; width: 200px; padding-top: 4px; text-align: center; }
-    @media print { body { padding: 20px; } }
+    @page { margin: 20mm 18mm; }
+    body { font-family: 'Times New Roman', Times, serif; background: #fff; color: #000;
+           font-size: 12pt; line-height: 1.5; }
+    .letterhead { text-align: center; margin-bottom: 10px; }
+    .org-name { font-size: 16pt; font-weight: bold; }
+    .org-sub  { font-size: 9pt; color: #444; }
+    .factory  { font-size: 12pt; font-weight: bold; margin-top: 6px; }
+    .location { font-size: 12pt; font-weight: bold; text-decoration: underline; }
+    .note-title { text-align: center; font-size: 14pt; font-weight: bold;
+                  text-decoration: underline; margin: 20px 0 16px; letter-spacing: 2px; }
+    .date-line  { text-align: right; margin-bottom: 20px; font-size: 11pt; }
+    .subject    { font-weight: bold; margin-bottom: 10px; font-size: 11pt; }
+    .body-text  { margin-bottom: 16px; font-size: 11pt; text-align: justify; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; }
+    th { border: 1px solid #000; padding: 6px 10px; text-align: center;
+         background: #e8e8e8; font-weight: bold; }
+    td { border: 1px solid #000; padding: 6px 10px; }
+    .signatory  { text-align: right; margin-top: 30px; font-weight: bold; font-size: 11pt; }
+    .sig-desig  { text-align: right; font-weight: bold; font-size: 11pt; }
+    .to-block   { margin-top: 30px; font-size: 11pt; }
+    .to-name    { font-weight: bold; }
+    .pass-footer{ margin-top: 30px; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding-top: 4px; }
+    @media print { body { margin: 0; } }
   </style></head><body>
-  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-    <div><div class="org">${org}</div><div class="title">Fire Extinguisher Refill Pass</div></div>
-    <div style="text-align:right;"><div style="font-size:10px;color:#888;">PASS NO.</div><div class="passno">${passNo}</div></div>
+
+  <div class="letterhead">
+    <div class="org-name">${org}</div>
+    ${orgSubtitle ? `<div class="org-sub">${orgSubtitle}</div>` : ''}
+    ${factoryName ? `<div class="factory">${factoryName}</div>` : ''}
+    ${factoryLoc  ? `<div class="location">${factoryLoc}</div>` : ''}
   </div>
-  <hr>
-  <div class="meta-grid">
-    <div class="meta-row"><span class="meta-key">Request Date</span><span>${reqDate}</span></div>
-    <div class="meta-row"><span class="meta-key">Requested By</span><span>${reqBy}</span></div>
-    <div class="meta-row"><span class="meta-key">No. of Extinguishers</span><span>${count}</span></div>
-    <div class="meta-row"><span class="meta-key">Remarks</span><span>${remarks}</span></div>
+
+  <div class="note-title">NOTE</div>
+
+  <div class="date-line">${reqDate}</div>
+
+  <div class="subject">Sub : Request for sending Fire Extinguishers for refilling Regd;</div>
+
+  <div class="body-text">
+    The following Fire Extinguishers are sent for refilling to the AMC agency ${vendorName}.
+    Kindly note that these items are being issued on a returnable basis
   </div>
-  <hr>
-  <div class="section-label">Extinguisher Details</div>
+
   <table>
-    <thead><tr><th>Sl.</th><th>Ext. No.</th><th>Type</th><th>Weight</th><th>Location</th><th>Mfg Date</th></tr></thead>
-    <tbody>${rows}</tbody>
+    <thead>
+      <tr>
+        <th style="width:10%;">Sl No</th>
+        <th style="width:45%;">Item</th>
+        <th style="width:45%;">Cylinder no</th>
+      </tr>
+    </thead>
+    <tbody>${tableRows}${totalRow}</tbody>
   </table>
-  <div style="margin-top:16px;"><div class="stamp">Pending Refill</div></div>
-  <div class="sig-block">
-    <div class="sig-line">Authorised Signature</div>
-    <div class="sig-line">Date</div>
-    <div class="sig-line">Vendor Stamp</div>
+
+  ${sigName ? `<div class="signatory">${sigName}</div>` : ''}
+  ${sigDesig ? `<div class="sig-desig">${sigDesig}</div>` : ''}
+
+  <div class="to-block">
+    <div>To,</div>
+    <div>&nbsp;</div>
+    <div class="to-name">${addressee}</div>
   </div>
+
+  <div class="pass-footer">Pass No: ${passNo} &nbsp;|&nbsp; Requested by: ${reqBy}</div>
+
   </body></html>`);
   w.document.close();
-  w.print();
+  setTimeout(() => w.print(), 400);
 }
+
 function getLocation(extNo) {
   const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
   return ext ? ext.Location : '—';
