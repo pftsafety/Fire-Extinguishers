@@ -176,28 +176,47 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   /* ─── STAT CARDS ─── */
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 28px; }
   .stat-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 12px; padding: 20px;
     position: relative; overflow: hidden;
     box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+    user-select: none;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,.10);
+    border-color: var(--border2);
+  }
+  .stat-card.active-filter {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow), 0 4px 16px rgba(0,0,0,.10);
+  }
+  .stat-card-hint {
+    position: absolute; bottom: 10px; right: 12px;
+    font-size: 10px; color: var(--muted); opacity: .7;
+    font-family: 'Inter', sans-serif;
   }
   .stat-card::before {
     content: ''; position: absolute; top: 0; right: 0;
     width: 80px; height: 80px; border-radius: 50%;
     transform: translate(30%, -30%); opacity: .08;
   }
-  .stat-card.fire::before { background: var(--accent); }
-  .stat-card.green::before { background: var(--green); }
+  .stat-card.fire::before   { background: var(--accent); }
+  .stat-card.green::before  { background: var(--green); }
   .stat-card.yellow::before { background: var(--yellow); }
-  .stat-card.red::before { background: var(--red); }
+  .stat-card.red::before    { background: var(--red); }
+  .stat-card.purple::before { background: #7C3AED; }
   .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--grey); margin-bottom: 8px; }
   .stat-value { font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 800; }
-  .stat-card.fire .stat-value { color: var(--accent); }
-  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.fire .stat-value   { color: var(--accent); }
+  .stat-card.green .stat-value  { color: var(--green); }
   .stat-card.yellow .stat-value { color: var(--yellow); }
-  .stat-card.red .stat-value { color: var(--red); }
+  .stat-card.red .stat-value    { color: var(--red); }
+  .stat-card.purple .stat-value { color: #7C3AED; }
   .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
   /* ─── TABLE ─── */
@@ -253,10 +272,12 @@
     display: inline-block; padding: 2px 8px; border-radius: 4px;
     font-size: 11px; font-weight: 500;
   }
-  .tag-abc { background: var(--blue-bg); color: var(--blue); }
-  .tag-co2 { background: #FFF7ED; color: #C2410C; }
-  .tag-dry { background: var(--yellow-bg); color: var(--yellow); }
-  .tag-water { background: var(--green-bg); color: var(--green); }
+  .tag-abc    { background: var(--blue-bg);    color: var(--blue);   }
+  .tag-co2    { background: #FFF7ED;          color: #C2410C;       }
+  .tag-dcp    { background: var(--yellow-bg); color: var(--yellow); }
+  .tag-foam   { background: var(--green-bg);  color: var(--green);  }
+  .tag-classl { background: #F3E8FF;          color: #7C3AED;       }
+  .tag-dry    { background: var(--surface3);  color: var(--grey);   }
   .status-dot {
     display: inline-flex; align-items: center; gap: 5px;
     font-size: 12px;
@@ -448,6 +469,9 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ─── RESPONSIVE ─── */
+  @media (max-width: 1200px) {
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  }
   @media (max-width: 900px) {
     .sidebar { transform: translateX(-100%); }
     .sidebar.open { transform: translateX(0); }
@@ -628,25 +652,35 @@
     <!-- ═══ DASHBOARD ═══ -->
     <div class="page active" id="page-dashboard">
       <div class="stats-grid">
-        <div class="stat-card fire">
+        <div class="stat-card fire" onclick="filterByCard('all')" id="card-total" title="View all extinguishers">
           <div class="stat-label">Total Extinguishers</div>
           <div class="stat-value" id="stat-total">—</div>
           <div class="stat-sub">Across all locations</div>
+          <div class="stat-card-hint">Click to view all ↗</div>
         </div>
-        <div class="stat-card green">
+        <div class="stat-card green" onclick="filterByCard('ok')" id="card-ok" title="View active extinguishers">
           <div class="stat-label">Active & Compliant</div>
           <div class="stat-value" id="stat-ok">—</div>
           <div class="stat-sub">Up to date</div>
+          <div class="stat-card-hint">Click to filter ↗</div>
         </div>
-        <div class="stat-card yellow">
+        <div class="stat-card yellow" onclick="filterByCard('due')" id="card-due" title="View due for service">
           <div class="stat-label">Due for Service</div>
           <div class="stat-value" id="stat-due">—</div>
           <div class="stat-sub">Within 30 days</div>
+          <div class="stat-card-hint">Click to filter ↗</div>
         </div>
-        <div class="stat-card red">
+        <div class="stat-card red" onclick="filterByCard('overdue')" id="card-overdue" title="View overdue / sent out">
           <div class="stat-label">Overdue / Sent Out</div>
           <div class="stat-value" id="stat-overdue">—</div>
           <div class="stat-sub">Needs attention</div>
+          <div class="stat-card-hint">Click to filter ↗</div>
+        </div>
+        <div class="stat-card purple" onclick="filterByCard('vacant')" id="card-vacant" title="View vacant locations">
+          <div class="stat-label">Vacant Locations</div>
+          <div class="stat-value" id="stat-vacant">—</div>
+          <div class="stat-sub">No cover in place</div>
+          <div class="stat-card-hint">Click to filter ↗</div>
         </div>
       </div>
 
@@ -681,11 +715,13 @@
           </div>
           <select class="filter-select" id="filter-type" onchange="filterTable()">
             <option value="">All Types</option>
-            <option>ABC Dry Powder</option>
+            <option>ABC</option>
             <option>CO₂</option>
-            <option>Water</option>
-            <option>Foam</option>
-            <option>Wet Chemical</option>
+            <option>CO₂ (Trly)</option>
+            <option>DCP (Trly)</option>
+            <option>DCP</option>
+            <option>FOAM</option>
+            <option>Class L</option>
           </select>
           <select class="filter-select" id="filter-status" onchange="filterTable()">
             <option value="">All Status</option>
@@ -837,6 +873,29 @@
 
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
           <div style="font-size:12px; font-weight:700; color:var(--body); text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px;">📄 Note / Gatepass Template Details</div>
+
+          <!-- Logo upload -->
+          <div style="margin-bottom:18px; padding:16px; background:var(--surface2); border:1px solid var(--border); border-radius:10px;">
+            <div style="font-size:12px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px;">Organisation Logo</div>
+            <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
+              <div id="logo-preview-wrap" style="width:90px; height:60px; border:1px dashed var(--border2); border-radius:8px; display:flex; align-items:center; justify-content:center; background:var(--surface); overflow:hidden; flex-shrink:0;">
+                <img id="logo-preview-img" src="" alt="" style="max-width:88px; max-height:58px; object-fit:contain; display:none;">
+                <span id="logo-preview-placeholder" style="font-size:22px; color:var(--muted);">🏢</span>
+              </div>
+              <div style="flex:1; min-width:180px;">
+                <div style="font-size:12px; color:var(--grey); margin-bottom:8px; line-height:1.5;">Upload your organisation logo (PNG, JPG, SVG). It will appear in the pass letterhead, print output, and Word download.</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <label class="btn btn-ghost btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                    📁 Choose Logo
+                    <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg,image/svg+xml,image/gif" style="display:none;" onchange="handleLogoUpload(this)">
+                  </label>
+                  <button class="btn btn-ghost btn-sm" onclick="clearLogo()" id="cfg-logo-clear" style="display:none; color:var(--red);">✕ Remove</button>
+                </div>
+                <div id="cfg-logo-hint" style="font-size:11px; color:var(--muted); margin-top:6px;">Recommended: transparent PNG, ~200×80px, max 500 KB</div>
+              </div>
+            </div>
+          </div>
+
           <div class="form-grid">
             <div class="form-group">
               <label>Organisation Name</label>
@@ -980,11 +1039,13 @@
         <div class="form-group">
           <label>Type *</label>
           <select id="f-type">
-            <option>ABC Dry Powder</option>
+            <option>ABC</option>
             <option>CO₂</option>
-            <option>Water</option>
-            <option>Foam</option>
-            <option>Wet Chemical</option>
+            <option>CO₂ (Trly)</option>
+            <option>DCP (Trly)</option>
+            <option>DCP</option>
+            <option>FOAM</option>
+            <option>Class L</option>
           </select>
         </div>
         <div class="form-group">
@@ -1272,9 +1333,14 @@
       <!-- Combined Pass Preview -->
       <div class="pass-preview" id="combined-pass-content">
         <div class="pass-header">
-          <div>
-            <div class="pass-org" id="cp-org">Organisation</div>
-            <div class="pass-title">Fire Extinguisher Refill Pass</div>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div id="cp-logo-wrap" style="display:none; flex-shrink:0;">
+              <img id="cp-logo-img" src="" alt="Logo" style="max-height:52px; max-width:120px; object-fit:contain;">
+            </div>
+            <div>
+              <div class="pass-org" id="cp-org">Organisation</div>
+              <div class="pass-title">Fire Extinguisher Refill Pass</div>
+            </div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:10px; color:var(--grey);">PASS NO.</div>
@@ -1342,6 +1408,7 @@ let CONFIG = {
   signatoryName: 'GOKUL V BABU',
   signatoryDesig: 'SM (Safety & Environment)',
   addressee: 'Security Inspector',
+  orgLogo: '',   // base64 data-URL of org logo
   templateId: '',
   folderId: ''
 };
@@ -1393,6 +1460,65 @@ function loadConfig() {
     set('cfg-folder-id',      CONFIG.folderId);
     if (CONFIG.apiUrl) validateApiUrl(CONFIG.apiUrl);
   }
+  // Logo stored separately (can be large)
+  const savedLogo = localStorage.getItem('fireguard_logo');
+  if (savedLogo) {
+    CONFIG.orgLogo = savedLogo;
+    renderLogoPreview(savedLogo);
+  }
+}
+
+// ── Logo upload / preview ────────────────────────────────────
+function handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 600 * 1024) {
+    showToast('Logo too large — please use an image under 500 KB', 'error');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    CONFIG.orgLogo = dataUrl;
+    localStorage.setItem('fireguard_logo', dataUrl);
+    renderLogoPreview(dataUrl);
+    showToast('Logo saved!', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderLogoPreview(dataUrl) {
+  const img = document.getElementById('logo-preview-img');
+  const placeholder = document.getElementById('logo-preview-placeholder');
+  const clearBtn = document.getElementById('cfg-logo-clear');
+  const hintEl = document.getElementById('cfg-logo-hint');
+  if (!img) return;
+  if (dataUrl) {
+    img.src = dataUrl;
+    img.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+    if (clearBtn) clearBtn.style.display = 'inline-flex';
+    if (hintEl) hintEl.textContent = '✓ Logo loaded — will appear on all passes';
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'block';
+    if (clearBtn) clearBtn.style.display = 'none';
+    if (hintEl) hintEl.textContent = 'Recommended: transparent PNG, ~200×80px, max 500 KB';
+  }
+  // Also update pass preview modal logo
+  const passOrgEl = document.getElementById('cp-org');
+  if (passOrgEl) passOrgEl.textContent = CONFIG.orgName || '';
+}
+
+function clearLogo() {
+  CONFIG.orgLogo = '';
+  localStorage.removeItem('fireguard_logo');
+  renderLogoPreview('');
+  const input = document.getElementById('cfg-logo-input');
+  if (input) input.value = '';
+  showToast('Logo removed', 'info');
 }
 
 function validateApiUrl(val) {
@@ -1458,14 +1584,14 @@ function setDefaultDates() {
 // ═══════════════════════════════════════════════
 function loadSampleData() {
   DATA.extinguishers = [
-    { ExtNo:'EXT-001', Type:'ABC Dry Powder', Weight:'6', Location:'Building A - Entrance', MfgDate:'2019-03-15', LastRefillDate:'2023-01-10', NextRefillDue:'2024-01-10', Status:'overdue', CurrentLocation:'Building A - Entrance', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-001', Type:'ABC', Weight:'6', Location:'Building A - Entrance', MfgDate:'2019-03-15', LastRefillDate:'2023-01-10', NextRefillDue:'2024-01-10', Status:'overdue', CurrentLocation:'Building A - Entrance', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
     { ExtNo:'EXT-002', Type:'CO₂', Weight:'4.5', Location:'Server Room B', MfgDate:'2020-06-20', LastRefillDate:'2023-06-01', NextRefillDue:'2024-06-01', Status:'ok', CurrentLocation:'Server Room B', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-003', Type:'ABC Dry Powder', Weight:'9', Location:'Warehouse Floor 1', MfgDate:'2018-11-05', LastRefillDate:'2022-11-20', NextRefillDue:'2023-11-20', Status:'overdue', CurrentLocation:'Warehouse Floor 1', OriginalLocation:'', SubstituteFor:'', Remarks:'Old unit' },
-    { ExtNo:'EXT-004', Type:'Foam', Weight:'6', Location:'Kitchen / Canteen', MfgDate:'2021-02-14', LastRefillDate:'2023-08-15', NextRefillDue:'2025-08-15', Status:'ok', CurrentLocation:'Kitchen / Canteen', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-003', Type:'ABC', Weight:'9', Location:'Warehouse Floor 1', MfgDate:'2018-11-05', LastRefillDate:'2022-11-20', NextRefillDue:'2023-11-20', Status:'overdue', CurrentLocation:'Warehouse Floor 1', OriginalLocation:'', SubstituteFor:'', Remarks:'Old unit' },
+    { ExtNo:'EXT-004', Type:'FOAM', Weight:'6', Location:'Kitchen / Canteen', MfgDate:'2021-02-14', LastRefillDate:'2023-08-15', NextRefillDue:'2025-08-15', Status:'ok', CurrentLocation:'Kitchen / Canteen', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
     { ExtNo:'EXT-005', Type:'CO₂', Weight:'2', Location:'Control Room', MfgDate:'2022-09-01', LastRefillDate:'2024-09-01', NextRefillDue:'2026-09-01', Status:'ok', CurrentLocation:'Control Room', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-006', Type:'Water', Weight:'9', Location:'Building C - Floor 3', MfgDate:'2020-04-22', LastRefillDate:'2023-04-22', NextRefillDue:'2024-04-22', Status:'pending', CurrentLocation:'With Vendor', OriginalLocation:'Building C - Floor 3', SubstituteFor:'', Remarks:'Sent for service' },
-    { ExtNo:'EXT-007', Type:'ABC Dry Powder', Weight:'6', Location:'Parking Level B1', MfgDate:'2021-07-30', LastRefillDate:'2023-07-30', NextRefillDue:'2025-07-30', Status:'ok', CurrentLocation:'Parking Level B1', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-008', Type:'ABC Dry Powder', Weight:'6', Location:'Storeroom', MfgDate:'2022-01-10', LastRefillDate:'2024-01-10', NextRefillDue:'2026-01-10', Status:'in-store', CurrentLocation:'Storeroom', OriginalLocation:'', SubstituteFor:'', Remarks:'Ready for deployment' },
+    { ExtNo:'EXT-006', Type:'FOAM', Weight:'9', Location:'Building C - Floor 3', MfgDate:'2020-04-22', LastRefillDate:'2023-04-22', NextRefillDue:'2024-04-22', Status:'pending', CurrentLocation:'With Vendor', OriginalLocation:'Building C - Floor 3', SubstituteFor:'', Remarks:'Sent for service' },
+    { ExtNo:'EXT-007', Type:'ABC', Weight:'6', Location:'Parking Level B1', MfgDate:'2021-07-30', LastRefillDate:'2023-07-30', NextRefillDue:'2025-07-30', Status:'ok', CurrentLocation:'Parking Level B1', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-008', Type:'ABC', Weight:'6', Location:'Storeroom', MfgDate:'2022-01-10', LastRefillDate:'2024-01-10', NextRefillDue:'2026-01-10', Status:'in-store', CurrentLocation:'Storeroom', OriginalLocation:'', SubstituteFor:'', Remarks:'Ready for deployment' },
   ];
   DATA.hydroTests = [
     { TestID:'HT-001', ExtNo:'EXT-001', TestDate:'2022-03-15', TestBy:'SafeTech Pvt Ltd', Pressure:'25', Result:'pass', NextDue:'2027-03-15', CertNo:'CERT-2022-001' },
@@ -1476,8 +1602,8 @@ function loadSampleData() {
     { RefillID:'RF-002', ExtNo:'EXT-001', RequestDate:'2024-04-20', RequestBy:'Admin', SentDate:'', ReceivedDate:'', PassNo:'PASS-0002', Status:'pending', OriginalLocation:'Building A - Entrance', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Annual refill' },
   ];
   DATA.passes = [
-    { PassNo:'PASS-0001', ExtNo:'EXT-006', ExtList:'', Location:'Building C - Floor 3', Type:'Water', Weight:'9', GeneratedOn:'2024-05-01', GeneratedBy:'Safety Dept', Status:'sent', DocUrl:'' },
-    { PassNo:'PASS-0002', ExtNo:'EXT-001', ExtList:'', Location:'Building A - Entrance', Type:'ABC Dry Powder', Weight:'6', GeneratedOn:'2024-04-20', GeneratedBy:'Admin', Status:'pending', DocUrl:'' },
+    { PassNo:'PASS-0001', ExtNo:'EXT-006', ExtList:'', Location:'Building C - Floor 3', Type:'FOAM', Weight:'9', GeneratedOn:'2024-05-01', GeneratedBy:'Safety Dept', Status:'sent', DocUrl:'' },
+    { PassNo:'PASS-0002', ExtNo:'EXT-001', ExtList:'', Location:'Building A - Entrance', Type:'ABC', Weight:'6', GeneratedOn:'2024-04-20', GeneratedBy:'Admin', Status:'pending', DocUrl:'' },
   ];
 }
 
@@ -1603,32 +1729,126 @@ async function testConnection() {
 // ═══════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════
+let activeCardFilter = null; // tracks which card is currently active
+
 function renderDashboard() {
-  const total = DATA.extinguishers.length;
-  const ok = DATA.extinguishers.filter(e => e.Status === 'ok').length;
-  const due = DATA.extinguishers.filter(e => e.Status === 'due').length;
+  const total   = DATA.extinguishers.length;
+  const ok      = DATA.extinguishers.filter(e => e.Status === 'ok').length;
+  const due     = DATA.extinguishers.filter(e => e.Status === 'due').length;
   const overdue = DATA.extinguishers.filter(e => e.Status === 'overdue' || e.Status === 'pending').length;
-  document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-ok').textContent = ok;
-  document.getElementById('stat-due').textContent = due;
-  document.getElementById('stat-overdue').textContent = overdue;
-  const pending = DATA.refills.filter(r => r.Status !== 'received').length;
+
+  // Vacant: extinguishers sent out (pending/sent) with no substitute covering their original location
+  const vacant = DATA.extinguishers.filter(e => {
+    if (e.Status !== 'pending') return false;
+    const origLoc = e.OriginalLocation || e.Location;
+    if (!origLoc) return false;
+    const hasSub = DATA.extinguishers.some(s =>
+      s.SubstituteFor === e.ExtNo &&
+      (s.CurrentLocation === origLoc || s.Location === origLoc) &&
+      s.Status !== 'pending'
+    );
+    return !hasSub;
+  }).length;
+
+  document.getElementById('stat-total').textContent  = total;
+  document.getElementById('stat-ok').textContent     = ok;
+  document.getElementById('stat-due').textContent    = due;
+  document.getElementById('stat-overdue').textContent= overdue;
+  document.getElementById('stat-vacant').textContent = vacant;
+
+  const pending = DATA.refills.filter(r => r.Status !== 'received' && r.Status !== 'deployed').length;
   document.getElementById('pending-badge').textContent = pending;
+
+  // Highlight active card
+  ['card-total','card-ok','card-due','card-overdue','card-vacant'].forEach(id => {
+    document.getElementById(id)?.classList.remove('active-filter');
+  });
+  if (activeCardFilter) {
+    const cardMap = { all:'card-total', ok:'card-ok', due:'card-due', overdue:'card-overdue', vacant:'card-vacant' };
+    const activeId = cardMap[activeCardFilter];
+    if (activeId) document.getElementById(activeId)?.classList.add('active-filter');
+  }
 
   // Recent table
   const recent = [...DATA.extinguishers].slice(0, 8);
   const tbody = document.getElementById('recent-body');
-  if (!recent.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔥</div><div class="empty-text">No data</div></div></td></tr>'; return; }
+  if (!recent.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">Connect to Google Sheets to load data</div></div></td></tr>';
+    return;
+  }
   tbody.innerHTML = recent.map(e => `
     <tr>
       <td><span class="ext-num">${e.ExtNo}</span></td>
-      <td>${e.Location}</td>
+      <td>${e.CurrentLocation || e.Location}</td>
       <td>${typeTag(e.Type)}</td>
       <td>Last Refill</td>
       <td>${fmtDate(e.LastRefillDate)}</td>
       <td>${statusBadge(e.Status)}</td>
     </tr>
   `).join('');
+}
+
+// ── Card click → jump to Master List with filter applied ─────
+function filterByCard(filterType) {
+  // Toggle: clicking same card again resets filter
+  if (activeCardFilter === filterType) {
+    activeCardFilter = null;
+    // Remove active-filter class from all
+    ['card-total','card-ok','card-due','card-overdue','card-vacant'].forEach(id =>
+      document.getElementById(id)?.classList.remove('active-filter')
+    );
+    // Navigate to master list with no filter
+    showPage('masterlist');
+    document.getElementById('filter-status').value = '';
+    filterTable();
+    return;
+  }
+
+  activeCardFilter = filterType;
+  renderDashboard(); // re-render to update active card highlight
+
+  showPage('masterlist');
+
+  const statusSelect = document.getElementById('filter-status');
+
+  if (filterType === 'all') {
+    statusSelect.value = '';
+    filterTable();
+    return;
+  }
+
+  if (filterType === 'overdue') {
+    // Custom filter: show overdue + pending together
+    statusSelect.value = '';
+    const filtered = DATA.extinguishers.filter(e =>
+      e.Status === 'overdue' || e.Status === 'pending'
+    );
+    renderMasterTable(filtered);
+    return;
+  }
+
+  if (filterType === 'vacant') {
+    // Show extinguishers whose location is vacant (sent out, no substitute)
+    statusSelect.value = '';
+    const filtered = DATA.extinguishers.filter(e => {
+      if (e.Status !== 'pending') return false;
+      const origLoc = e.OriginalLocation || e.Location;
+      if (!origLoc) return false;
+      return !DATA.extinguishers.some(s =>
+        s.SubstituteFor === e.ExtNo &&
+        (s.CurrentLocation === origLoc || s.Location === origLoc) &&
+        s.Status !== 'pending'
+      );
+    });
+    renderMasterTable(filtered);
+    // Show a banner
+    showToast(`${filtered.length} vacant location${filtered.length !== 1 ? 's' : ''} — locations with no cover`, 'info');
+    return;
+  }
+
+  // ok / due / in-store — use the status filter dropdown
+  statusSelect.value = filterType;
+  filterTable();
 }
 
 // ═══════════════════════════════════════════════
@@ -1925,6 +2145,22 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
   const sigName      = CONFIG.signatoryName|| '';
   const sigDesig     = CONFIG.signatoryDesig|| '';
   const addressee    = CONFIG.addressee    || 'Security Inspector';
+  const logoDataUrl  = CONFIG.orgLogo      || '';
+
+  // ── Extract logo base64 & type ────────────────────────────────
+  let logoBase64 = '';
+  let logoMediaType = 'image/png';
+  let logoExtension = 'png';
+  if (logoDataUrl) {
+    const m = logoDataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+    if (m) {
+      logoMediaType = m[1];
+      logoBase64    = m[2];
+      logoExtension = logoMediaType.includes('jpeg') ? 'jpg'
+                    : logoMediaType.includes('png')  ? 'png'
+                    : logoMediaType.includes('gif')  ? 'gif' : 'png';
+    }
+  }
 
   // ── Helpers ───────────────────────────────────────────────────
   const x = s => String(s||'')
@@ -1962,8 +2198,40 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
     `<w:p><w:pPr><w:spacing w:before="0" w:after="${after}"/></w:pPr></w:p>`;
 
   // ── 1. Letterhead ─────────────────────────────────────────────
-  // Company name centred bold
+  // Logo paragraph (if logo provided)
+  const logoPara = logoBase64 ? `<w:p>
+    <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="80"/></w:pPr>
+    <w:r><w:rPr><w:noProof/></w:rPr>
+      <w:drawing>
+        <wp:inline distT="0" distB="0" distL="0" distR="0"
+          xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+          <wp:extent cx="1371600" cy="685800"/>
+          <wp:docPr id="1" name="Logo"/>
+          <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+              <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                <pic:nvPicPr>
+                  <pic:cNvPr id="1" name="logo.${logoExtension}"/>
+                  <pic:cNvPicPr/>
+                </pic:nvPicPr>
+                <pic:blipFill>
+                  <a:blip r:embed="rIdLogo"/>
+                  <a:stretch><a:fillRect/></a:stretch>
+                </pic:blipFill>
+                <pic:spPr>
+                  <a:xfrm><a:off x="0" y="0"/><a:ext cx="1371600" cy="685800"/></a:xfrm>
+                  <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                </pic:spPr>
+              </pic:pic>
+            </a:graphicData>
+          </a:graphic>
+        </wp:inline>
+      </w:drawing>
+    </w:r>
+  </w:p>` : '';
+
   const letterhead = [
+    logoPara,
     para(run(org, { bold:true, sz:28, font:'Arial' }), { align:'center', spaceAfter:40 }),
     para(run(orgSubtitle, { sz:18, font:'Arial' }), { align:'center', spaceAfter:40 }),
     para(run(factoryName, { bold:true, sz:20, font:'Arial' }), { align:'center', spaceAfter:40 }),
@@ -2108,23 +2376,45 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
 
   // ── Build .docx ZIP ──────────────────────────────────────────
   const zip = new JSZip();
+
+  // Content types
+  const imgContentType = logoBase64
+    ? `<Override PartName="/word/media/logo.${logoExtension}" ContentType="${logoMediaType}"/>`
+    : '';
   zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml"  ContentType="application/xml"/>
+  <Default Extension="${logoExtension}" ContentType="${logoMediaType}"/>
   <Override PartName="/word/document.xml"
     ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  ${imgContentType}
 </Types>`);
+
   zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1"
     Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
     Target="word/document.xml"/>
 </Relationships>`);
+
   zip.file('word/document.xml', documentXml);
+
+  // Relationships — include logo if present
+  const logoRel = logoBase64
+    ? `<Relationship Id="rIdLogo"
+        Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+        Target="media/logo.${logoExtension}"/>`
+    : '';
   zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  ${logoRel}
 </Relationships>`);
+
+  // Add logo image file to zip if provided
+  if (logoBase64) {
+    zip.file(`word/media/logo.${logoExtension}`, logoBase64, { base64: true });
+  }
 
   return await zip.generateAsync({
     type: 'blob',
@@ -2893,6 +3183,16 @@ function showCombinedPassPreview(pass, extDetails) {
   document.getElementById('cp-count').textContent = extDetails.length;
   document.getElementById('cp-remarks').textContent = pass.Remarks || '—';
 
+  // Logo in modal
+  const logoWrap = document.getElementById('cp-logo-wrap');
+  const logoImg  = document.getElementById('cp-logo-img');
+  if (CONFIG.orgLogo && logoWrap && logoImg) {
+    logoImg.src = CONFIG.orgLogo;
+    logoWrap.style.display = 'block';
+  } else if (logoWrap) {
+    logoWrap.style.display = 'none';
+  }
+
   const grouped = groupExtDetails(extDetails);
   const total   = extDetails.length;
 
@@ -2999,6 +3299,7 @@ function printCombinedPass() {
   </style></head><body>
 
   <div class="letterhead">
+    ${CONFIG.orgLogo ? `<div style="margin-bottom:6px;"><img src="${CONFIG.orgLogo}" alt="Logo" style="max-height:60px; max-width:160px; object-fit:contain;"></div>` : ''}
     <div class="org-name">${org}</div>
     ${orgSubtitle ? `<div class="org-sub">${orgSubtitle}</div>` : ''}
     ${factoryName ? `<div class="factory">${factoryName}</div>` : ''}
@@ -3061,7 +3362,12 @@ function hydroStatus(extNo) {
 
 function typeTag(type) {
   if (!type) return '—';
-  const cls = type.includes('ABC') ? 'tag-abc' : type.includes('CO') ? 'tag-co2' : type.includes('Water') ? 'tag-water' : 'tag-dry';
+  let cls = 'tag-dry';
+  if (type === 'ABC')           cls = 'tag-abc';
+  else if (type.startsWith('CO₂')) cls = 'tag-co2';
+  else if (type.startsWith('DCP')) cls = 'tag-dcp';
+  else if (type === 'FOAM')     cls = 'tag-foam';
+  else if (type === 'Class L')  cls = 'tag-classl';
   return `<span class="tag ${cls}">${type}</span>`;
 }
 
@@ -3115,6 +3421,13 @@ function showPage(id) {
   // Hide selection toolbar when not on master list
   if (id !== 'masterlist') {
     document.getElementById('sel-toolbar').classList.remove('visible');
+    // Clear card filter highlight if user navigates away manually
+    if (activeCardFilter) {
+      activeCardFilter = null;
+      ['card-total','card-ok','card-due','card-overdue','card-vacant'].forEach(cid =>
+        document.getElementById(cid)?.classList.remove('active-filter')
+      );
+    }
   } else {
     updateSelectionToolbar();
   }
