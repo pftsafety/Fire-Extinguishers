@@ -586,6 +586,118 @@
   .batch-pass-mini .bpm-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
   .batch-pass-mini .bpm-key { color: var(--grey); }
   .batch-pass-mini .bpm-val { color: var(--body); }
+
+  /* ─── ALERTS BANNER ─── */
+  .alerts-banner {
+    display:flex; flex-direction:column; gap:8px; margin-bottom:20px;
+  }
+  .alert-item {
+    display:flex; align-items:center; gap:12px; padding:11px 16px;
+    border-radius:10px; font-size:13px; border-left:4px solid;
+    background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .alert-item.alert-red   { border-left-color:var(--red);    background:var(--red-bg); }
+  .alert-item.alert-amber { border-left-color:var(--yellow); background:var(--yellow-bg); }
+  .alert-item.alert-blue  { border-left-color:var(--blue);   background:var(--blue-bg); }
+  .alert-icon { font-size:18px; flex-shrink:0; }
+  .alert-text { flex:1; color:var(--body); }
+  .alert-text strong { font-weight:600; }
+  .alert-text small   { display:block; font-size:11px; color:var(--grey); margin-top:2px; }
+  .alert-dismiss { background:none; border:none; cursor:pointer; color:var(--muted); font-size:16px; padding:2px 6px; border-radius:4px; }
+  .alert-dismiss:hover { background:rgba(0,0,0,.06); }
+
+  /* ─── CHARTS ROW ─── */
+  .charts-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+  @media(max-width:900px){ .charts-row { grid-template-columns:1fr; } }
+  .chart-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,.05);
+  }
+  .chart-title { font-family:'Outfit',sans-serif; font-weight:700; font-size:14px; color:var(--body); margin-bottom:16px; }
+  .chart-canvas-wrap { position:relative; }
+
+  /* ─── DONUT CHART ─── */
+  .donut-wrap { display:flex; align-items:center; gap:20px; }
+  .donut-svg  { flex-shrink:0; }
+  .donut-legend { display:flex; flex-direction:column; gap:8px; }
+  .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--grey); cursor:pointer; }
+  .legend-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .legend-val  { font-weight:700; color:var(--body); margin-left:auto; padding-left:12px; font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+  /* ─── TIMELINE CHART ─── */
+  .timeline-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .timeline-month   { font-size:11px; color:var(--grey); width:36px; flex-shrink:0; text-align:right; }
+  .timeline-track   { flex:1; background:var(--surface3); border-radius:4px; height:22px; position:relative; overflow:hidden; cursor:pointer; }
+  .timeline-fill    { height:100%; border-radius:4px; display:flex; align-items:center; padding-left:8px;
+                      font-size:11px; color:#fff; font-weight:600; white-space:nowrap; transition:width .4s ease; }
+  .timeline-fill.t-red    { background:var(--red); }
+  .timeline-fill.t-amber  { background:var(--yellow); }
+  .timeline-fill.t-blue   { background:var(--accent); }
+  .timeline-fill.t-green  { background:var(--green); }
+  .timeline-zero    { font-size:11px; color:var(--muted); padding-left:8px; }
+
+  /* ─── LOCATION MAP ─── */
+  .locmap-grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px;
+  }
+  .locmap-slot {
+    border-radius:10px; padding:12px 14px; border:1px solid var(--border);
+    cursor:pointer; transition:all .15s; position:relative; min-height:80px;
+  }
+  .locmap-slot:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.1); }
+  .locmap-slot.ls-ok       { background:var(--green-bg);  border-color:var(--green-bd); }
+  .locmap-slot.ls-due      { background:var(--yellow-bg); border-color:var(--yellow-bd); }
+  .locmap-slot.ls-overdue  { background:var(--red-bg);    border-color:var(--red-bd); }
+  .locmap-slot.ls-vacant   { background:#F3F4F6; border:2px dashed #9CA3AF; }
+  .locmap-slot.ls-sub      { background:#FFF7ED; border-color:#FED7AA; }
+  .locmap-slot.ls-store    { background:var(--blue-bg);   border-color:var(--blue-bd); }
+  .locmap-slot.ls-vendor   { background:#F3E8FF; border-color:#DDD6FE; }
+  .locmap-name   { font-size:12px; font-weight:600; color:var(--body); margin-bottom:6px; line-height:1.3; }
+  .locmap-ext    { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); font-weight:600; }
+  .locmap-type   { font-size:11px; color:var(--grey); margin-top:2px; }
+  .locmap-badge  { position:absolute; top:8px; right:8px; font-size:14px; }
+  .locmap-legend { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+  .locmap-leg-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--grey); }
+  .locmap-leg-swatch { width:14px; height:14px; border-radius:4px; border:1px solid rgba(0,0,0,.1); }
+  .locmap-search { display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 12px; max-width:280px; margin-bottom:16px; }
+  .locmap-search input { background:none; border:none; outline:none; color:var(--body); font-family:'Inter',sans-serif; font-size:13px; width:100%; }
+
+  /* ─── AMC TRACKER ─── */
+  .amc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+  .amc-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.04);
+    transition:all .15s;
+  }
+  .amc-card:hover { box-shadow:0 4px 14px rgba(0,0,0,.09); border-color:var(--border2); }
+  .amc-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; }
+  .amc-vendor { font-weight:700; font-size:14px; color:var(--body); }
+  .amc-scope  { font-size:11px; color:var(--grey); margin-top:2px; }
+  .amc-status { font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; white-space:nowrap; }
+  .amc-status.active  { background:var(--green-bg);  color:var(--green); }
+  .amc-status.expiring{ background:var(--yellow-bg); color:var(--yellow); }
+  .amc-status.expired { background:var(--red-bg);    color:var(--red); }
+  .amc-dates  { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+  .amc-date-item { background:var(--surface2); border-radius:6px; padding:6px 10px; }
+  .amc-date-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .amc-date-val { font-size:13px; font-weight:600; color:var(--body); margin-top:2px; font-family:'JetBrains Mono',monospace; }
+  .amc-days-bar { height:6px; border-radius:3px; background:var(--surface3); overflow:hidden; margin:10px 0 6px; }
+  .amc-days-fill { height:100%; border-radius:3px; transition:width .4s ease; }
+  .amc-days-text { font-size:11px; color:var(--grey); }
+  .amc-contact { font-size:12px; color:var(--grey); border-top:1px solid var(--border); padding-top:10px; margin-top:10px; }
+  .amc-actions { display:flex; gap:6px; margin-top:10px; }
+
+  /* ─── SYNC STATUS ─── */
+  .sync-status {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11px; color:var(--muted); padding:4px 10px;
+    background:var(--surface2); border-radius:20px; border:1px solid var(--border);
+  }
+  .sync-dot { width:6px; height:6px; border-radius:50%; background:var(--green); }
+  .sync-dot.syncing { background:var(--yellow); animation:pulse .8s infinite; }
+  .sync-dot.error   { background:var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
 </style>
 </head>
 <body>
@@ -621,6 +733,12 @@
     <div class="nav-item" onclick="showPage('passes')">
       <span class="icon">📄</span> Passes / Requests
     </div>
+    <div class="nav-item" onclick="showPage('locationmap')">
+      <span class="icon">🗺️</span> Location Map
+    </div>
+    <div class="nav-item" onclick="showPage('amc')">
+      <span class="icon">📋</span> AMC Tracker
+    </div>
     <div class="nav-item" onclick="showPage('config')">
       <span class="icon">⚙️</span> Configuration
     </div>
@@ -642,6 +760,10 @@
       <span class="topbar-sub" id="page-sub">Overview</span>
     </div>
     <div class="topbar-actions">
+      <div class="sync-status" id="sync-status" title="Last sync time">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span id="sync-label">Not synced</span>
+      </div>
       <button class="btn btn-ghost btn-sm" onclick="refreshData()">↻ Sync</button>
       <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add Extinguisher</button>
     </div>
@@ -684,6 +806,24 @@
         </div>
       </div>
 
+      <!-- Alerts Banner -->
+      <div class="alerts-banner" id="alerts-banner"></div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">🧯 Extinguisher Types</div>
+          <div class="donut-wrap" id="type-chart-wrap">
+            <svg class="donut-svg" id="donut-svg" width="120" height="120" viewBox="0 0 120 120"></svg>
+            <div class="donut-legend" id="donut-legend"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">📅 Refill Due — Next 12 Months</div>
+          <div id="timeline-chart"></div>
+        </div>
+      </div>
+
       <div class="section-title">Recent Activity</div>
       <div class="table-card">
         <div class="table-header">
@@ -697,7 +837,7 @@
               </tr>
             </thead>
             <tbody id="recent-body">
-              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🔥</div><div class="empty-text">Connect to Google Sheets to load data</div></div></td></tr>
+              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">Connect to Google Sheets to load data</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1105,7 +1245,7 @@
         </div>
         <div class="form-group">
           <label>Test Date *</label>
-          <input type="date" id="h-testdate">
+          <input type="date" id="h-testdate" onchange="autoFillHydroNextDue(this.value)">
         </div>
         <div class="form-group">
           <label>Tested By</label>
@@ -1124,7 +1264,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Next Due Date</label>
+          <label>Next Due Date <span style="color:var(--muted);font-weight:400;font-size:10px;">auto: +5 yrs from test date</span></label>
           <input type="date" id="h-nextdue">
         </div>
         <div class="form-group full">
@@ -1384,6 +1524,52 @@
   </div>
 </div>
 
+<!-- AMC Modal -->
+<div class="modal-overlay" id="modal-amc">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-amc-title">Add AMC Contract</div>
+      <button class="modal-close" onclick="closeModal('modal-amc')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Vendor / Contractor Name *</label>
+          <input type="text" id="amc-vendor" placeholder="M/S Red Firelines">
+        </div>
+        <div class="form-group full">
+          <label>Scope / Coverage</label>
+          <input type="text" id="amc-scope" placeholder="All ABC & CO₂, Peroorkada Factory">
+        </div>
+        <div class="form-group">
+          <label>Contract Start Date *</label>
+          <input type="date" id="amc-start">
+        </div>
+        <div class="form-group">
+          <label>Contract End Date *</label>
+          <input type="date" id="amc-end">
+        </div>
+        <div class="form-group">
+          <label>Contract Value (₹)</label>
+          <input type="number" id="amc-value" placeholder="50000">
+        </div>
+        <div class="form-group">
+          <label>Contact Person</label>
+          <input type="text" id="amc-contact" placeholder="Name & Phone">
+        </div>
+        <div class="form-group full">
+          <label>Remarks</label>
+          <textarea id="amc-remarks" placeholder="Notes..." style="min-height:56px;"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-amc')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAmc()">💾 Save Contract</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOADING -->
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
@@ -1435,10 +1621,18 @@ let selectedExtNos = new Set(); // multi-select state
 document.addEventListener('DOMContentLoaded', () => {
   loadConfig();
   setDefaultDates();
-  loadSampleData(); // Remove when live
+  loadAmcData();
+  loadSampleData(); // Remove when live — sample data for demo
   renderDashboard();
   renderMasterTable();
   renderRefills();
+  // Auto-sync if API URL is configured
+  if (CONFIG.apiUrl) {
+    setSyncStatus('syncing', 'Syncing...');
+    refreshData(true);
+  } else {
+    setSyncStatus('idle', 'Demo mode');
+  }
 });
 
 function loadConfig() {
@@ -1596,6 +1790,7 @@ function loadSampleData() {
   DATA.hydroTests = [
     { TestID:'HT-001', ExtNo:'EXT-001', TestDate:'2022-03-15', TestBy:'SafeTech Pvt Ltd', Pressure:'25', Result:'pass', NextDue:'2027-03-15', CertNo:'CERT-2022-001' },
     { TestID:'HT-002', ExtNo:'EXT-003', TestDate:'2021-11-05', TestBy:'FireCert Co.', Pressure:'25', Result:'pass', NextDue:'2026-11-05', CertNo:'CERT-2021-045' },
+    { TestID:'HT-003', ExtNo:'EXT-004', TestDate:'2020-02-14', TestBy:'', Pressure:'', Result:'pass', NextDue:'2025-02-14', CertNo:'' },
   ];
   DATA.refills = [
     { RefillID:'RF-001', ExtNo:'EXT-006', RequestDate:'2024-05-01', RequestBy:'Safety Dept', SentDate:'2024-05-03', ReceivedDate:'', PassNo:'PASS-0001', Status:'sent', OriginalLocation:'Building C - Floor 3', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Pressure low' },
@@ -1669,11 +1864,12 @@ async function apiCall(action, payload = {}, silent = false) {
   }
 }
 
-async function refreshData() {
+async function refreshData(silent = false) {
   if (!CONFIG.apiUrl) { showToast('Configure API URL first in ⚙️ Configuration', 'error'); return; }
-  showLoading('Syncing data from Google Sheets...');
+  setSyncStatus('syncing', 'Syncing...');
+  if (!silent) showLoading('Syncing data from Google Sheets...');
   const res = await apiCall('getAll', {}, true);
-  hideLoading();
+  if (!silent) hideLoading();
   if (res && res.success) {
     DATA.extinguishers = res.extinguishers || [];
     DATA.hydroTests    = res.hydroTests    || [];
@@ -1684,11 +1880,22 @@ async function refreshData() {
     renderHydroTable();
     renderRefills();
     renderPasses();
-    showToast(`Synced — ${DATA.extinguishers.length} extinguishers loaded`, 'success');
+    const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('ok', 'Synced ' + now);
+    if (!silent) showToast('Synced — ' + DATA.extinguishers.length + ' extinguishers loaded', 'success');
   } else {
     const errMsg = res?.error || 'No response from server';
-    showToast('Sync failed: ' + errMsg, 'error');
+    setSyncStatus('error', 'Sync failed');
+    if (!silent) showToast('Sync failed: ' + errMsg, 'error');
   }
+}
+
+function setSyncStatus(state, label) {
+  const dot   = document.getElementById('sync-dot');
+  const lbl   = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.className = 'sync-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+  if (lbl) lbl.textContent = label;
 }
 
 async function testConnection() {
@@ -1729,45 +1936,69 @@ async function testConnection() {
 // ═══════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════
+// ─── AMC DATA (stored in localStorage) ───────────────────────
+let AMC_DATA = [];
+function loadAmcData() {
+  try {
+    const saved = localStorage.getItem('fireguard_amc');
+    if (saved) {
+      AMC_DATA = JSON.parse(saved);
+    } else {
+      // Sample AMC for demo
+      AMC_DATA = [
+        { id:'AMC-DEMO-1', vendor:'M/S Red Firelines', scope:'ABC & CO₂ — All blocks',
+          startDate:'2025-01-01', endDate:'2025-12-31', value:'85000', contact:'Suresh Kumar — 9876543210', remarks:'Annual renewal' },
+        { id:'AMC-DEMO-2', vendor:'FireSafe Engineers', scope:'DCP Trolley units',
+          startDate:'2025-04-01', endDate:'2026-03-31', value:'42000', contact:'Ravi Nair — 9845000123', remarks:'' }
+      ];
+    }
+  } catch(_){ AMC_DATA=[]; }
+}
+function saveAmcData() {
+  localStorage.setItem('fireguard_amc', JSON.stringify(AMC_DATA));
+}
+
 let activeCardFilter = null; // tracks which card is currently active
 
 function renderDashboard() {
+  const today = new Date(); today.setHours(0,0,0,0);
   const total   = DATA.extinguishers.length;
   const ok      = DATA.extinguishers.filter(e => e.Status === 'ok').length;
   const due     = DATA.extinguishers.filter(e => e.Status === 'due').length;
   const overdue = DATA.extinguishers.filter(e => e.Status === 'overdue' || e.Status === 'pending').length;
-
-  // Vacant: extinguishers sent out (pending/sent) with no substitute covering their original location
-  const vacant = DATA.extinguishers.filter(e => {
+  const vacant  = DATA.extinguishers.filter(e => {
     if (e.Status !== 'pending') return false;
     const origLoc = e.OriginalLocation || e.Location;
     if (!origLoc) return false;
-    const hasSub = DATA.extinguishers.some(s =>
+    return !DATA.extinguishers.some(s =>
       s.SubstituteFor === e.ExtNo &&
       (s.CurrentLocation === origLoc || s.Location === origLoc) &&
       s.Status !== 'pending'
     );
-    return !hasSub;
   }).length;
 
-  document.getElementById('stat-total').textContent  = total;
-  document.getElementById('stat-ok').textContent     = ok;
-  document.getElementById('stat-due').textContent    = due;
-  document.getElementById('stat-overdue').textContent= overdue;
-  document.getElementById('stat-vacant').textContent = vacant;
+  document.getElementById('stat-total').textContent   = total;
+  document.getElementById('stat-ok').textContent      = ok;
+  document.getElementById('stat-due').textContent     = due;
+  document.getElementById('stat-overdue').textContent = overdue;
+  document.getElementById('stat-vacant').textContent  = vacant;
 
   const pending = DATA.refills.filter(r => r.Status !== 'received' && r.Status !== 'deployed').length;
   document.getElementById('pending-badge').textContent = pending;
 
-  // Highlight active card
-  ['card-total','card-ok','card-due','card-overdue','card-vacant'].forEach(id => {
-    document.getElementById(id)?.classList.remove('active-filter');
-  });
+  // Active card highlight
+  ['card-total','card-ok','card-due','card-overdue','card-vacant'].forEach(id =>
+    document.getElementById(id)?.classList.remove('active-filter')
+  );
   if (activeCardFilter) {
     const cardMap = { all:'card-total', ok:'card-ok', due:'card-due', overdue:'card-overdue', vacant:'card-vacant' };
-    const activeId = cardMap[activeCardFilter];
-    if (activeId) document.getElementById(activeId)?.classList.add('active-filter');
+    const aId = cardMap[activeCardFilter];
+    if (aId) document.getElementById(aId)?.classList.add('active-filter');
   }
+
+  renderAlerts();
+  renderTypeChart();
+  renderTimelineChart();
 
   // Recent table
   const recent = [...DATA.extinguishers].slice(0, 8);
@@ -1784,8 +2015,387 @@ function renderDashboard() {
       <td>Last Refill</td>
       <td>${fmtDate(e.LastRefillDate)}</td>
       <td>${statusBadge(e.Status)}</td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
+}
+
+// ─── ALERTS ───────────────────────────────────────────────────
+function renderAlerts() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const alerts = [];
+  const REFILL_WARN_DAYS  = 30;
+  const HYDRO_WARN_DAYS   = 180; // 6-month advance warning for 5-year hydro cycle
+  const dismissed = JSON.parse(sessionStorage.getItem('dismissed_alerts') || '[]');
+
+  DATA.extinguishers.forEach(e => {
+    if (e.Status === 'pending' || e.Status === 'in-store') return;
+    // Refill due alert
+    if (e.NextRefillDue) {
+      const due = new Date(e.NextRefillDue); due.setHours(0,0,0,0);
+      const diff = Math.round((due - today) / 86400000);
+      const key = 'refill_' + e.ExtNo;
+      if (!dismissed.includes(key)) {
+        if (diff < 0)
+          alerts.push({ key, cls:'alert-red',   icon:'🔴', text:`<strong>${e.ExtNo}</strong> refill is overdue`, sub: e.Location + ' — was due ' + fmtDate(e.NextRefillDue) });
+        else if (diff <= REFILL_WARN_DAYS)
+          alerts.push({ key, cls:'alert-amber', icon:'🟡', text:`<strong>${e.ExtNo}</strong> refill due in ${diff} day${diff!==1?'s':''}`, sub: e.Location + ' — due ' + fmtDate(e.NextRefillDue) });
+      }
+    }
+    // Hydro test due alert (5-year cycle)
+    const hydroTests = DATA.hydroTests
+      .filter(h => h.ExtNo === e.ExtNo)
+      .sort((a,b) => new Date(b.TestDate) - new Date(a.TestDate));
+    if (hydroTests.length) {
+      const latest = hydroTests[0];
+      // Use explicit NextDue if set, else auto-calc as TestDate + 5 years
+      let nextHydro;
+      if (latest.NextDue && latest.NextDue.trim()) {
+        nextHydro = new Date(latest.NextDue);
+      } else {
+        nextHydro = new Date(latest.TestDate);
+        nextHydro.setFullYear(nextHydro.getFullYear() + 5);
+      }
+      nextHydro.setHours(0,0,0,0);
+      const diff = Math.round((nextHydro - today) / 86400000);
+      const dueDateStr = fmtDate(nextHydro.toISOString().split('T')[0]);
+      const key = 'hydro_' + e.ExtNo;
+      if (!dismissed.includes(key)) {
+        if (diff < 0)
+          alerts.push({ key, cls:'alert-red',   icon:'💧',
+            text: `<strong>${e.ExtNo}</strong> hydrostatic test overdue by ${Math.abs(diff)} day${Math.abs(diff)!==1?'s':''}`,
+            sub:  (e.CurrentLocation||e.Location) + ' — was due ' + dueDateStr + ' (5-yr cycle)' });
+        else if (diff <= HYDRO_WARN_DAYS)
+          alerts.push({ key, cls:'alert-amber', icon:'💧',
+            text: `<strong>${e.ExtNo}</strong> hydro test due in ${diff} day${diff!==1?'s':''}`,
+            sub:  (e.CurrentLocation||e.Location) + ' — due ' + dueDateStr + ' (5-yr cycle)' });
+      }
+    } else {
+      // No hydro test on record — flag as needing test if extinguisher is old enough
+      const mfg = e.MfgDate ? new Date(e.MfgDate) : null;
+      if (mfg) {
+        const yearsOld = (today - mfg) / (365.25 * 86400000);
+        const key = 'hydro_norec_' + e.ExtNo;
+        if (yearsOld >= 5 && !dismissed.includes(key)) {
+          alerts.push({ key, cls:'alert-amber', icon:'💧',
+            text: `<strong>${e.ExtNo}</strong> — no hydrostatic test on record`,
+            sub:  (e.CurrentLocation||e.Location) + ' — manufactured ' + fmtDate(e.MfgDate) + ', ${Math.floor(yearsOld)} years old' });
+        }
+      }
+    }
+  });
+
+  // AMC expiry alerts
+  const today2 = new Date();
+  AMC_DATA.forEach(a => {
+    const end = new Date(a.endDate);
+    const diff = Math.round((end - today2) / 86400000);
+    const key = 'amc_' + a.id;
+    if (!dismissed.includes(key)) {
+      if (diff < 0)
+        alerts.push({ key, cls:'alert-red',   icon:'📋', text:`AMC with <strong>${a.vendor}</strong> has expired`, sub: 'Expired on ' + fmtDate(a.endDate) });
+      else if (diff <= 60)
+        alerts.push({ key, cls:'alert-amber', icon:'📋', text:`AMC with <strong>${a.vendor}</strong> expires in ${diff} day${diff!==1?'s':''}`, sub: 'Expires ' + fmtDate(a.endDate) });
+    }
+  });
+
+  const banner = document.getElementById('alerts-banner');
+  if (!banner) return;
+  if (!alerts.length) { banner.innerHTML = ''; return; }
+  banner.innerHTML = alerts.slice(0, 6).map(a => `
+    <div class="alert-item ${a.cls}">
+      <span class="alert-icon">${a.icon}</span>
+      <div class="alert-text">${a.text}<small>${a.sub}</small></div>
+      <button class="alert-dismiss" onclick="dismissAlert('${a.key}')" title="Dismiss">✕</button>
+    </div>`).join('');
+  if (alerts.length > 6)
+    banner.innerHTML += `<div style="font-size:12px;color:var(--grey);padding:4px 8px;">+${alerts.length-6} more alerts — check master list</div>`;
+}
+
+function dismissAlert(key) {
+  const dismissed = JSON.parse(sessionStorage.getItem('dismissed_alerts') || '[]');
+  dismissed.push(key);
+  sessionStorage.setItem('dismissed_alerts', JSON.stringify(dismissed));
+  renderAlerts();
+}
+
+// ─── TYPE BREAKDOWN CHART (donut) ─────────────────────────────
+function renderTypeChart() {
+  const svg    = document.getElementById('donut-svg');
+  const legend = document.getElementById('donut-legend');
+  if (!svg || !legend) return;
+
+  const counts = {};
+  DATA.extinguishers.forEach(e => {
+    if (!e.Type) return;
+    counts[e.Type] = (counts[e.Type] || 0) + 1;
+  });
+  const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const total   = entries.reduce((s,[,v]) => s+v, 0);
+  if (!total) { svg.innerHTML = ''; legend.innerHTML = '<div style="color:var(--muted);font-size:12px;">No data</div>'; return; }
+
+  const palette = ['#0F6FBF','#0891B2','#16A34A','#92680A','#B91C1C','#7C3AED','#DB2777'];
+  const R = 46, r = 30, cx = 60, cy = 60;
+  let startAngle = -Math.PI / 2;
+  const paths = [];
+
+  entries.forEach(([type, count], i) => {
+    const angle = (count / total) * 2 * Math.PI;
+    const endAngle = startAngle + angle;
+    const x1 = cx + R * Math.cos(startAngle), y1 = cy + R * Math.sin(startAngle);
+    const x2 = cx + R * Math.cos(endAngle),   y2 = cy + R * Math.sin(endAngle);
+    const xi1= cx + r * Math.cos(endAngle),   yi1= cy + r * Math.sin(endAngle);
+    const xi2= cx + r * Math.cos(startAngle), yi2= cy + r * Math.sin(startAngle);
+    const large = angle > Math.PI ? 1 : 0;
+    const col = palette[i % palette.length];
+    const d = `M${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} L${xi1.toFixed(2)},${yi1.toFixed(2)} A${r},${r} 0 ${large},0 ${xi2.toFixed(2)},${yi2.toFixed(2)} Z`;
+    paths.push(`<path d="${d}" fill="${col}" stroke="#fff" stroke-width="1.5"><title>${type}: ${count}</title></path>`);
+    startAngle = endAngle;
+  });
+
+  svg.innerHTML = paths.join('') +
+    `<text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle" font-size="18" font-weight="700" fill="var(--body)">${total}</text>` +
+    `<text x="${cx}" y="${cy+16}" text-anchor="middle" dominant-baseline="middle" font-size="8" fill="var(--grey)">total</text>`;
+
+  legend.innerHTML = entries.map(([type, count], i) => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${palette[i%palette.length]};"></div>
+      <span>${type}</span>
+      <span class="legend-val">${count}</span>
+    </div>`).join('');
+}
+
+// ─── DUE TIMELINE CHART (next 12 months) ──────────────────────
+function renderTimelineChart() {
+  const container = document.getElementById('timeline-chart');
+  if (!container) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+    months.push({ label: d.toLocaleString('en-IN',{month:'short', year:'2-digit'}), count: 0, overdue: 0, extNos: [] });
+  }
+
+  // Bucket each extinguisher's next due into the right month
+  DATA.extinguishers.forEach(e => {
+    if (!e.NextRefillDue) return;
+    const due = new Date(e.NextRefillDue); due.setHours(0,0,0,0);
+    if (due < today) { months[0].overdue++; months[0].extNos.push(e.ExtNo + '*'); return; }
+    const monthIdx = (due.getFullYear() - today.getFullYear()) * 12 + (due.getMonth() - today.getMonth());
+    if (monthIdx >= 0 && monthIdx < 12) {
+      months[monthIdx].count++;
+      months[monthIdx].extNos.push(e.ExtNo);
+    }
+  });
+
+  const maxCount = Math.max(...months.map(m => m.count + m.overdue), 1);
+
+  container.innerHTML = months.map((m, i) => {
+    const total = m.count + m.overdue;
+    const pct   = Math.round((total / maxCount) * 100);
+    const cls   = m.overdue > 0 ? 't-red' : i === 0 ? 't-amber' : i < 3 ? 't-amber' : 't-blue';
+    const label = total > 0 ? total : '';
+    const tip   = m.extNos.length ? m.extNos.join(', ') : 'None';
+    return `
+      <div class="timeline-bar-row" title="${tip}">
+        <div class="timeline-month">${m.label}</div>
+        <div class="timeline-track">
+          ${total > 0
+            ? `<div class="timeline-fill ${cls}" style="width:${pct}%;">${total > 1 || pct > 20 ? label : ''}</div>`
+            : `<div class="timeline-zero">—</div>`}
+        </div>
+        ${total > 0 && pct <= 20 ? `<span style="font-size:11px;color:var(--grey);">${label}</span>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// ─── LOCATION MAP ──────────────────────────────────────────────
+function renderLocationMap() {
+  const grid = document.getElementById('locmap-grid');
+  if (!grid) return;
+  const q = (document.getElementById('locmap-search')?.value || '').toLowerCase();
+
+  // Build a map of all named locations
+  const locationMap = new Map();
+
+  DATA.extinguishers.forEach(e => {
+    const loc = (e.CurrentLocation || e.Location || '').trim();
+    if (!loc || loc === 'Storeroom' || loc === 'With Vendor') return;
+
+    if (!locationMap.has(loc)) locationMap.set(loc, []);
+    locationMap.get(loc).push(e);
+  });
+
+  // Also check for locations that are now vacant (original location of sent-out units)
+  DATA.extinguishers.filter(e => e.Status === 'pending').forEach(e => {
+    const orig = (e.OriginalLocation || e.Location || '').trim();
+    if (!orig) return;
+    if (!locationMap.has(orig)) locationMap.set(orig, []);
+  });
+
+  let entries = [...locationMap.entries()].sort((a,b) => a[0].localeCompare(b[0]));
+  if (q) entries = entries.filter(([loc]) => loc.toLowerCase().includes(q));
+
+  if (!entries.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No locations found.</div></div>';
+    return;
+  }
+
+  grid.innerHTML = entries.map(([loc, exts]) => {
+    // Determine slot state
+    const active   = exts.filter(e => e.Status === 'ok');
+    const due      = exts.filter(e => e.Status === 'due');
+    const overdue  = exts.filter(e => e.Status === 'overdue');
+    const subs     = exts.filter(e => e.SubstituteFor);
+    const vendor   = exts.filter(e => e.Status === 'pending');
+    const inStore  = exts.filter(e => e.Status === 'in-store');
+    const isVacant = exts.length === 0 || exts.every(e => e.Status === 'pending');
+
+    let cls = 'ls-ok', badge = '✅', mainExt = active[0] || due[0] || overdue[0] || subs[0];
+    if (isVacant)         { cls='ls-vacant';  badge='⚠️'; }
+    else if (overdue.length){ cls='ls-overdue'; badge='🔴'; mainExt=overdue[0]; }
+    else if (due.length)  { cls='ls-due';     badge='🟡'; mainExt=due[0]; }
+    else if (subs.length) { cls='ls-sub';     badge='↔️'; mainExt=subs[0]; }
+    else if (inStore.length){ cls='ls-store';  badge='📦'; mainExt=inStore[0]; }
+    else if (vendor.length){ cls='ls-vendor';  badge='🚚'; mainExt=vendor[0]; }
+
+    const extLabel = mainExt ? `<div class="locmap-ext">${mainExt.ExtNo}</div><div class="locmap-type">${mainExt.Type || ''} ${mainExt.Weight ? mainExt.Weight+'kg' : ''}</div>` : '<div class="locmap-type" style="color:var(--red);">No extinguisher</div>';
+    const countBadge = exts.length > 1 ? `<div style="position:absolute;bottom:8px;right:8px;font-size:10px;background:rgba(0,0,0,.08);border-radius:10px;padding:1px 6px;color:var(--grey);">${exts.length} units</div>` : '';
+
+    return `
+      <div class="locmap-slot ${cls}" onclick="showPage('masterlist'); filterToLocation('${loc.replace(/'/g,"\'")}')">
+        <div class="locmap-badge">${badge}</div>
+        <div class="locmap-name">${loc}</div>
+        ${extLabel}
+        ${countBadge}
+      </div>`;
+  }).join('');
+}
+
+function filterToLocation(loc) {
+  const input = document.getElementById('search-input');
+  if (input) { input.value = loc; filterTable(); }
+}
+
+// ─── AMC TRACKER ──────────────────────────────────────────────
+let editingAmcId = null;
+
+function openAmcModal(id) {
+  editingAmcId = id || null;
+  const modal = document.getElementById('modal-amc-title');
+  if (modal) modal.textContent = id ? 'Edit AMC Contract' : 'Add AMC Contract';
+  ['amc-vendor','amc-scope','amc-start','amc-end','amc-value','amc-contact','amc-remarks'].forEach(fid => {
+    const el = document.getElementById(fid); if (el) el.value = '';
+  });
+  if (id) {
+    const amc = AMC_DATA.find(a => a.id === id);
+    if (amc) {
+      document.getElementById('amc-vendor').value  = amc.vendor  || '';
+      document.getElementById('amc-scope').value   = amc.scope   || '';
+      document.getElementById('amc-start').value   = amc.startDate || '';
+      document.getElementById('amc-end').value     = amc.endDate  || '';
+      document.getElementById('amc-value').value   = amc.value    || '';
+      document.getElementById('amc-contact').value = amc.contact  || '';
+      document.getElementById('amc-remarks').value = amc.remarks  || '';
+    }
+  }
+  openModal('modal-amc');
+}
+
+function saveAmc() {
+  const vendor = document.getElementById('amc-vendor').value.trim();
+  const start  = document.getElementById('amc-start').value;
+  const end    = document.getElementById('amc-end').value;
+  if (!vendor || !start || !end) { showToast('Vendor name, start and end dates are required', 'error'); return; }
+
+  const entry = {
+    id:        editingAmcId || 'AMC-' + Date.now(),
+    vendor, scope: document.getElementById('amc-scope').value.trim(),
+    startDate: start, endDate: end,
+    value:     document.getElementById('amc-value').value,
+    contact:   document.getElementById('amc-contact').value.trim(),
+    remarks:   document.getElementById('amc-remarks').value.trim()
+  };
+
+  if (editingAmcId) {
+    const idx = AMC_DATA.findIndex(a => a.id === editingAmcId);
+    if (idx !== -1) AMC_DATA[idx] = entry;
+  } else {
+    AMC_DATA.push(entry);
+  }
+  saveAmcData();
+  closeModal('modal-amc');
+  renderAmcGrid();
+  renderAlerts();
+  showToast('AMC contract saved!', 'success');
+}
+
+function deleteAmc(id) {
+  if (!confirm('Delete this AMC contract?')) return;
+  AMC_DATA = AMC_DATA.filter(a => a.id !== id);
+  saveAmcData();
+  renderAmcGrid();
+  renderAlerts();
+  showToast('Contract deleted', 'info');
+}
+
+function renderAmcGrid() {
+  const grid = document.getElementById('amc-grid');
+  const countLbl = document.getElementById('amc-count-label');
+  if (!grid) return;
+  if (countLbl) countLbl.textContent = AMC_DATA.length + ' contract' + (AMC_DATA.length !== 1 ? 's' : '');
+
+  if (!AMC_DATA.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No AMC contracts added yet.</div></div>';
+    return;
+  }
+
+  const today = new Date();
+  grid.innerHTML = AMC_DATA.map(a => {
+    const end  = new Date(a.endDate);
+    const start= new Date(a.startDate);
+    const diff = Math.round((end - today) / 86400000);
+    const total= Math.round((end - start) / 86400000);
+    const elapsed = Math.max(0, Math.round((today - start) / 86400000));
+    const pct  = total > 0 ? Math.min(100, Math.round((elapsed / total) * 100)) : 100;
+
+    let statusCls = 'active', statusLabel = diff + ' days left';
+    let barColor  = 'var(--green)';
+    if (diff < 0)   { statusCls='expired';  statusLabel='Expired';             barColor='var(--red)'; }
+    else if(diff<=60){ statusCls='expiring'; statusLabel='Expiring in '+diff+'d'; barColor='var(--yellow)'; }
+
+    const value = a.value ? '₹' + Number(a.value).toLocaleString('en-IN') : '';
+
+    return `
+      <div class="amc-card">
+        <div class="amc-header">
+          <div>
+            <div class="amc-vendor">${a.vendor}</div>
+            <div class="amc-scope">${a.scope || 'All extinguishers'}</div>
+          </div>
+          <div class="amc-status ${statusCls}">${statusLabel}</div>
+        </div>
+        <div class="amc-dates">
+          <div class="amc-date-item">
+            <div class="amc-date-lbl">Start</div>
+            <div class="amc-date-val">${fmtDate(a.startDate)}</div>
+          </div>
+          <div class="amc-date-item">
+            <div class="amc-date-lbl">End</div>
+            <div class="amc-date-val">${fmtDate(a.endDate)}</div>
+          </div>
+        </div>
+        <div class="amc-days-bar">
+          <div class="amc-days-fill" style="width:${pct}%;background:${barColor};"></div>
+        </div>
+        <div class="amc-days-text">${pct}% of contract period elapsed${value ? ' · ' + value : ''}</div>
+        ${a.contact ? `<div class="amc-contact">📞 ${a.contact}</div>` : ''}
+        ${a.remarks ? `<div class="amc-contact" style="margin-top:4px;">📝 ${a.remarks}</div>` : ''}
+        <div class="amc-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openAmcModal('${a.id}')">✏️ Edit</button>
+          <button class="btn btn-red btn-sm" onclick="deleteAmc('${a.id}')">🗑️ Delete</button>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ── Card click → jump to Master List with filter applied ─────
@@ -1978,7 +2588,7 @@ function renderHydroTable(data) {
       <td>${h.TestBy || '—'}</td>
       <td>${h.Pressure || '—'} bar</td>
       <td>${h.Result === 'pass' ? '<span class="status-dot"><span class="dot dot-ok"></span>Pass</span>' : h.Result === 'fail' ? '<span class="status-dot"><span class="dot dot-due"></span>Fail</span>' : '<span class="status-dot"><span class="dot dot-due"></span>Condemned</span>'}</td>
-      <td>${fmtDate(h.NextDue)}</td>
+      <td>${h.NextDue ? fmtDate(h.NextDue) : (() => { const d=new Date(h.TestDate); d.setFullYear(d.getFullYear()+5); return fmtDate(d.toISOString().split('T')[0]) + ' <span style=\'font-size:10px;color:var(--muted);\'>auto</span>'; })()}</td>
       <td>${h.CertNo || '—'}</td>
       <td><button class="btn btn-red btn-sm" onclick="deleteHydro('${h.TestID}')">🗑️</button></td>
     </tr>
@@ -2137,290 +2747,157 @@ async function downloadPassAsDocx() {
 }
 
 async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows }) {
-  // ── CONFIG values pulled from global CONFIG ──────────────────
-  const orgSubtitle  = CONFIG.orgSubtitle  || '';
-  const factoryName  = CONFIG.factoryName  || '';
-  const factoryLoc   = CONFIG.factoryLocation || '';
-  const vendorName   = CONFIG.vendorName   || 'the AMC agency';
-  const sigName      = CONFIG.signatoryName|| '';
-  const sigDesig     = CONFIG.signatoryDesig|| '';
-  const addressee    = CONFIG.addressee    || 'Security Inspector';
-  const logoDataUrl  = CONFIG.orgLogo      || '';
+  // Generates a placeholder-only .docx with just:
+  //   {{REQUEST_DATE}}, {{VENDOR_NAME}}, {{EXT_TABLE}}
+  // User pastes these into their own Word template.
 
-  // ── Extract logo base64 & type ────────────────────────────────
-  let logoBase64 = '';
-  let logoMediaType = 'image/png';
-  let logoExtension = 'png';
-  if (logoDataUrl) {
-    const m = logoDataUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-    if (m) {
-      logoMediaType = m[1];
-      logoBase64    = m[2];
-      logoExtension = logoMediaType.includes('jpeg') ? 'jpg'
-                    : logoMediaType.includes('png')  ? 'png'
-                    : logoMediaType.includes('gif')  ? 'gif' : 'png';
-    }
-  }
+  const x = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const vendorName = CONFIG.vendorName || 'AMC Vendor';
 
-  // ── Helpers ───────────────────────────────────────────────────
-  const x = s => String(s||'')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
-  // Run of text with formatting options
-  const run = (text, opts = {}) => {
-    const { bold=false, sz=20, color='000000', font='Georgia',
-            underline=false, italic=false } = opts;
-    return `<w:r><w:rPr>
-      ${bold    ? '<w:b/><w:bCs/>' : ''}
-      ${italic  ? '<w:i/><w:iCs/>' : ''}
-      ${underline ? '<w:u w:val="single"/>' : ''}
-      <w:color w:val="${color}"/>
-      <w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>
-      <w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:cs="${font}"/>
-    </w:rPr><w:t xml:space="preserve">${x(text)}</w:t></w:r>`;
+  const run = (text, opts={}) => {
+    const { bold=false, sz=20, color='000000', font='Arial', underline=false, italic=false } = opts;
+    return '<w:r><w:rPr>' +
+      (bold ? '<w:b/><w:bCs/>' : '') +
+      (italic ? '<w:i/><w:iCs/>' : '') +
+      (underline ? '<w:u w:val="single"/>' : '') +
+      '<w:color w:val="' + color + '"/>' +
+      '<w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/>' +
+      '<w:rFonts w:ascii="' + font + '" w:hAnsi="' + font + '" w:cs="' + font + '"/>' +
+      '</w:rPr><w:t xml:space="preserve">' + x(text) + '</w:t></w:r>';
   };
 
-  // Paragraph wrapper
-  const para = (runs, opts = {}) => {
-    const { align='left', spaceBefore=0, spaceAfter=120,
-            indent=0, keepLines=false } = opts;
-    return `<w:p><w:pPr>
-      <w:jc w:val="${align}"/>
-      <w:spacing w:before="${spaceBefore}" w:after="${spaceAfter}"/>
-      ${indent ? `<w:ind w:left="${indent}"/>` : ''}
-      ${keepLines ? '<w:keepLines/>' : ''}
-    </w:pPr>${runs}</w:p>`;
+  const para = (runs, opts={}) => {
+    const { align='left', spaceBefore=0, spaceAfter=160 } = opts;
+    return '<w:p><w:pPr>' +
+      '<w:jc w:val="' + align + '"/>' +
+      '<w:spacing w:before="' + spaceBefore + '" w:after="' + spaceAfter + '"/>' +
+      '</w:pPr>' + runs + '</w:p>';
   };
 
-  // Empty paragraph spacer
-  const spacer = (after=120) =>
-    `<w:p><w:pPr><w:spacing w:before="0" w:after="${after}"/></w:pPr></w:p>`;
+  const spacer = (after=200) => '<w:p><w:pPr><w:spacing w:before="0" w:after="' + after + '"/></w:pPr></w:p>';
 
-  // ── 1. Letterhead ─────────────────────────────────────────────
-  // Logo paragraph (if logo provided)
-  const logoPara = logoBase64 ? `<w:p>
-    <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="80"/></w:pPr>
-    <w:r><w:rPr><w:noProof/></w:rPr>
-      <w:drawing>
-        <wp:inline distT="0" distB="0" distL="0" distR="0"
-          xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-          <wp:extent cx="1371600" cy="685800"/>
-          <wp:docPr id="1" name="Logo"/>
-          <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-            <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-              <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                <pic:nvPicPr>
-                  <pic:cNvPr id="1" name="logo.${logoExtension}"/>
-                  <pic:cNvPicPr/>
-                </pic:nvPicPr>
-                <pic:blipFill>
-                  <a:blip r:embed="rIdLogo"/>
-                  <a:stretch><a:fillRect/></a:stretch>
-                </pic:blipFill>
-                <pic:spPr>
-                  <a:xfrm><a:off x="0" y="0"/><a:ext cx="1371600" cy="685800"/></a:xfrm>
-                  <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-                </pic:spPr>
-              </pic:pic>
-            </a:graphicData>
-          </a:graphic>
-        </wp:inline>
-      </w:drawing>
-    </w:r>
-  </w:p>` : '';
+  const border = '<w:tcBorders>' +
+    '<w:top w:val="single" w:sz="4" w:color="000000"/>' +
+    '<w:left w:val="single" w:sz="4" w:color="000000"/>' +
+    '<w:bottom w:val="single" w:sz="4" w:color="000000"/>' +
+    '<w:right w:val="single" w:sz="4" w:color="000000"/>' +
+    '</w:tcBorders>';
 
-  const letterhead = [
-    logoPara,
-    para(run(org, { bold:true, sz:28, font:'Arial' }), { align:'center', spaceAfter:40 }),
-    para(run(orgSubtitle, { sz:18, font:'Arial' }), { align:'center', spaceAfter:40 }),
-    para(run(factoryName, { bold:true, sz:20, font:'Arial' }), { align:'center', spaceAfter:40 }),
-    para(run(factoryLoc,  { bold:true, sz:20, font:'Arial', underline:true }), { align:'center', spaceAfter:200 }),
-  ].join('');
-
-  // ── 2. "NOTE" centred underlined ─────────────────────────────
-  const noteTitle = para(
-    run('NOTE', { bold:true, sz:24, underline:true, font:'Georgia' }),
-    { align:'center', spaceBefore:0, spaceAfter:200 }
-  );
-
-  // ── 3. Date right-aligned ────────────────────────────────────
-  const dateLine = para(
-    run(reqDate, { sz:20 }),
-    { align:'right', spaceAfter:200 }
-  );
-
-  // ── 4. Subject ───────────────────────────────────────────────
-  const subjectLine = para(
-    run('Sub : Request for sending Fire Extinguishers for refilling Regd;', { bold:true, sz:20 }),
-    { spaceAfter:120 }
-  );
-
-  // ── 5. Body ──────────────────────────────────────────────────
-  const bodyText = para(
-    run(`The following Fire Extinguishers are sent for refilling to the AMC agency ${vendorName}. Kindly note that these items are being issued on a returnable basis`, { sz:20 }),
-    { spaceAfter:200 }
-  );
-
-  // ── 6. Extinguisher table ────────────────────────────────────
-  const border = `<w:tcBorders>
-    <w:top    w:val="single" w:sz="4" w:color="000000"/>
-    <w:left   w:val="single" w:sz="4" w:color="000000"/>
-    <w:bottom w:val="single" w:sz="4" w:color="000000"/>
-    <w:right  w:val="single" w:sz="4" w:color="000000"/>
-  </w:tcBorders>`;
-
-  const tcell = (text, width, opts = {}) => {
+  const tcell = (text, width, opts={}) => {
     const { bold=false, align='left', shade='' } = opts;
-    return `<w:tc>
-      <w:tcPr>
-        <w:tcW w:w="${width}" w:type="dxa"/>
-        ${border}
-        ${shade ? `<w:shd w:val="clear" w:color="auto" w:fill="${shade}"/>` : ''}
-      </w:tcPr>
-      ${para(run(text, { bold, sz:20, font:'Georgia' }),
-             { align, spaceBefore:60, spaceAfter:60 })}
-    </w:tc>`;
+    return '<w:tc>' +
+      '<w:tcPr>' +
+        '<w:tcW w:w="' + width + '" w:type="dxa"/>' + border +
+        (shade ? '<w:shd w:val="clear" w:color="auto" w:fill="' + shade + '"/>' : '') +
+      '</w:tcPr>' +
+      '<w:p><w:pPr><w:jc w:val="' + align + '"/><w:spacing w:before="80" w:after="80"/></w:pPr>' +
+      run(text, { bold, sz:20, font:'Arial' }) +
+      '</w:p></w:tc>';
   };
 
-  // Column widths: Sl No=700, Item=4326, Cylinder no=4000  (total=9026)
-  const hdRow = `<w:tr>
-    ${tcell('Sl No',       700,  { bold:true, align:'center', shade:'D9D9D9' })}
-    ${tcell('Item',        4326, { bold:true, align:'center', shade:'D9D9D9' })}
-    ${tcell('Cylinder no', 4000, { bold:true, align:'center', shade:'D9D9D9' })}
-  </w:tr>`;
+  const hdRow = '<w:tr>' +
+    tcell('Sl No', 700, { bold:true, align:'center', shade:'D9D9D9' }) +
+    tcell('Item', 4326, { bold:true, align:'center', shade:'D9D9D9' }) +
+    tcell('Cylinder no', 4000, { bold:true, align:'center', shade:'D9D9D9' }) +
+    '</w:tr>';
 
-  // rows now: { sl, item, cylinders } — already grouped by caller
-  const dataRows = rows.map(r => `<w:tr>
-    ${tcell(String(r.sl),    700,  { align:'center' })}
-    ${tcell(r.item,          4326, { align:'center' })}
-    ${tcell(r.cylinders,     4000, { align:'center' })}
-  </w:tr>`).join('');
+  const dataRows = rows.map(r =>
+    '<w:tr>' +
+    tcell(String(r.sl), 700, { align:'center' }) +
+    tcell(r.item, 4326, { align:'center' }) +
+    tcell(r.cylinders, 4000, { align:'left' }) +
+    '</w:tr>'
+  ).join('');
 
-  // Total row
-  const totalRow = `<w:tr>
-    ${tcell('Total', 700,  { bold:true, align:'center', shade:'EEEEEE' })}
-    ${tcell('',      4326, { bold:true, shade:'EEEEEE' })}
-    ${tcell(`${count} Nos.`, 4000, { bold:true, align:'center', shade:'EEEEEE' })}
-  </w:tr>`;
+  const totalRow = '<w:tr><w:tc>' +
+    '<w:tcPr>' +
+      '<w:tcW w:w="9026" w:type="dxa"/>' +
+      '<w:gridSpan w:val="3"/>' + border +
+      '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/>' +
+    '</w:tcPr>' +
+    '<w:p><w:pPr>' +
+      '<w:jc w:val="right"/>' +
+      '<w:spacing w:before="80" w:after="80"/>' +
+      '<w:ind w:right="200"/>' +
+    '</w:pPr>' +
+    run('Total    ' + count + ' Nos.', { bold:true, sz:20, font:'Arial' }) +
+    '</w:p></w:tc></w:tr>';
 
-  const extTable = `<w:tbl>
-    <w:tblPr>
-      <w:tblW w:w="9026" w:type="dxa"/>
-      <w:tblBorders>
-        <w:top    w:val="single" w:sz="4" w:color="000000"/>
-        <w:left   w:val="single" w:sz="4" w:color="000000"/>
-        <w:bottom w:val="single" w:sz="4" w:color="000000"/>
-        <w:right  w:val="single" w:sz="4" w:color="000000"/>
-        <w:insideH w:val="single" w:sz="4" w:color="000000"/>
-        <w:insideV w:val="single" w:sz="4" w:color="000000"/>
-      </w:tblBorders>
-    </w:tblPr>
-    <w:tblGrid>
-      <w:gridCol w:w="700"/>
-      <w:gridCol w:w="4326"/>
-      <w:gridCol w:w="4000"/>
-    </w:tblGrid>
-    ${hdRow}
-    ${dataRows}
-    ${totalRow}
-  </w:tbl>`;
+  const extTable =
+    '<w:tbl>' +
+    '<w:tblPr><w:tblW w:w="9026" w:type="dxa"/>' +
+    '<w:tblBorders>' +
+      '<w:top w:val="single" w:sz="4" w:color="000000"/>' +
+      '<w:left w:val="single" w:sz="4" w:color="000000"/>' +
+      '<w:bottom w:val="single" w:sz="4" w:color="000000"/>' +
+      '<w:right w:val="single" w:sz="4" w:color="000000"/>' +
+      '<w:insideH w:val="single" w:sz="4" w:color="000000"/>' +
+      '<w:insideV w:val="single" w:sz="4" w:color="000000"/>' +
+    '</w:tblBorders></w:tblPr>' +
+    '<w:tblGrid>' +
+      '<w:gridCol w:w="700"/>' +
+      '<w:gridCol w:w="4326"/>' +
+      '<w:gridCol w:w="4000"/>' +
+    '</w:tblGrid>' +
+    hdRow + dataRows + totalRow +
+    '</w:tbl>';
 
-  // ── 7. Signatory block (right-aligned) ───────────────────────
-  const signatory = [
-    spacer(400),
-    para(run(sigName,  { bold:true, sz:20 }), { align:'right', spaceAfter:40 }),
-    para(run(sigDesig, { bold:true, sz:20 }), { align:'right', spaceAfter:400 }),
-  ].join('');
+  const NS = 'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
+    'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" ' +
+    'mc:Ignorable="w14"';
 
-  // ── 8. Addressee block ───────────────────────────────────────
-  const addressBlock = [
-    para(run('To,', { sz:20 }), { spaceAfter:40 }),
-    para(run('', { sz:20 }), { spaceAfter:40 }),
-    para(run(addressee, { bold:true, sz:20 }), { spaceAfter:200 }),
-  ].join('');
+  const sep = para(run('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500', { sz:16, color:'CCCCCC' }), { spaceAfter:80 });
+  const lbl = (name) => para(run(name, { bold:true, sz:18, color:'1155CC', italic:false }), { spaceAfter:40 });
 
-  // ── 9. Pass number footnote ──────────────────────────────────
-  const passFooter = para(
-    run(`Pass No: ${passNo}`, { sz:16, color:'888888' }),
-    { spaceAfter:0 }
-  );
+  const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<w:document ' + NS + '><w:body>' +
+    '<w:sectPr>' +
+      '<w:pgSz w:w="11906" w:h="16838"/>' +
+      '<w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="708" w:footer="708" w:gutter="0"/>' +
+    '</w:sectPr>' +
 
-  // ── Assemble document.xml ────────────────────────────────────
-  const NS = `xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-    xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-    xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
-    mc:Ignorable="w14"`;
+    para(run('Copy these placeholders into your Word template', { bold:true, sz:18, color:'888888', italic:true }), { spaceAfter:80 }) +
+    sep +
 
-  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document ${NS}>
-<w:body>
-  <w:sectPr>
-    <w:pgSz w:w="11906" w:h="16838"/>
-    <w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080"
-             w:header="708" w:footer="708" w:gutter="0"/>
-  </w:sectPr>
-  ${letterhead}
-  ${noteTitle}
-  ${dateLine}
-  ${subjectLine}
-  ${bodyText}
-  ${extTable}
-  ${signatory}
-  ${addressBlock}
-  ${passFooter}
-</w:body>
-</w:document>`;
+    lbl('{{REQUEST_DATE}}') +
+    para(run(reqDate, { sz:24, bold:true }), { spaceAfter:160 }) +
+    sep +
 
-  // ── Build .docx ZIP ──────────────────────────────────────────
+    lbl('{{VENDOR_NAME}}') +
+    para(run(vendorName, { sz:24, bold:true }), { spaceAfter:160 }) +
+    sep +
+
+    lbl('{{EXT_TABLE}}') +
+    extTable +
+
+    spacer(120) +
+    para(run('Pass No: ' + passNo + '   |   Requested by: ' + reqBy + '   |   Total: ' + count + ' Nos.', { sz:16, color:'888888', italic:true }), { spaceAfter:0 }) +
+
+    '</w:body></w:document>';
+
   const zip = new JSZip();
-
-  // Content types
-  const imgContentType = logoBase64
-    ? `<Override PartName="/word/media/logo.${logoExtension}" ContentType="${logoMediaType}"/>`
-    : '';
-  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml"  ContentType="application/xml"/>
-  <Default Extension="${logoExtension}" ContentType="${logoMediaType}"/>
-  <Override PartName="/word/document.xml"
-    ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  ${imgContentType}
-</Types>`);
-
-  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1"
-    Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
-    Target="word/document.xml"/>
-</Relationships>`);
-
+  zip.file('[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+    '</Types>');
+  zip.file('_rels/.rels',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+    '</Relationships>');
   zip.file('word/document.xml', documentXml);
+  zip.file('word/_rels/document.xml.rels',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>');
 
-  // Relationships — include logo if present
-  const logoRel = logoBase64
-    ? `<Relationship Id="rIdLogo"
-        Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
-        Target="media/logo.${logoExtension}"/>`
-    : '';
-  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  ${logoRel}
-</Relationships>`);
-
-  // Add logo image file to zip if provided
-  if (logoBase64) {
-    zip.file(`word/media/logo.${logoExtension}`, logoBase64, { base64: true });
-  }
-
-  return await zip.generateAsync({
-    type: 'blob',
-    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  });
+  return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
 }
+
 
 // ═══════════════════════════════════════════════
 // CRUD OPERATIONS
@@ -2584,6 +3061,14 @@ async function saveExtinguisher() {
 }
 
 function openHydroModal() { openModal('modal-hydro'); }
+
+function autoFillHydroNextDue(testDateVal) {
+  if (!testDateVal) return;
+  const d = new Date(testDateVal);
+  d.setFullYear(d.getFullYear() + 5);
+  const nextDueInput = document.getElementById('h-nextdue');
+  if (nextDueInput) nextDueInput.value = d.toISOString().split('T')[0];
+}
 
 async function saveHydroTest() {
   const data = {
@@ -3165,11 +3650,16 @@ async function submitBulkRefill() {
 // ── Group extDetails by Type+Weight for pass table ──────────
 // Returns: [{ slNo, item, cylinders: ['EXT-001','EXT-003'...], count }]
 function groupExtDetails(extDetails) {
+  // Location is intentionally excluded from the pass table.
+  // Only Type, Weight and Cylinder No are shown, grouped by Type+Weight.
   const map = new Map();
   extDetails.forEach(e => {
-    const key = `${e.type}||${e.weight}`;
-    if (!map.has(key)) map.set(key, { item: `${e.type} ${e.weight} kg`, cylinders: [] });
-    map.get(key).cylinders.push(e.extNo);
+    const type   = (e.type   || '').trim();
+    const weight = (e.weight || '').replace(/\s*kg\s*/i, '').trim();
+    const item   = weight ? `${type} ${weight} kg` : type;
+    const key    = item.toLowerCase();
+    if (!map.has(key)) map.set(key, { item, cylinders: [] });
+    map.get(key).cylinders.push((e.extNo || '').trim());
   });
   let sl = 1;
   return [...map.values()].map(g => ({ slNo: sl++, item: g.item, cylinders: g.cylinders }));
@@ -3205,8 +3695,9 @@ function showCombinedPassPreview(pass, extDetails) {
       <td style="${tdStyle} color:var(--accent);">${g.cylinders.join(', ')}</td>
     </tr>`).join('') +
     `<tr style="background:var(--surface3);">
-      <td colspan="2" style="${tdStyle} text-align:right; font-weight:700; color:var(--body);">Total</td>
-      <td style="${tdStyle} font-weight:700; color:var(--accent);">${total} Nos.</td>
+      <td colspan="3" style="${tdStyle} text-align:right; font-weight:700; color:var(--body); padding-right:16px;">
+        Total &nbsp;&nbsp; ${total} Nos.
+      </td>
     </tr>`;
 
   const openDocBtn = document.getElementById('cp-open-doc');
@@ -3250,24 +3741,23 @@ function printCombinedPass() {
   const sigDesig     = CONFIG.signatoryDesig|| '';
   const addressee    = CONFIG.addressee    || 'Security Inspector';
 
-  // Build grouped rows from the modal table (skip the last "Total" row)
+  // Build grouped rows directly from the modal DOM (data rows only, skip total row)
   const allTrs = [...document.querySelectorAll('#cp-ext-body tr')];
-  const tableRows = allTrs.slice(0, -1).map(tr => {
+  const dataOnlyTrs = allTrs.slice(0, -1); // exclude last (total) row
+  const tableRows = dataOnlyTrs.map(tr => {
     const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
-    // cells: [sl, item, cylinders]
     return `<tr>
-      <td style="text-align:center;">${cells[0]}</td>
-      <td style="text-align:center;">${cells[1]}</td>
-      <td>${cells[2]}</td>
+      <td style="text-align:center; width:10%;">${cells[0]}</td>
+      <td style="text-align:left; width:40%;">${cells[1]}</td>
+      <td style="width:50%;">${cells[2]}</td>
     </tr>`;
   }).join('');
 
-  const totalTr = allTrs[allTrs.length - 1];
-  const totalCells = totalTr ? [...totalTr.querySelectorAll('td')].map(td => td.textContent.trim()) : ['Total','',count+' Nos.'];
-  const totalRow = `<tr style="background:#e8e8e8; font-weight:bold;">
-    <td style="text-align:center;">${totalCells[0]}</td>
-    <td style="text-align:right;">${totalCells[1]}</td>
-    <td>${totalCells[2]}</td>
+  // Merged total row — single cell spanning all 3 columns
+  const totalRow = `<tr style="background:#E8E8E8; font-weight:bold;">
+    <td colspan="3" style="text-align:right; padding:7px 16px 7px 10px;">
+      Total &nbsp;&nbsp; ${count} Nos.
+    </td>
   </tr>`;
 
   const w = window.open('', '_blank');
@@ -3350,14 +3840,30 @@ function getLocation(extNo) {
 }
 
 function hydroStatus(extNo) {
-  const test = DATA.hydroTests.filter(h => h.ExtNo === extNo).sort((a,b) => new Date(b.TestDate) - new Date(a.TestDate))[0];
-  if (!test) return '<span style="color:var(--grey); font-size:11px;">No record</span>';
-  const next = new Date(test.NextDue);
-  const today = new Date();
-  const diff = (next - today) / (1000*60*60*24);
-  if (diff < 0) return `<span class="status-dot"><span class="dot dot-due"></span>Overdue</span>`;
-  if (diff < 180) return `<span class="status-dot"><span class="dot dot-warn"></span>Due soon</span>`;
-  return `<span class="status-dot"><span class="dot dot-ok"></span>${fmtDate(test.NextDue)}</span>`;
+  const test = DATA.hydroTests
+    .filter(h => h.ExtNo === extNo)
+    .sort((a,b) => new Date(b.TestDate) - new Date(a.TestDate))[0];
+
+  if (!test) return `<span style="color:var(--muted); font-size:11px;">No test recorded</span>`;
+
+  // Auto-calculate NextDue as TestDate + 5 years if not explicitly stored
+  let nextDueDate;
+  if (test.NextDue && String(test.NextDue).trim()) {
+    nextDueDate = new Date(test.NextDue);
+  } else {
+    nextDueDate = new Date(test.TestDate);
+    nextDueDate.setFullYear(nextDueDate.getFullYear() + 5);
+  }
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff  = Math.round((nextDueDate - today) / 86400000);
+  const dueLbl = fmtDate(nextDueDate.toISOString().split('T')[0]);
+
+  if (diff < 0)
+    return `<span class="status-dot"><span class="dot dot-due"></span><span style="color:var(--red);">Overdue (${Math.abs(diff)}d)</span></span>`;
+  if (diff <= 180)
+    return `<span class="status-dot"><span class="dot dot-warn"></span><span style="color:var(--yellow);">Due in ${diff}d</span></span>`;
+  return `<span class="status-dot"><span class="dot dot-ok"></span>${dueLbl}</span>`;
 }
 
 function typeTag(type) {
@@ -3396,12 +3902,14 @@ function fmtDate(d) {
 // NAVIGATION
 // ═══════════════════════════════════════════════
 const pageTitles = {
-  dashboard: ['Dashboard', 'Overview'],
-  masterlist: ['Master List', 'All Extinguishers'],
-  hydro: ['Hydrostatic Tests', 'Pressure Test Records'],
-  refills: ['Refills', 'Refill Requests & Tracking'],
-  passes: ['Passes / Requests', 'Generated Documents'],
-  config: ['Configuration', 'API & Settings']
+  dashboard:   ['Dashboard',        'Overview'],
+  masterlist:  ['Master List',      'All Extinguishers'],
+  hydro:       ['Hydrostatic Tests','Pressure Test Records'],
+  refills:     ['Refills',          'Refill Requests & Tracking'],
+  passes:      ['Passes / Requests','Generated Documents'],
+  locationmap: ['Location Map',     'All Locations at a Glance'],
+  amc:         ['AMC Tracker',      'Annual Maintenance Contracts'],
+  config:      ['Configuration',    'API & Settings']
 };
 
 function showPage(id) {
@@ -3417,6 +3925,8 @@ function showPage(id) {
   if (id === 'passes') renderPasses();
   if (id === 'refills') renderRefills();
   if (id === 'masterlist') renderMasterTable();
+  if (id === 'locationmap') renderLocationMap();
+  if (id === 'amc') renderAmcGrid();
 
   // Hide selection toolbar when not on master list
   if (id !== 'masterlist') {
