@@ -616,13 +616,27 @@
   .chart-title { font-family:'Outfit',sans-serif; font-weight:700; font-size:14px; color:var(--body); margin-bottom:16px; }
   .chart-canvas-wrap { position:relative; }
 
-  /* ─── DONUT CHART ─── */
-  .donut-wrap { display:flex; align-items:center; gap:20px; }
-  .donut-svg  { flex-shrink:0; }
-  .donut-legend { display:flex; flex-direction:column; gap:8px; }
-  .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--grey); cursor:pointer; }
-  .legend-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-  .legend-val  { font-weight:700; color:var(--body); margin-left:auto; padding-left:12px; font-family:'JetBrains Mono',monospace; font-size:11px; }
+  /* ─── INVENTORY TYPE CARDS ─── */
+  .inv-type-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; text-align: center;
+    transition: all .15s; cursor: pointer; position: relative;
+  }
+  .inv-type-card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.08); border-color:var(--border2); }
+  .inv-type-card.itc-active { border-color: var(--accent); background: var(--blue-bg); }
+  .inv-type-icon { font-size: 22px; margin-bottom: 4px; }
+  .inv-type-name { font-size: 11px; font-weight: 700; color: var(--body); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inv-type-cap  { font-size: 10px; color: var(--grey); margin-bottom: 6px; }
+  .inv-type-count {
+    font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800;
+    line-height: 1; color: var(--accent);
+  }
+  .inv-type-sub  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .inv-status-row { display:flex; gap:3px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
+  .inv-status-pip {
+    width: 8px; height: 8px; border-radius: 50%;
+    title: attr(title);
+  }
 
   /* ─── TIMELINE CHART ─── */
   .timeline-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -811,12 +825,9 @@
 
       <!-- Charts Row -->
       <div class="charts-row">
-        <div class="chart-card">
-          <div class="chart-title">🧯 Extinguisher Types</div>
-          <div class="donut-wrap" id="type-chart-wrap">
-            <svg class="donut-svg" id="donut-svg" width="120" height="120" viewBox="0 0 120 120"></svg>
-            <div class="donut-legend" id="donut-legend"></div>
-          </div>
+        <div class="chart-card" style="overflow:hidden;">
+          <div class="chart-title">🧯 Inventory by Type &amp; Capacity</div>
+          <div id="type-cards-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;"></div>
         </div>
         <div class="chart-card">
           <div class="chart-title">📅 Refill Due — Next 12 Months</div>
@@ -1656,7 +1667,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadConfig();
   setDefaultDates();
   loadAmcData();
-  loadSampleData(); // Remove when live — sample data for demo
+  loadSampleData(); // Sample data — remove after connecting to Google Sheets
   renderDashboard();
   renderMasterTable();
   renderRefills();
@@ -1665,7 +1676,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setSyncStatus('syncing', 'Syncing...');
     refreshData(true);
   } else {
-    setSyncStatus('idle', 'Demo mode');
+    setSyncStatus('idle', 'Not connected');
   }
 });
 
@@ -2151,50 +2162,90 @@ function dismissAlert(key) {
   renderAlerts();
 }
 
-// ─── TYPE BREAKDOWN CHART (donut) ─────────────────────────────
-function renderTypeChart() {
-  const svg    = document.getElementById('donut-svg');
-  const legend = document.getElementById('donut-legend');
-  if (!svg || !legend) return;
+// ─── INVENTORY TYPE × CAPACITY CARDS ─────────────────────────
+const TYPE_ICONS = {
+  'ABC': '🔴', 'CO₂': '⚪', 'CO₂ (Trly)': '⚪',
+  'DCP': '🟡', 'DCP (Trly)': '🟡', 'FOAM': '🟢', 'Class L': '🟣'
+};
+const TYPE_COLORS = {
+  'ABC': '#1D4ED8', 'CO₂': '#0891B2', 'CO₂ (Trly)': '#0E7490',
+  'DCP': '#92680A', 'DCP (Trly)': '#B45309', 'FOAM': '#16A34A', 'Class L': '#7C3AED'
+};
 
-  const counts = {};
+function renderTypeChart() {
+  const grid = document.getElementById('type-cards-grid');
+  if (!grid) return;
+
+  // Group by Type + Capacity (Weight)
+  const groups = new Map();
   DATA.extinguishers.forEach(e => {
     if (!e.Type) return;
-    counts[e.Type] = (counts[e.Type] || 0) + 1;
-  });
-  const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]);
-  const total   = entries.reduce((s,[,v]) => s+v, 0);
-  if (!total) { svg.innerHTML = ''; legend.innerHTML = '<div style="color:var(--muted);font-size:12px;">No data</div>'; return; }
-
-  const palette = ['#0F6FBF','#0891B2','#16A34A','#92680A','#B91C1C','#7C3AED','#DB2777'];
-  const R = 46, r = 30, cx = 60, cy = 60;
-  let startAngle = -Math.PI / 2;
-  const paths = [];
-
-  entries.forEach(([type, count], i) => {
-    const angle = (count / total) * 2 * Math.PI;
-    const endAngle = startAngle + angle;
-    const x1 = cx + R * Math.cos(startAngle), y1 = cy + R * Math.sin(startAngle);
-    const x2 = cx + R * Math.cos(endAngle),   y2 = cy + R * Math.sin(endAngle);
-    const xi1= cx + r * Math.cos(endAngle),   yi1= cy + r * Math.sin(endAngle);
-    const xi2= cx + r * Math.cos(startAngle), yi2= cy + r * Math.sin(startAngle);
-    const large = angle > Math.PI ? 1 : 0;
-    const col = palette[i % palette.length];
-    const d = `M${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} L${xi1.toFixed(2)},${yi1.toFixed(2)} A${r},${r} 0 ${large},0 ${xi2.toFixed(2)},${yi2.toFixed(2)} Z`;
-    paths.push(`<path d="${d}" fill="${col}" stroke="#fff" stroke-width="1.5"><title>${type}: ${count}</title></path>`);
-    startAngle = endAngle;
+    const cap = e.Weight ? e.Weight + ' kg' : '—';
+    const key = e.Type + '||' + cap;
+    if (!groups.has(key)) groups.set(key, { type: e.Type, cap, exts: [] });
+    groups.get(key).exts.push(e);
   });
 
-  svg.innerHTML = paths.join('') +
-    `<text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle" font-size="18" font-weight="700" fill="var(--body)">${total}</text>` +
-    `<text x="${cx}" y="${cy+16}" text-anchor="middle" dominant-baseline="middle" font-size="8" fill="var(--grey)">total</text>`;
+  if (!groups.size) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:12px;grid-column:1/-1;padding:8px;">No data</div>';
+    return;
+  }
 
-  legend.innerHTML = entries.map(([type, count], i) => `
-    <div class="legend-item">
-      <div class="legend-dot" style="background:${palette[i%palette.length]};"></div>
-      <span>${type}</span>
-      <span class="legend-val">${count}</span>
-    </div>`).join('');
+  // Sort: by type name, then by capacity
+  const sorted = [...groups.values()].sort((a,b) => {
+    if (a.type !== b.type) return a.type.localeCompare(b.type);
+    return parseFloat(a.cap) - parseFloat(b.cap);
+  });
+
+  grid.innerHTML = sorted.map(g => {
+    const total   = g.exts.length;
+    const ok      = g.exts.filter(e => e.Status === 'ok').length;
+    const due     = g.exts.filter(e => e.Status === 'due').length;
+    const overdue = g.exts.filter(e => e.Status === 'overdue').length;
+    const away    = g.exts.filter(e => e.Status === 'pending' || e.Status === 'in-store').length;
+    const color   = TYPE_COLORS[g.type] || 'var(--accent)';
+    const icon    = TYPE_ICONS[g.type]  || '🧯';
+
+    // Status pips — one pip per unit, coloured by status
+    const pips = g.exts.map(e => {
+      const pipColor = e.Status === 'ok' ? '#16A34A'
+        : e.Status === 'due'     ? '#92680A'
+        : e.Status === 'overdue' ? '#B91C1C'
+        : e.Status === 'pending' ? '#7C3AED'
+        : e.Status === 'in-store'? '#1D4ED8' : '#9CA3AF';
+      return `<div class="inv-status-pip" style="background:${pipColor};" title="${e.ExtNo} — ${e.Status}"></div>`;
+    }).join('');
+
+    // Sub label: breakdown only if mixed statuses
+    let subParts = [];
+    if (due)     subParts.push(`<span style="color:var(--yellow);">${due} due</span>`);
+    if (overdue) subParts.push(`<span style="color:var(--red);">${overdue} overdue</span>`);
+    if (away)    subParts.push(`<span style="color:var(--grey);">${away} away</span>`);
+    const subLine = subParts.length ? subParts.join(' · ') : `<span style="color:var(--green);">All active</span>`;
+
+    return `
+      <div class="inv-type-card" onclick="filterByTypeCapacity('${g.type}','${g.cap}')"
+           title="Click to filter master list">
+        <div class="inv-type-icon">${icon}</div>
+        <div class="inv-type-name" title="${g.type}">${g.type}</div>
+        <div class="inv-type-cap">${g.cap}</div>
+        <div class="inv-type-count" style="color:${color};">${total}</div>
+        <div class="inv-type-sub">${subLine}</div>
+        <div class="inv-status-row">${pips}</div>
+      </div>`;
+  }).join('');
+}
+
+function filterByTypeCapacity(type, cap) {
+  showPage('masterlist');
+  const typeSelect   = document.getElementById('filter-type');
+  const searchInput  = document.getElementById('search-input');
+  // Filter by type via dropdown, and capacity via search
+  if (typeSelect) typeSelect.value = type;
+  const weightNum = cap.replace(' kg','').trim();
+  if (searchInput) searchInput.value = weightNum !== '—' ? weightNum : '';
+  filterTable();
+  showToast(type + ' ' + cap, 'info');
 }
 
 // ─── DUE TIMELINE CHART (next 12 months) ──────────────────────
