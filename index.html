@@ -894,6 +894,40 @@
       </div>
     </div>
 
+    <!-- ═══ LOCATION MAP ═══ -->
+    <div class="page" id="page-locationmap">
+      <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+        <div class="locmap-search">
+          <span>🔍</span>
+          <input type="text" id="locmap-search" placeholder="Search location..." oninput="renderLocationMap()">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="renderLocationMap()">↻ Refresh</button>
+      </div>
+      <div class="locmap-legend">
+        <div class="locmap-leg-item"><div class="locmap-leg-swatch" style="background:var(--green-bg);border-color:var(--green-bd);"></div> Active</div>
+        <div class="locmap-leg-item"><div class="locmap-leg-swatch" style="background:var(--yellow-bg);border-color:var(--yellow-bd);"></div> Due Soon</div>
+        <div class="locmap-leg-item"><div class="locmap-leg-swatch" style="background:var(--red-bg);border-color:var(--red-bd);"></div> Overdue</div>
+        <div class="locmap-leg-item"><div class="locmap-leg-swatch" style="background:#F3F4F6;border:2px dashed #9CA3AF;"></div> Vacant</div>
+        <div class="locmap-leg-item"><div class="locmap-leg-swatch" style="background:#FFF7ED;border-color:#FED7AA;"></div> Substitute</div>
+        <div class="locmap-leg-item"><div class="locmap-leg-swatch" style="background:#F3E8FF;border-color:#DDD6FE;"></div> With Vendor</div>
+        <div class="locmap-leg-item"><div class="locmap-leg-swatch" style="background:var(--blue-bg);border-color:var(--blue-bd);"></div> In Store</div>
+      </div>
+      <div class="locmap-grid" id="locmap-grid">
+        <div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No location data loaded.</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ AMC TRACKER ═══ -->
+    <div class="page" id="page-amc">
+      <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
+        <button class="btn btn-primary" onclick="openAmcModal()">＋ Add AMC Contract</button>
+        <span style="font-size:12px; color:var(--muted);" id="amc-count-label"></span>
+      </div>
+      <div class="amc-grid" id="amc-grid">
+        <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No AMC contracts added yet.</div></div>
+      </div>
+    </div>
+
     <!-- ─── FLOATING SELECTION TOOLBAR ─── -->
     <div class="sel-toolbar" id="sel-toolbar">
       <div class="sel-count"><span id="sel-num">0</span> selected <span>extinguisher(s)</span></div>
@@ -2214,55 +2248,66 @@ function renderLocationMap() {
   if (!grid) return;
   const q = (document.getElementById('locmap-search')?.value || '').toLowerCase();
 
-  // Build a map of all named locations
+  // Build location map from all extinguishers
   const locationMap = new Map();
 
   DATA.extinguishers.forEach(e => {
-    const loc = (e.CurrentLocation || e.Location || '').trim();
-    if (!loc || loc === 'Storeroom' || loc === 'With Vendor') return;
-
-    if (!locationMap.has(loc)) locationMap.set(loc, []);
-    locationMap.get(loc).push(e);
-  });
-
-  // Also check for locations that are now vacant (original location of sent-out units)
-  DATA.extinguishers.filter(e => e.Status === 'pending').forEach(e => {
-    const orig = (e.OriginalLocation || e.Location || '').trim();
-    if (!orig) return;
-    if (!locationMap.has(orig)) locationMap.set(orig, []);
+    // Skip storeroom and vendor — they're not fixed locations
+    const curr = (e.CurrentLocation || e.Location || '').trim();
+    if (!curr || curr === 'Storeroom' || curr === 'With Vendor') {
+      // But register their OriginalLocation as a potentially vacant slot
+      const orig = (e.OriginalLocation || '').trim();
+      if (orig && orig !== 'Storeroom' && orig !== 'With Vendor') {
+        if (!locationMap.has(orig)) locationMap.set(orig, []);
+        // Don't push the ext itself — it's not physically there
+      }
+      return;
+    }
+    if (!locationMap.has(curr)) locationMap.set(curr, []);
+    locationMap.get(curr).push(e);
   });
 
   let entries = [...locationMap.entries()].sort((a,b) => a[0].localeCompare(b[0]));
   if (q) entries = entries.filter(([loc]) => loc.toLowerCase().includes(q));
 
   if (!entries.length) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No locations found.</div></div>';
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">No location data loaded. Add extinguishers first.</div></div>';
     return;
   }
 
   grid.innerHTML = entries.map(([loc, exts]) => {
-    // Determine slot state
-    const active   = exts.filter(e => e.Status === 'ok');
-    const due      = exts.filter(e => e.Status === 'due');
-    const overdue  = exts.filter(e => e.Status === 'overdue');
-    const subs     = exts.filter(e => e.SubstituteFor);
-    const vendor   = exts.filter(e => e.Status === 'pending');
-    const inStore  = exts.filter(e => e.Status === 'in-store');
-    const isVacant = exts.length === 0 || exts.every(e => e.Status === 'pending');
+    const active  = exts.filter(e => e.Status === 'ok');
+    const due     = exts.filter(e => e.Status === 'due');
+    const overdue = exts.filter(e => e.Status === 'overdue');
+    const subs    = exts.filter(e => e.SubstituteFor && e.SubstituteFor !== '');
+    const inStore = exts.filter(e => e.Status === 'in-store');
+    const vendor  = exts.filter(e => e.Status === 'pending');
+    const isEmpty = exts.length === 0;
 
-    let cls = 'ls-ok', badge = '✅', mainExt = active[0] || due[0] || overdue[0] || subs[0];
-    if (isVacant)         { cls='ls-vacant';  badge='⚠️'; }
-    else if (overdue.length){ cls='ls-overdue'; badge='🔴'; mainExt=overdue[0]; }
-    else if (due.length)  { cls='ls-due';     badge='🟡'; mainExt=due[0]; }
-    else if (subs.length) { cls='ls-sub';     badge='↔️'; mainExt=subs[0]; }
-    else if (inStore.length){ cls='ls-store';  badge='📦'; mainExt=inStore[0]; }
-    else if (vendor.length){ cls='ls-vendor';  badge='🚚'; mainExt=vendor[0]; }
+    let cls = 'ls-ok', badge = '✅';
+    let mainExt = active[0] || due[0] || overdue[0] || subs[0] || exts[0];
 
-    const extLabel = mainExt ? `<div class="locmap-ext">${mainExt.ExtNo}</div><div class="locmap-type">${mainExt.Type || ''} ${mainExt.Weight ? mainExt.Weight+'kg' : ''}</div>` : '<div class="locmap-type" style="color:var(--red);">No extinguisher</div>';
-    const countBadge = exts.length > 1 ? `<div style="position:absolute;bottom:8px;right:8px;font-size:10px;background:rgba(0,0,0,.08);border-radius:10px;padding:1px 6px;color:var(--grey);">${exts.length} units</div>` : '';
+    if (isEmpty)            { cls = 'ls-vacant';  badge = '⚠️';  }
+    else if (overdue.length){ cls = 'ls-overdue'; badge = '🔴';  mainExt = overdue[0]; }
+    else if (due.length)    { cls = 'ls-due';     badge = '🟡';  mainExt = due[0]; }
+    else if (subs.length && !active.length) { cls = 'ls-sub'; badge = '↔️'; mainExt = subs[0]; }
+    else if (inStore.length){ cls = 'ls-store';   badge = '📦';  mainExt = inStore[0]; }
+    else if (vendor.length) { cls = 'ls-vendor';  badge = '🚚';  mainExt = vendor[0]; }
 
+    const extLabel = mainExt
+      ? `<div class="locmap-ext">${mainExt.ExtNo}</div>
+         <div class="locmap-type">${mainExt.Type || ''}${mainExt.Weight ? ' · ' + mainExt.Weight + ' kg' : ''}</div>`
+      : `<div class="locmap-type" style="color:var(--red);font-size:11px;">Location vacant</div>`;
+
+    const countBadge = exts.length > 1
+      ? `<div style="position:absolute;bottom:8px;right:8px;font-size:10px;background:rgba(0,0,0,.08);border-radius:10px;padding:1px 6px;color:var(--grey);">${exts.length} units</div>`
+      : '';
+
+    // Use data attribute to avoid quote escaping issues in onclick
+    const safeId = loc.replace(/[^a-zA-Z0-9\-\_]/g, '_');
     return `
-      <div class="locmap-slot ${cls}" onclick="showPage('masterlist'); filterToLocation('${loc.replace(/'/g,"\'")}')">
+      <div class="locmap-slot ${cls}" data-loc="${loc.replace(/"/g,'&quot;')}"
+           onclick="filterToLocation(this.dataset.loc)" style="cursor:pointer;">
         <div class="locmap-badge">${badge}</div>
         <div class="locmap-name">${loc}</div>
         ${extLabel}
@@ -2272,8 +2317,12 @@ function renderLocationMap() {
 }
 
 function filterToLocation(loc) {
+  showPage('masterlist');
   const input = document.getElementById('search-input');
-  if (input) { input.value = loc; filterTable(); }
+  if (input) {
+    input.value = loc;
+    filterTable();
+  }
 }
 
 // ─── AMC TRACKER ──────────────────────────────────────────────
