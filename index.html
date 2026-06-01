@@ -618,25 +618,34 @@
 
   /* ─── INVENTORY TYPE CARDS ─── */
   .inv-type-card {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px 12px; text-align: center;
-    transition: all .15s; cursor: pointer; position: relative;
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    transition: all .15s; cursor: pointer;
   }
-  .inv-type-card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.08); border-color:var(--border2); }
-  .inv-type-card.itc-active { border-color: var(--accent); background: var(--blue-bg); }
-  .inv-type-icon { font-size: 22px; margin-bottom: 4px; }
-  .inv-type-name { font-size: 11px; font-weight: 700; color: var(--body); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .inv-type-cap  { font-size: 10px; color: var(--grey); margin-bottom: 6px; }
+  .inv-type-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,.09);
+    border-color: var(--border2);
+  }
+  .inv-type-card.itc-active { background: var(--blue-bg); }
+  .inv-ext-img {
+    flex-shrink: 0; width: 30px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .inv-ext-img svg { width: 26px; height: auto; }
+  .inv-card-body { flex: 1; min-width: 0; }
+  .inv-type-name {
+    font-size: 12px; font-weight: 700; color: var(--body);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .inv-type-cap  { font-size: 11px; color: var(--grey); margin: 1px 0 5px; }
   .inv-type-count {
-    font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800;
-    line-height: 1; color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px; font-weight: 800; line-height: 1;
   }
-  .inv-type-sub  { font-size: 10px; color: var(--muted); margin-top: 2px; }
-  .inv-status-row { display:flex; gap:3px; justify-content:center; margin-top:6px; flex-wrap:wrap; }
-  .inv-status-pip {
-    width: 8px; height: 8px; border-radius: 50%;
-    title: attr(title);
-  }
+  .inv-type-sub { font-size: 10px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
 
   /* ─── TIMELINE CHART ─── */
   .timeline-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -664,6 +673,39 @@
   .locmap-slot.ls-overdue  { background:var(--red-bg);    border-color:var(--red-bd); }
   .locmap-slot.ls-vacant   { background:#F3F4F6; border:2px dashed #9CA3AF; }
   .locmap-slot.ls-sub      { background:#FFF7ED; border-color:#FED7AA; }
+  .locmap-slot-actions {
+    display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;
+  }
+  .locmap-slot-actions .btn {
+    font-size:10px; padding:3px 8px; border-radius:5px; flex:1; justify-content:center;
+  }
+  /* Sub selection list in modal */
+  .sub-ext-list {
+    display:flex; flex-direction:column; gap:6px;
+    max-height:260px; overflow-y:auto; margin-top:8px;
+  }
+  .sub-ext-option {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px; border-radius:8px;
+    border:2px solid var(--border); background:var(--surface2);
+    cursor:pointer; transition:all .15s;
+  }
+  .sub-ext-option:hover { border-color:var(--accent); background:var(--blue-bg); }
+  .sub-ext-option.selected { border-color:var(--accent); background:var(--blue-bg); }
+  .sub-ext-option input[type="radio"] { accent-color:var(--accent); width:16px; height:16px; flex-shrink:0; }
+  .sub-opt-info { flex:1; }
+  .sub-opt-num  { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--accent); }
+  .sub-opt-desc { font-size:12px; color:var(--body); margin-top:1px; }
+  .sub-opt-loc  { font-size:11px; color:var(--grey); margin-top:1px; }
+  .sub-opt-badge{ font-size:10px; padding:2px 7px; border-radius:8px; flex-shrink:0; }
+  .vacant-target-card {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; padding:12px 14px; margin-bottom:14px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .vacant-target-icon { font-size:22px; flex-shrink:0; }
+  .vacant-target-loc  { font-weight:700; font-size:14px; color:var(--body); }
+  .vacant-target-sub  { font-size:12px; color:var(--grey); margin-top:2px; }
   .locmap-slot.ls-store    { background:var(--blue-bg);   border-color:var(--blue-bd); }
   .locmap-slot.ls-vendor   { background:#F3E8FF; border-color:#DDD6FE; }
   .locmap-name   { font-size:12px; font-weight:600; color:var(--body); margin-bottom:6px; line-height:1.3; }
@@ -827,7 +869,7 @@
       <div class="charts-row">
         <div class="chart-card" style="overflow:hidden;">
           <div class="chart-title">🧯 Inventory by Type &amp; Capacity</div>
-          <div id="type-cards-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px;"></div>
+          <div id="type-cards-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px;"></div>
         </div>
         <div class="chart-card">
           <div class="chart-title">📅 Refill Due — Next 12 Months</div>
@@ -1007,7 +1049,7 @@
           <table>
             <thead>
               <tr>
-                <th>Pass No.</th><th>Ext. Count</th><th>Requested By</th>
+                <th>Pass No.</th><th>Ext. Count</th><th>Agency</th>
                 <th>Generated On</th><th>Status</th><th>Actions</th>
               </tr>
             </thead>
@@ -1343,8 +1385,17 @@
           <input type="date" id="r-reqdate">
         </div>
         <div class="form-group full">
-          <label>Requested By</label>
-          <input type="text" id="r-reqby" placeholder="Your name / department">
+          <label>Send To Agency *</label>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <select id="r-reqby" style="flex:1;">
+              <option value="">— Select Agency —</option>
+            </select>
+            <button type="button" class="btn btn-ghost btn-sm"
+              onclick="closeModal('modal-refill'); showPage('amc');"
+              title="Manage agencies in AMC Tracker" style="white-space:nowrap; flex-shrink:0;">
+              ＋ Manage
+            </button>
+          </div>
         </div>
         <div class="form-group full">
           <label>Remarks</label>
@@ -1390,8 +1441,7 @@
           <input type="date" id="rec-nextdue">
         </div>
         <div class="form-group">
-          <label>Received By</label>
-          <input type="text" id="rec-by" placeholder="Name / Dept">
+          <!-- Received By removed -->
         </div>
         <div class="form-group full">
           <label>Remarks</label>
@@ -1484,8 +1534,17 @@
             <input type="date" id="bulk-reqdate">
           </div>
           <div class="form-group">
-            <label>Requested By</label>
-            <input type="text" id="bulk-reqby" placeholder="Name / Department">
+            <label>Send To Agency *</label>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <select id="bulk-reqby" style="flex:1;">
+                <option value="">— Select Agency —</option>
+              </select>
+              <button type="button" class="btn btn-ghost btn-sm"
+                onclick="closeModal('modal-bulk-refill'); showPage('amc');"
+                title="Manage agencies in AMC Tracker" style="white-space:nowrap; flex-shrink:0;">
+                ＋ Manage
+              </button>
+            </div>
           </div>
           <div class="form-group full">
             <label>Common Remarks (applied to all)</label>
@@ -1495,7 +1554,7 @@
       </div>
 
       <div style="margin-top:14px; padding:12px 14px; background:var(--accent-glow); border-radius:8px; font-size:12px; color:var(--grey); line-height:1.6;">
-        🧾 <strong style="color:var(--accent2)">One combined pass</strong> will be generated listing all selected extinguishers by Sl. No. Individual receive entries are tracked per extinguisher after return.
+        🧾 <strong style="color:var(--accent2)">One combined pass</strong> will be generated listing all selected extinguishers by Sl. No. The selected agency will be shown on the pass. Individual receive entries are tracked per extinguisher after return.
       </div>
     </div>
     <div class="modal-footer">
@@ -1535,7 +1594,7 @@
         <hr class="pass-divider">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 20px; margin-bottom:14px;">
           <div class="pass-row"><span class="pass-key">Request Date</span><span class="pass-val" id="cp-reqdate">—</span></div>
-          <div class="pass-row"><span class="pass-key">Requested By</span><span class="pass-val" id="cp-reqby">—</span></div>
+          <div class="pass-row"><span class="pass-key">Agency</span><span class="pass-val" id="cp-reqby">—</span></div>
           <div class="pass-row"><span class="pass-key">No. of Extinguishers</span><span class="pass-val" id="cp-count">—</span></div>
           <div class="pass-row"><span class="pass-key">Remarks</span><span class="pass-val" id="cp-remarks">—</span></div>
         </div>
@@ -1615,6 +1674,63 @@
   </div>
 </div>
 
+<!-- Place Substitute Modal -->
+<div class="modal-overlay" id="modal-place-sub">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head">
+      <div class="modal-title">📍 Place Substitute Extinguisher</div>
+      <button class="modal-close" onclick="closeModal('modal-place-sub')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Vacant location info -->
+      <div class="vacant-target-card">
+        <div class="vacant-target-icon">⚠️</div>
+        <div>
+          <div class="vacant-target-loc" id="sub-target-loc">—</div>
+          <div class="vacant-target-sub" id="sub-target-sub">Original extinguisher is with vendor</div>
+        </div>
+      </div>
+
+      <div style="font-size:12px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;">
+        Select Available Extinguisher
+      </div>
+      <div class="sub-ext-list" id="sub-ext-list">
+        <div style="color:var(--muted); font-size:13px; padding:8px;">No available extinguishers in storeroom.</div>
+      </div>
+
+      <div style="margin-top:14px; padding:10px 14px; background:var(--blue-bg); border:1px solid var(--blue-bd); border-radius:8px; font-size:12px; color:var(--blue); line-height:1.6;">
+        ℹ️ The selected extinguisher will be marked as a substitute at this location. It will be returned to Storeroom when the original is deployed back.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-place-sub')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmPlaceSubstitute()" id="btn-confirm-sub" disabled>
+        📍 Place Substitute
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Substitute Confirm Modal -->
+<div class="modal-overlay" id="modal-remove-sub">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head">
+      <div class="modal-title">✕ Remove Substitute</div>
+      <button class="modal-close" onclick="closeModal('modal-remove-sub')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="remove-sub-info" style="margin-bottom:14px;"></div>
+      <div style="padding:10px 14px; background:var(--yellow-bg); border:1px solid var(--yellow-bd); border-radius:8px; font-size:12px; color:var(--yellow); line-height:1.6;">
+        ⚠️ The substitute extinguisher will be moved back to <strong>Storeroom</strong> and the location will be marked as vacant again.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-remove-sub')">Cancel</button>
+      <button class="btn btn-red" onclick="confirmRemoveSubstitute()">✕ Remove Substitute</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOADING -->
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
@@ -1668,6 +1784,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setDefaultDates();
   loadAmcData();
   loadSampleData(); // Sample data — remove after connecting to Google Sheets
+  populateAgencyDropdowns(); // Populate agency selects on load
   renderDashboard();
   renderMasterTable();
   renderRefills();
@@ -1838,8 +1955,8 @@ function loadSampleData() {
     { TestID:'HT-003', ExtNo:'EXT-004', TestDate:'2020-02-14', TestBy:'', Pressure:'', Result:'pass', NextDue:'2025-02-14', CertNo:'' },
   ];
   DATA.refills = [
-    { RefillID:'RF-001', ExtNo:'EXT-006', RequestDate:'2024-05-01', RequestBy:'Safety Dept', SentDate:'2024-05-03', ReceivedDate:'', PassNo:'PASS-0001', Status:'sent', OriginalLocation:'Building C - Floor 3', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Pressure low' },
-    { RefillID:'RF-002', ExtNo:'EXT-001', RequestDate:'2024-04-20', RequestBy:'Admin', SentDate:'', ReceivedDate:'', PassNo:'PASS-0002', Status:'pending', OriginalLocation:'Building A - Entrance', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Annual refill' },
+    { RefillID:'RF-001', ExtNo:'EXT-006', RequestDate:'2024-05-01', RequestBy:'M/S Red Firelines', SentDate:'2024-05-03', ReceivedDate:'', PassNo:'PASS-0001', Status:'sent', OriginalLocation:'Building C - Floor 3', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Pressure low' },
+    { RefillID:'RF-002', ExtNo:'EXT-001', RequestDate:'2024-04-20', RequestBy:'M/S Red Firelines', SentDate:'', ReceivedDate:'', PassNo:'PASS-0002', Status:'pending', OriginalLocation:'Building A - Entrance', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Annual refill' },
   ];
   DATA.passes = [
     { PassNo:'PASS-0001', ExtNo:'EXT-006', ExtList:'', Location:'Building C - Floor 3', Type:'FOAM', Weight:'9', GeneratedOn:'2024-05-01', GeneratedBy:'Safety Dept', Status:'sent', DocUrl:'' },
@@ -1925,6 +2042,7 @@ async function refreshData(silent = false) {
     renderHydroTable();
     renderRefills();
     renderPasses();
+    populateAgencyDropdowns();
     const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok', 'Synced ' + now);
     if (!silent) showToast('Synced — ' + DATA.extinguishers.length + ' extinguishers loaded', 'success');
@@ -2163,10 +2281,7 @@ function dismissAlert(key) {
 }
 
 // ─── INVENTORY TYPE × CAPACITY CARDS ─────────────────────────
-const TYPE_ICONS = {
-  'ABC': '🔴', 'CO₂': '⚪', 'CO₂ (Trly)': '⚪',
-  'DCP': '🟡', 'DCP (Trly)': '🟡', 'FOAM': '🟢', 'Class L': '🟣'
-};
+// TYPE_ICONS removed — using SVG illustration
 const TYPE_COLORS = {
   'ABC': '#1D4ED8', 'CO₂': '#0891B2', 'CO₂ (Trly)': '#0E7490',
   'DCP': '#92680A', 'DCP (Trly)': '#B45309', 'FOAM': '#16A34A', 'Class L': '#7C3AED'
@@ -2197,6 +2312,24 @@ function renderTypeChart() {
     return parseFloat(a.cap) - parseFloat(b.cap);
   });
 
+const EXT_SVG = (color) => `<svg viewBox="0 0 28 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Handle -->
+  <rect x="10" y="2" width="8" height="3" rx="1.5" fill="${color}" opacity=".9"/>
+  <!-- Valve head -->
+  <rect x="9" y="4" width="10" height="5" rx="2" fill="${color}"/>
+  <!-- Hose nozzle arm -->
+  <rect x="19" y="5" width="6" height="2" rx="1" fill="${color}" opacity=".7"/>
+  <!-- Pin -->
+  <rect x="13" y="1" width="2" height="3" rx="1" fill="${color}" opacity=".5"/>
+  <!-- Body cylinder -->
+  <rect x="7" y="9" width="14" height="44" rx="7" fill="${color}" opacity=".15"/>
+  <rect x="7" y="9" width="14" height="44" rx="7" stroke="${color}" stroke-width="1.5" fill="none"/>
+  <!-- Label band -->
+  <rect x="8.5" y="20" width="11" height="12" rx="2" fill="${color}" opacity=".12"/>
+  <!-- Bottom rim -->
+  <rect x="9" y="51" width="10" height="3" rx="1.5" fill="${color}" opacity=".5"/>
+</svg>`;
+
   grid.innerHTML = sorted.map(g => {
     const total   = g.exts.length;
     const ok      = g.exts.filter(e => e.Status === 'ok').length;
@@ -2204,48 +2337,44 @@ function renderTypeChart() {
     const overdue = g.exts.filter(e => e.Status === 'overdue').length;
     const away    = g.exts.filter(e => e.Status === 'pending' || e.Status === 'in-store').length;
     const color   = TYPE_COLORS[g.type] || 'var(--accent)';
-    const icon    = TYPE_ICONS[g.type]  || '🧯';
 
-    // Status pips — one pip per unit, coloured by status
-    const pips = g.exts.map(e => {
-      const pipColor = e.Status === 'ok' ? '#16A34A'
-        : e.Status === 'due'     ? '#92680A'
-        : e.Status === 'overdue' ? '#B91C1C'
-        : e.Status === 'pending' ? '#7C3AED'
-        : e.Status === 'in-store'? '#1D4ED8' : '#9CA3AF';
-      return `<div class="inv-status-pip" style="background:${pipColor};" title="${e.ExtNo} — ${e.Status}"></div>`;
-    }).join('');
-
-    // Sub label: breakdown only if mixed statuses
+    // Clean status sub-line — no coloured circles
     let subParts = [];
-    if (due)     subParts.push(`<span style="color:var(--yellow);">${due} due</span>`);
-    if (overdue) subParts.push(`<span style="color:var(--red);">${overdue} overdue</span>`);
-    if (away)    subParts.push(`<span style="color:var(--grey);">${away} away</span>`);
-    const subLine = subParts.length ? subParts.join(' · ') : `<span style="color:var(--green);">All active</span>`;
+    if (due)     subParts.push(`${due} due`);
+    if (overdue) subParts.push(`${overdue} overdue`);
+    if (away)    subParts.push(`${away} away`);
+    const subLine = subParts.length ? subParts.join(' · ') : 'All active';
+    const subColor = overdue ? 'var(--red)' : due ? 'var(--yellow)' : 'var(--green)';
 
     return `
-      <div class="inv-type-card" onclick="filterByTypeCapacity('${g.type}','${g.cap}')"
-           title="Click to filter master list">
-        <div class="inv-type-icon">${icon}</div>
-        <div class="inv-type-name" title="${g.type}">${g.type}</div>
-        <div class="inv-type-cap">${g.cap}</div>
-        <div class="inv-type-count" style="color:${color};">${total}</div>
-        <div class="inv-type-sub">${subLine}</div>
-        <div class="inv-status-row">${pips}</div>
+      <div class="inv-type-card" style="border-left-color:${color};"
+           onclick="filterByTypeCapacity('${g.type.replace(/'/g,"\'").replace(/\(/g,'\(').replace(/\)/g,'\)')}','${g.cap}')"
+           title="Click to filter — ${g.type} ${g.cap}">
+        <div class="inv-ext-img">${EXT_SVG(color)}</div>
+        <div class="inv-card-body">
+          <div class="inv-type-name" title="${g.type}">${g.type}</div>
+          <div class="inv-type-cap">${g.cap}</div>
+          <div class="inv-type-count" style="color:${color};">${total}</div>
+          <div class="inv-type-sub" style="color:${subColor};">${subLine}</div>
+        </div>
       </div>`;
   }).join('');
 }
 
 function filterByTypeCapacity(type, cap) {
   showPage('masterlist');
-  const typeSelect   = document.getElementById('filter-type');
-  const searchInput  = document.getElementById('search-input');
-  // Filter by type via dropdown, and capacity via search
+  const typeSelect  = document.getElementById('filter-type');
+  const searchInput = document.getElementById('search-input');
+  const statusSel   = document.getElementById('filter-status');
+  // Set type dropdown
   if (typeSelect) typeSelect.value = type;
-  const weightNum = cap.replace(' kg','').trim();
+  // Clear status filter
+  if (statusSel) statusSel.value = '';
+  // Search by weight number (strip " kg") so it matches the Weight column
+  const weightNum = cap.replace(/\s*kg\s*/i, '').trim();
   if (searchInput) searchInput.value = weightNum !== '—' ? weightNum : '';
   filterTable();
-  showToast(type + ' ' + cap, 'info');
+  showToast(type + ' · ' + cap + ' filtered', 'info');
 }
 
 // ─── DUE TIMELINE CHART (next 12 months) ──────────────────────
@@ -2354,8 +2483,29 @@ function renderLocationMap() {
       ? `<div style="position:absolute;bottom:8px;right:8px;font-size:10px;background:rgba(0,0,0,.08);border-radius:10px;padding:1px 6px;color:var(--grey);">${exts.length} units</div>`
       : '';
 
-    // Use data attribute to avoid quote escaping issues in onclick
-    const safeId = loc.replace(/[^a-zA-Z0-9\-\_]/g, '_');
+    // Action buttons for vacant / substitute slots
+    let actionBtns = '';
+    if (isEmpty) {
+      // Find original ext that was at this location
+      const origExt = DATA.extinguishers.find(e =>
+        (e.OriginalLocation === loc || e.Location === loc) && e.Status === 'pending'
+      );
+      const origExtNo = origExt ? origExt.ExtNo : '';
+      actionBtns = `<div class="locmap-slot-actions">
+        <button class="btn btn-primary"
+          onclick="event.stopPropagation(); openPlaceSubModal(this.closest('.locmap-slot').dataset.loc, '${origExtNo}')"
+          title="Place a substitute extinguisher here">📍 Place Sub</button>
+      </div>`;
+    } else if (subs.length && !active.length && !overdue.length && !due.length) {
+      const subExt = subs[0];
+      actionBtns = `<div class="locmap-slot-actions">
+        <button class="btn btn-ghost"
+          onclick="event.stopPropagation(); openRemoveSubModal('${subExt.ExtNo}')"
+          title="Remove this substitute" style="color:var(--red);border-color:var(--red-bd);">
+          ✕ Remove Sub</button>
+      </div>`;
+    }
+
     return `
       <div class="locmap-slot ${cls}" data-loc="${loc.replace(/"/g,'&quot;')}"
            onclick="filterToLocation(this.dataset.loc)" style="cursor:pointer;">
@@ -2363,6 +2513,7 @@ function renderLocationMap() {
         <div class="locmap-name">${loc}</div>
         ${extLabel}
         ${countBadge}
+        ${actionBtns}
       </div>`;
   }).join('');
 }
@@ -2374,6 +2525,216 @@ function filterToLocation(loc) {
     input.value = loc;
     filterTable();
   }
+}
+
+// ─── SUBSTITUTE PLACEMENT ─────────────────────────────────────
+let subTargetLoc    = '';  // location we're placing a sub at
+let subForExtNo     = '';  // original ext that belongs there
+let selectedSubExtNo= '';  // sub ext chosen by user
+
+function openPlaceSubModal(loc, origExtNo) {
+  subTargetLoc     = loc;
+  subForExtNo      = origExtNo;
+  selectedSubExtNo = '';
+
+  // Fill target info
+  document.getElementById('sub-target-loc').textContent = loc;
+
+  // Describe original ext if known
+  const origExt = DATA.extinguishers.find(e => e.ExtNo === origExtNo);
+  const subInfo = origExt
+    ? `${origExt.ExtNo} (${origExt.Type} ${origExt.Weight}kg) is currently with vendor`
+    : 'Original extinguisher is with vendor';
+  document.getElementById('sub-target-sub').textContent = subInfo;
+
+  // Disable confirm button until selection
+  const btn = document.getElementById('btn-confirm-sub');
+  if (btn) btn.disabled = true;
+
+  // Populate available extinguishers (in-store + active not already a substitute)
+  const available = DATA.extinguishers.filter(e =>
+    (e.Status === 'in-store' || e.Status === 'ok') &&
+    !e.SubstituteFor &&
+    e.ExtNo !== origExtNo &&
+    (e.CurrentLocation || e.Location) !== loc
+  );
+
+  const list = document.getElementById('sub-ext-list');
+  if (!available.length) {
+    list.innerHTML = `
+      <div style="color:var(--muted); font-size:13px; padding:12px 8px; text-align:center;">
+        <div style="font-size:28px; margin-bottom:8px;">📦</div>
+        No extinguishers available for substitution.<br>
+        <small>Add units to Storeroom first or check the Master List.</small>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = available.map(e => {
+    const currLoc = e.CurrentLocation || e.Location || '—';
+    const statusLabel = e.Status === 'in-store'
+      ? `<span class="sub-opt-badge" style="background:var(--blue-bg);color:var(--blue);">In Storeroom</span>`
+      : `<span class="sub-opt-badge" style="background:var(--green-bg);color:var(--green);">Active</span>`;
+    return `
+      <label class="sub-ext-option" id="sub-opt-${e.ExtNo}"
+             onclick="selectSubExt('${e.ExtNo}')">
+        <input type="radio" name="sub-choice" value="${e.ExtNo}"
+               onchange="selectSubExt('${e.ExtNo}')">
+        <div class="sub-opt-info">
+          <div class="sub-opt-num">${e.ExtNo}</div>
+          <div class="sub-opt-desc">${e.Type} · ${e.Weight} kg</div>
+          <div class="sub-opt-loc">Currently: ${currLoc}</div>
+        </div>
+        ${statusLabel}
+      </label>`;
+  }).join('');
+
+  openModal('modal-place-sub');
+}
+
+function selectSubExt(extNo) {
+  selectedSubExtNo = extNo;
+  // Highlight selected
+  document.querySelectorAll('.sub-ext-option').forEach(el => {
+    el.classList.toggle('selected', el.id === 'sub-opt-' + extNo);
+  });
+  // Enable confirm button
+  const btn = document.getElementById('btn-confirm-sub');
+  if (btn) { btn.disabled = false; }
+}
+
+async function confirmPlaceSubstitute() {
+  if (!selectedSubExtNo || !subTargetLoc) {
+    showToast('Select an extinguisher first', 'error'); return;
+  }
+
+  const subExtIdx = DATA.extinguishers.findIndex(e => e.ExtNo === selectedSubExtNo);
+  if (subExtIdx === -1) return;
+
+  // Move substitute to the vacant location and mark it as SubstituteFor
+  DATA.extinguishers[subExtIdx].CurrentLocation = subTargetLoc;
+  DATA.extinguishers[subExtIdx].Location        = subTargetLoc;
+  DATA.extinguishers[subExtIdx].SubstituteFor   = subForExtNo;
+  DATA.extinguishers[subExtIdx].Status          = 'ok';
+  DATA.extinguishers[subExtIdx].OriginalLocation= ''; // its original loc is now this one temporarily
+
+  // Sync to backend
+  if (CONFIG.apiUrl) {
+    await apiCall('updateExtinguisher', DATA.extinguishers[subExtIdx]);
+  }
+
+  closeModal('modal-place-sub');
+  renderLocationMap();
+  renderDashboard();
+  renderMasterTable();
+
+  showToast(`${selectedSubExtNo} placed as substitute at ${subTargetLoc}`, 'success');
+}
+
+// ─── REMOVE SUBSTITUTE ────────────────────────────────────────
+let removingSubExtNo = '';
+
+function openRemoveSubModal(extNo) {
+  removingSubExtNo = extNo;
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
+  if (!ext) return;
+
+  const loc        = ext.CurrentLocation || ext.Location || '—';
+  const subForExt  = DATA.extinguishers.find(e => e.ExtNo === ext.SubstituteFor);
+  const subForDesc = subForExt
+    ? `${ext.SubstituteFor} (${subForExt.Type} ${subForExt.Weight}kg) — currently with vendor`
+    : ext.SubstituteFor ? `${ext.SubstituteFor} — currently with vendor` : 'original extinguisher';
+
+  document.getElementById('remove-sub-info').innerHTML = `
+    <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
+        <span class="ext-num">${extNo}</span>
+        ${typeTag(ext.Type || '—')}
+        <span style="font-size:12px; color:var(--grey);">${ext.Weight || '—'} kg</span>
+      </div>
+      <div style="font-size:12px; color:var(--grey);">
+        Currently at: <strong style="color:var(--body);">${loc}</strong><br>
+        Substituting for: <strong style="color:var(--body);">${subForDesc}</strong>
+      </div>
+    </div>`;
+
+  openModal('modal-remove-sub');
+}
+
+async function confirmRemoveSubstitute() {
+  const extIdx = DATA.extinguishers.findIndex(e => e.ExtNo === removingSubExtNo);
+  if (extIdx === -1) return;
+
+  // Move substitute back to storeroom and clear SubstituteFor
+  DATA.extinguishers[extIdx].CurrentLocation = 'Storeroom';
+  DATA.extinguishers[extIdx].Location        = 'Storeroom';
+  DATA.extinguishers[extIdx].SubstituteFor   = '';
+  DATA.extinguishers[extIdx].Status          = 'in-store';
+
+  if (CONFIG.apiUrl) {
+    await apiCall('updateExtinguisher', DATA.extinguishers[extIdx]);
+  }
+
+  closeModal('modal-remove-sub');
+  renderLocationMap();
+  renderDashboard();
+  renderMasterTable();
+
+  showToast(`${removingSubExtNo} removed from substitute duty → Storeroom`, 'info');
+}
+
+// ─── POPULATE AGENCY DROPDOWNS ────────────────────────────────
+function populateAgencyDropdowns() {
+  // Build agency list: AMC vendors first, then CONFIG.vendorName as fallback
+  const agencies = [];
+
+  // Active/upcoming AMC contracts first
+  const today = new Date();
+  const active = AMC_DATA.filter(a => new Date(a.endDate) >= today)
+    .sort((a,b) => a.vendor.localeCompare(b.vendor));
+  const expired = AMC_DATA.filter(a => new Date(a.endDate) < today)
+    .sort((a,b) => a.vendor.localeCompare(b.vendor));
+
+  active.forEach(a  => agencies.push({ value: a.vendor, label: a.vendor, group: 'Active AMC' }));
+  expired.forEach(a => agencies.push({ value: a.vendor, label: a.vendor + ' (expired)', group: 'Expired AMC' }));
+
+  // CONFIG vendor as fallback if not already in list
+  if (CONFIG.vendorName && !agencies.find(a => a.value === CONFIG.vendorName)) {
+    agencies.push({ value: CONFIG.vendorName, label: CONFIG.vendorName, group: 'Default' });
+  }
+
+  // Render to all agency selects
+  ['bulk-reqby', 'r-reqby'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">— Select Agency —</option>';
+
+    // Group by category
+    const groups = {};
+    agencies.forEach(a => {
+      if (!groups[a.group]) groups[a.group] = [];
+      groups[a.group].push(a);
+    });
+
+    Object.entries(groups).forEach(([grpName, items]) => {
+      const grp = document.createElement('optgroup');
+      grp.label = grpName;
+      items.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.value;
+        opt.textContent = a.label;
+        if (a.value === currentVal) opt.selected = true;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    });
+
+    // Restore previous value if still valid
+    if (currentVal && [...sel.options].find(o => o.value === currentVal)) {
+      sel.value = currentVal;
+    }
+  });
 }
 
 // ─── AMC TRACKER ──────────────────────────────────────────────
@@ -2426,6 +2787,7 @@ function saveAmc() {
   closeModal('modal-amc');
   renderAmcGrid();
   renderAlerts();
+  populateAgencyDropdowns();
   showToast('AMC contract saved!', 'success');
 }
 
@@ -2435,6 +2797,7 @@ function deleteAmc(id) {
   saveAmcData();
   renderAmcGrid();
   renderAlerts();
+  populateAgencyDropdowns();
   showToast('Contract deleted', 'info');
 }
 
@@ -2538,21 +2901,11 @@ function filterByCard(filterType) {
   }
 
   if (filterType === 'vacant') {
-    // Show extinguishers whose location is vacant (sent out, no substitute)
-    statusSelect.value = '';
-    const filtered = DATA.extinguishers.filter(e => {
-      if (e.Status !== 'pending') return false;
-      const origLoc = e.OriginalLocation || e.Location;
-      if (!origLoc) return false;
-      return !DATA.extinguishers.some(s =>
-        s.SubstituteFor === e.ExtNo &&
-        (s.CurrentLocation === origLoc || s.Location === origLoc) &&
-        s.Status !== 'pending'
-      );
-    });
-    renderMasterTable(filtered);
-    // Show a banner
-    showToast(`${filtered.length} vacant location${filtered.length !== 1 ? 's' : ''} — locations with no cover`, 'info');
+    // Navigate to Location Map — vacant slots visible there with Place Sub buttons
+    activeCardFilter = null;
+    document.getElementById('card-vacant')?.classList.remove('active-filter');
+    showPage('locationmap');
+    showToast('Vacant locations highlighted on map — click 📍 Place Sub to assign a substitute', 'info');
     return;
   }
 
@@ -2657,12 +3010,18 @@ function renderPagination() {
 }
 
 function filterTable() {
-  const q = document.getElementById('search-input').value.toLowerCase();
-  const type = document.getElementById('filter-type').value;
+  const q      = document.getElementById('search-input').value.toLowerCase();
+  const type   = document.getElementById('filter-type').value;
   const status = document.getElementById('filter-status').value;
   const filtered = DATA.extinguishers.filter(e => {
-    const matchQ = !q || e.ExtNo.toLowerCase().includes(q) || e.Location.toLowerCase().includes(q) || e.Type.toLowerCase().includes(q);
-    const matchType = !type || e.Type === type;
+    const matchQ = !q ||
+      (e.ExtNo       || '').toLowerCase().includes(q) ||
+      (e.Location    || '').toLowerCase().includes(q) ||
+      (e.CurrentLocation || '').toLowerCase().includes(q) ||
+      (e.Type        || '').toLowerCase().includes(q) ||
+      (e.Weight      || '').toString().toLowerCase().includes(q) ||
+      (e.Remarks     || '').toLowerCase().includes(q);
+    const matchType   = !type   || e.Type   === type;
     const matchStatus = !status || e.Status === status;
     return matchQ && matchType && matchStatus;
   });
@@ -2743,7 +3102,7 @@ function renderRefills() {
           <div class="refill-num">${r.ExtNo} &nbsp;·&nbsp; Pass: ${r.PassNo}</div>
           <div class="refill-desc">${ext.Type || '—'} &nbsp;·&nbsp; Original: <strong style="color:var(--body)">${origLoc}</strong></div>
           <div class="refill-meta" style="margin-top:3px;">${locLine}</div>
-          <div class="refill-meta">Requested: ${fmtDate(r.RequestDate)} by ${r.RequestBy}${r.SentDate ? ' · Sent: ' + fmtDate(r.SentDate) : ''}${r.ReceivedDate ? ' · Received: ' + fmtDate(r.ReceivedDate) : ''}</div>
+          <div class="refill-meta">Agency: ${r.RequestBy || '—'} &nbsp;·&nbsp; ${fmtDate(r.RequestDate)}${r.SentDate ? ' · Sent: ' + fmtDate(r.SentDate) : ''}${r.ReceivedDate ? ' · Received: ' + fmtDate(r.ReceivedDate) : ''}</div>
         </div>
         <div class="refill-actions">
           ${r.Status === 'pending' ? `<button class="btn btn-blue btn-sm" onclick="openMarkSentModal('${r.RefillID}')">📦 Mark Sent</button>` : ''}
@@ -2973,7 +3332,7 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
     extTable +
 
     spacer(120) +
-    para(run('Pass No: ' + passNo + '   |   Requested by: ' + reqBy + '   |   Total: ' + count + ' Nos.', { sz:16, color:'888888', italic:true }), { spaceAfter:0 }) +
+    para(run('Pass No: ' + passNo + '   |   Agency: ' + reqBy + '   |   Total: ' + count + ' Nos.', { sz:16, color:'888888', italic:true }), { spaceAfter:0 }) +
 
     '</w:body></w:document>';
 
@@ -3195,28 +3554,30 @@ async function saveHydroTest() {
 }
 
 function openRefillRequestModal() {
-  // If nothing selected, open bulk modal (user can type ext no manually via add-more flow)
   if (selectedExtNos.size === 0) {
     showToast('Select extinguishers from the Master List using checkboxes', 'info');
     showPage('masterlist');
     return;
   }
+  populateAgencyDropdowns();
   openBulkRefillModal();
 }
 
 function requestRefillFor(extNo) {
   selectedExtNos.add(extNo);
   updateSelectionToolbar();
+  populateAgencyDropdowns();
   openBulkRefillModal();
 }
 
 async function createRefillRequest() {
-  const extNo = document.getElementById('r-extno').value.trim();
+  const extNo   = document.getElementById('r-extno').value.trim();
   const reqDate = document.getElementById('r-reqdate').value;
-  const reqBy = document.getElementById('r-reqby').value.trim();
+  const reqBy   = document.getElementById('r-reqby').value.trim();   // now a select (agency)
   const remarks = document.getElementById('r-remarks').value.trim();
 
-  if (!extNo) { showToast('Ext. Number is required', 'error'); return; }
+  if (!extNo)  { showToast('Ext. Number is required', 'error'); return; }
+  if (!reqBy)  { showToast('Please select an agency', 'error'); return; }
 
   const passNo = 'PASS-' + String(DATA.passes.length + 1).padStart(4, '0');
   const refillId = 'RF-' + String(DATA.refills.length + 1).padStart(3, '0');
@@ -3327,7 +3688,7 @@ async function markReceived() {
   const recDate = document.getElementById('rec-date').value;
   const newWeight = document.getElementById('rec-weight').value;
   const nextDue = document.getElementById('rec-nextdue').value;
-  const recBy = document.getElementById('rec-by').value;
+  const recBy = '';
   const remarks = document.getElementById('rec-remarks').value;
 
   refill.ReceivedDate = recDate;
@@ -3567,9 +3928,9 @@ function openBulkRefillModal() {
   if (selectedExtNos.size === 0) { showToast('Select at least one extinguisher', 'error'); return; }
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('bulk-reqdate').value = today;
-  document.getElementById('bulk-reqby').value = '';
   document.getElementById('bulk-remarks').value = '';
   document.getElementById('bulk-pass-count').textContent = selectedExtNos.size;
+  populateAgencyDropdowns();
   renderBulkExtList();
   openModal('modal-bulk-refill');
 }
@@ -3654,7 +4015,7 @@ async function submitBulkRefill() {
   const reqDate = document.getElementById('bulk-reqdate').value;
   const reqBy   = document.getElementById('bulk-reqby').value.trim();
   const remarks = document.getElementById('bulk-remarks').value.trim();
-  if (!reqBy) { showToast('Please enter Requested By name', 'error'); return; }
+  if (!reqBy) { showToast('Please select an agency to send to', 'error'); return; }
 
   const btn = document.getElementById('bulk-submit-btn');
   btn.disabled = true;
@@ -3744,7 +4105,7 @@ async function submitBulkRefill() {
 
   btn.disabled = false;
   btn.innerHTML = `🔥 Generate <span id="bulk-pass-count">0</span> Pass(es)`;
-  showToast(`Pass ${passNo} generated for ${extNosArray.length} extinguishers!`, 'success');
+  showToast(`Pass ${passNo} generated — sending to ${reqBy}`, 'success');
 }
 
 // ── Group extDetails by Type+Weight for pass table ──────────
@@ -3769,7 +4130,7 @@ function showCombinedPassPreview(pass, extDetails) {
   document.getElementById('cp-org').textContent = CONFIG.orgName;
   document.getElementById('cp-passno').textContent = pass.PassNo;
   document.getElementById('cp-reqdate').textContent = fmtDate(pass.GeneratedOn);
-  document.getElementById('cp-reqby').textContent = pass.GeneratedBy;
+  document.getElementById('cp-reqby').textContent = pass.GeneratedBy || pass.RequestBy || '—';
   document.getElementById('cp-count').textContent = extDetails.length;
   document.getElementById('cp-remarks').textContent = pass.Remarks || '—';
 
@@ -3927,7 +4288,7 @@ function printCombinedPass() {
     <div class="to-name">${addressee}</div>
   </div>
 
-  <div class="pass-footer">Pass No: ${passNo} &nbsp;|&nbsp; Requested by: ${reqBy}</div>
+  <div class="pass-footer">Pass No: ${passNo} &nbsp;|&nbsp; Agency: ${reqBy}</div>
 
   </body></html>`);
   w.document.close();
