@@ -3206,83 +3206,187 @@ async function downloadPassAsDocx() {
 }
 
 async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows }) {
-  // Generates a placeholder-only .docx with just:
-  //   {{REQUEST_DATE}}, {{VENDOR_NAME}}, {{EXT_TABLE}}
-  // User pastes these into their own Word template.
+  // Generates a complete NOTE document matching the organisation's pass template:
+  // Letterhead (logo + org name + factory + location) → NOTE title → date →
+  // Subject line → body text → extinguisher table → signatory → addressee → pass no.
 
-  const x = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const vendorName = CONFIG.vendorName || 'AMC Vendor';
+  const x = s => String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-  const run = (text, opts={}) => {
-    const { bold=false, sz=20, color='000000', font='Arial', underline=false, italic=false } = opts;
-    return '<w:r><w:rPr>' +
-      (bold ? '<w:b/><w:bCs/>' : '') +
-      (italic ? '<w:i/><w:iCs/>' : '') +
-      (underline ? '<w:u w:val="single"/>' : '') +
+  // Config
+  const orgSubtitle = CONFIG.orgSubtitle   || '';
+  const factoryName = CONFIG.factoryName   || '';
+  const factoryLoc  = CONFIG.factoryLocation || '';
+  const vendorName  = CONFIG.vendorName    || 'the AMC agency';
+  const sigName     = CONFIG.signatoryName || '';
+  const sigDesig    = CONFIG.signatoryDesig|| '';
+  const addressee   = CONFIG.addressee     || 'Security Inspector';
+  const logoBase64  = CONFIG.orgLogo       || '';
+  let   logoExt = 'png', logoType = 'image/png';
+  if (logoBase64) {
+    const m = logoBase64.match(/^data:(image\/[^;]+);base64,(.+)$/);
+    if (m) { logoType = m[1]; logoExt = m[1].includes('jpeg')?'jpg':'png'; }
+  }
+
+  // ── Namespaces ────────────────────────────────────────────────
+  const NS = [
+    'xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"',
+    'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"',
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"',
+    'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"',
+    'xmlns:v="urn:schemas-microsoft-com:vml"',
+    'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"',
+    'xmlns:w10="urn:schemas-microsoft-com:office:word"',
+    'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"',
+    'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"',
+    'xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"',
+    'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"',
+    'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"',
+    'mc:Ignorable="w14 w15"'
+  ].join(' ');
+
+  // ── Helpers ────────────────────────────────────────────────────
+  const rpr = (opts={}) => {
+    const { bold=false, sz=22, color='000000', font='Times New Roman',
+            underline=false, italic=false } = opts;
+    return '<w:rPr>' +
+      (bold     ? '<w:b/><w:bCs/>'                         : '') +
+      (italic   ? '<w:i/><w:iCs/>'                         : '') +
+      (underline? '<w:u w:val="single"/>'                   : '') +
       '<w:color w:val="' + color + '"/>' +
       '<w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/>' +
-      '<w:rFonts w:ascii="' + font + '" w:hAnsi="' + font + '" w:cs="' + font + '"/>' +
-      '</w:rPr><w:t xml:space="preserve">' + x(text) + '</w:t></w:r>';
+      '<w:rFonts w:ascii="' + font + '" w:hAnsi="' + font +
+        '" w:cs="' + font + '" w:eastAsia="' + font + '"/>' +
+      '</w:rPr>';
   };
 
-  const para = (runs, opts={}) => {
-    const { align='left', spaceBefore=0, spaceAfter=160 } = opts;
+  const run = (text, opts={}) =>
+    '<w:r>' + rpr(opts) + '<w:t xml:space="preserve">' + x(text) + '</w:t></w:r>';
+
+  const para = (content, opts={}) => {
+    const { align='left', before=0, after=120, lineRule='', line='' } = opts;
+    const lineXml = lineRule ? '<w:line w:val="' + line + '" w:lineRule="' + lineRule + '"/>' : '';
     return '<w:p><w:pPr>' +
       '<w:jc w:val="' + align + '"/>' +
-      '<w:spacing w:before="' + spaceBefore + '" w:after="' + spaceAfter + '"/>' +
-      '</w:pPr>' + runs + '</w:p>';
+      '<w:spacing w:before="' + before + '" w:after="' + after + '"' +
+        (lineRule ? ' w:line="' + line + '" w:lineRule="' + lineRule + '"' : '') + '/>' +
+      '</w:pPr>' + content + '</w:p>';
   };
 
-  const spacer = (after=200) => '<w:p><w:pPr><w:spacing w:before="0" w:after="' + after + '"/></w:pPr></w:p>';
+  const sp = (after=120) =>
+    '<w:p><w:pPr><w:spacing w:before="0" w:after="' + after + '"/></w:pPr></w:p>';
 
-  const border = '<w:tcBorders>' +
+  // ── Logo paragraph ─────────────────────────────────────────────
+  let logoPara = '';
+  if (logoBase64) {
+    const b64 = logoBase64.replace(/^data:[^;]+;base64,/, '');
+    logoPara = '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="60"/></w:pPr>' +
+      '<w:r><w:rPr><w:noProof/></w:rPr><w:drawing>' +
+        '<wp:inline distT="0" distB="0" distL="0" distR="0">' +
+          '<wp:extent cx="1440000" cy="720000"/>' +
+          '<wp:docPr id="1" name="OrgLogo"/>' +
+          '<a:graphic>' +
+            '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+              '<pic:pic>' +
+                '<pic:nvPicPr>' +
+                  '<pic:cNvPr id="1" name="logo.' + logoExt + '"/>' +
+                  '<pic:cNvPicPr/>' +
+                '</pic:nvPicPr>' +
+                '<pic:blipFill>' +
+                  '<a:blip r:embed="rIdLogo"/>' +
+                  '<a:stretch><a:fillRect/></a:stretch>' +
+                '</pic:blipFill>' +
+                '<pic:spPr>' +
+                  '<a:xfrm><a:off x="0" y="0"/><a:ext cx="1440000" cy="720000"/></a:xfrm>' +
+                  '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>' +
+                '</pic:spPr>' +
+              '</pic:pic>' +
+            '</a:graphicData>' +
+          '</a:graphic>' +
+        '</wp:inline>' +
+      '</w:drawing></w:r></w:p>';
+  }
+
+  // ── Letterhead ──────────────────────────────────────────────────
+  const letterhead =
+    logoPara +
+    para(run(org,        { bold:true,  sz:28, font:'Arial'          }), { align:'center', after:40  }) +
+    (orgSubtitle ? para(run(orgSubtitle, { sz:18, font:'Arial', color:'444444' }), { align:'center', after:40  }) : '') +
+    (factoryName ? para(run(factoryName, { bold:true, sz:22, font:'Arial' }),       { align:'center', after:40  }) : '') +
+    (factoryLoc  ? para(run(factoryLoc,  { bold:true, sz:22, underline:true, font:'Arial' }), { align:'center', after:240 }) : '');
+
+  // ── NOTE title ─────────────────────────────────────────────────
+  const noteTitle = para(
+    run('NOTE', { bold:true, sz:26, underline:true, font:'Times New Roman' }),
+    { align:'center', after:240 }
+  );
+
+  // ── Date (right-aligned) ────────────────────────────────────────
+  const dateLine = para(
+    run(reqDate, { sz:22, font:'Times New Roman' }),
+    { align:'right', after:240 }
+  );
+
+  // ── Subject line ────────────────────────────────────────────────
+  const subject = para(
+    run('Sub : Request for sending Fire Extinguishers for refilling Regd;',
+        { bold:true, sz:22, font:'Times New Roman' }),
+    { after:120 }
+  );
+
+  // ── Body paragraph ──────────────────────────────────────────────
+  const bodyText = para(
+    run('The following Fire Extinguishers are sent for refilling to the AMC agency ' +
+        vendorName + '. Kindly note that these items are being issued on a returnable basis',
+        { sz:22, font:'Times New Roman' }),
+    { after:200, align:'both' }
+  );
+
+  // ── Table helpers ───────────────────────────────────────────────
+  const bdr = '<w:tcBorders>' +
     '<w:top w:val="single" w:sz="4" w:color="000000"/>' +
     '<w:left w:val="single" w:sz="4" w:color="000000"/>' +
     '<w:bottom w:val="single" w:sz="4" w:color="000000"/>' +
     '<w:right w:val="single" w:sz="4" w:color="000000"/>' +
     '</w:tcBorders>';
 
-  const tcell = (text, width, opts={}) => {
-    const { bold=false, align='left', shade='' } = opts;
+  const tc = (text, w, opts={}) => {
+    const { bold=false, align='left', shade='', sz=22, font='Times New Roman' } = opts;
     return '<w:tc>' +
-      '<w:tcPr>' +
-        '<w:tcW w:w="' + width + '" w:type="dxa"/>' + border +
+      '<w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + bdr +
         (shade ? '<w:shd w:val="clear" w:color="auto" w:fill="' + shade + '"/>' : '') +
       '</w:tcPr>' +
-      '<w:p><w:pPr><w:jc w:val="' + align + '"/><w:spacing w:before="80" w:after="80"/></w:pPr>' +
-      run(text, { bold, sz:20, font:'Arial' }) +
+      '<w:p><w:pPr><w:jc w:val="' + align + '"/><w:spacing w:before="60" w:after="60"/></w:pPr>' +
+        '<w:r>' + rpr({ bold, sz, font }) + '<w:t xml:space="preserve">' + x(text) + '</w:t></w:r>' +
       '</w:p></w:tc>';
   };
 
-  const hdRow = '<w:tr>' +
-    tcell('Sl No', 700, { bold:true, align:'center', shade:'D9D9D9' }) +
-    tcell('Item', 4326, { bold:true, align:'center', shade:'D9D9D9' }) +
-    tcell('Cylinder no', 4000, { bold:true, align:'center', shade:'D9D9D9' }) +
+  // Header row — col widths: Sl No 700 + Item 4826 + Cylinder no 3500 = 9026
+  const hdr = '<w:tr>' +
+    tc('Sl No',       700,  { bold:true, align:'center', shade:'D9D9D9' }) +
+    tc('Item',        4826, { bold:true, align:'center', shade:'D9D9D9' }) +
+    tc('Cylinder no', 3500, { bold:true, align:'center', shade:'D9D9D9' }) +
     '</w:tr>';
 
-  const dataRows = rows.map(r =>
+  const dRows = rows.map(r =>
     '<w:tr>' +
-    tcell(String(r.sl), 700, { align:'center' }) +
-    tcell(r.item, 4326, { align:'center' }) +
-    tcell(r.cylinders, 4000, { align:'left' }) +
+    tc(String(r.sl),  700,  { align:'center' }) +
+    tc(r.item,        4826, { align:'center' }) +
+    tc(r.cylinders,   3500, { align:'left'   }) +
     '</w:tr>'
   ).join('');
 
+  // Total row — merged, right-aligned
   const totalRow = '<w:tr><w:tc>' +
-    '<w:tcPr>' +
-      '<w:tcW w:w="9026" w:type="dxa"/>' +
-      '<w:gridSpan w:val="3"/>' + border +
-      '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/>' +
-    '</w:tcPr>' +
-    '<w:p><w:pPr>' +
-      '<w:jc w:val="right"/>' +
-      '<w:spacing w:before="80" w:after="80"/>' +
-      '<w:ind w:right="200"/>' +
-    '</w:pPr>' +
-    run('Total    ' + count + ' Nos.', { bold:true, sz:20, font:'Arial' }) +
+    '<w:tcPr><w:tcW w:w="9026" w:type="dxa"/><w:gridSpan w:val="3"/>' + bdr +
+      '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr>' +
+    '<w:p><w:pPr><w:jc w:val="right"/>' +
+      '<w:spacing w:before="60" w:after="60"/><w:ind w:right="180"/></w:pPr>' +
+      '<w:r>' + rpr({ bold:true, sz:22 }) + '<w:t>Total    ' + count + ' Nos.</w:t></w:r>' +
     '</w:p></w:tc></w:tr>';
 
-  const extTable =
+  const table =
     '<w:tbl>' +
     '<w:tblPr><w:tblW w:w="9026" w:type="dxa"/>' +
     '<w:tblBorders>' +
@@ -3294,67 +3398,99 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
       '<w:insideV w:val="single" w:sz="4" w:color="000000"/>' +
     '</w:tblBorders></w:tblPr>' +
     '<w:tblGrid>' +
-      '<w:gridCol w:w="700"/>' +
-      '<w:gridCol w:w="4326"/>' +
-      '<w:gridCol w:w="4000"/>' +
+      '<w:gridCol w:w="700"/><w:gridCol w:w="4826"/><w:gridCol w:w="3500"/>' +
     '</w:tblGrid>' +
-    hdRow + dataRows + totalRow +
-    '</w:tbl>';
+    hdr + dRows + totalRow + '</w:tbl>';
 
-  const NS = 'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" ' +
-    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
-    'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
-    'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" ' +
-    'mc:Ignorable="w14"';
+  // ── Signatory (right-aligned) ────────────────────────────────────
+  const signatory =
+    sp(400) +
+    (sigName  ? para(run(sigName,  { bold:true, sz:22, font:'Times New Roman' }), { align:'right', after:40  }) : '') +
+    (sigDesig ? para(run(sigDesig, { bold:true, sz:22, font:'Times New Roman' }), { align:'right', after:400 }) : '');
 
-  const sep = para(run('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500', { sz:16, color:'CCCCCC' }), { spaceAfter:80 });
-  const lbl = (name) => para(run(name, { bold:true, sz:18, color:'1155CC', italic:false }), { spaceAfter:40 });
+  // ── Addressee block ─────────────────────────────────────────────
+  const addrBlock =
+    para(run('To,',      { sz:22, font:'Times New Roman' }), { after:40 }) +
+    sp(40) +
+    para(run('',         { sz:22 }),                          { after:40 }) +
+    para(run(addressee,  { bold:true, sz:22, font:'Times New Roman' }), { after:200 });
 
-  const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<w:document ' + NS + '><w:body>' +
+  // ── Pass number footnote ────────────────────────────────────────
+  const footer = para(
+    run('Pass No: ' + passNo, { sz:16, color:'666666', font:'Arial' }),
+    { after:0 }
+  );
+
+  // ── Section properties (A4 portrait) ───────────────────────────
+  const sectPr =
     '<w:sectPr>' +
       '<w:pgSz w:w="11906" w:h="16838"/>' +
-      '<w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="708" w:footer="708" w:gutter="0"/>' +
-    '</w:sectPr>' +
+      '<w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" ' +
+               'w:header="708" w:footer="708" w:gutter="0"/>' +
+    '</w:sectPr>';
 
-    para(run('Copy these placeholders into your Word template', { bold:true, sz:18, color:'888888', italic:true }), { spaceAfter:80 }) +
-    sep +
-
-    lbl('{{REQUEST_DATE}}') +
-    para(run(reqDate, { sz:24, bold:true }), { spaceAfter:160 }) +
-    sep +
-
-    lbl('{{VENDOR_NAME}}') +
-    para(run(vendorName, { sz:24, bold:true }), { spaceAfter:160 }) +
-    sep +
-
-    lbl('{{EXT_TABLE}}') +
-    extTable +
-
-    spacer(120) +
-    para(run('Pass No: ' + passNo + '   |   Agency: ' + reqBy + '   |   Total: ' + count + ' Nos.', { sz:16, color:'888888', italic:true }), { spaceAfter:0 }) +
-
+  // ── Assemble document.xml ───────────────────────────────────────
+  const docXml =
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<w:document ' + NS + '><w:body>' +
+    sectPr +
+    letterhead +
+    noteTitle +
+    dateLine +
+    subject +
+    bodyText +
+    table +
+    signatory +
+    addrBlock +
+    footer +
     '</w:body></w:document>';
 
+  // ── Build ZIP ────────────────────────────────────────────────────
   const zip = new JSZip();
+
+  const logoOverride = logoBase64
+    ? '<Override PartName="/word/media/logo.' + logoExt + '" ContentType="' + logoType + '"/>'
+    : '';
   zip.file('[Content_Types].xml',
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
       '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Default Extension="xml"  ContentType="application/xml"/>' +
+      '<Default Extension="' + logoExt + '" ContentType="' + logoType + '"/>' +
       '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+      logoOverride +
     '</Types>');
+
   zip.file('_rels/.rels',
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+      '<Relationship Id="rId1" ' +
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" ' +
+        'Target="word/document.xml"/>' +
     '</Relationships>');
-  zip.file('word/document.xml', documentXml);
+
+  zip.file('word/document.xml', docXml);
+
+  const logoRel = logoBase64
+    ? '<Relationship Id="rIdLogo" ' +
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" ' +
+        'Target="media/logo.' + logoExt + '"/>'
+    : '';
   zip.file('word/_rels/document.xml.rels',
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>');
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      logoRel +
+    '</Relationships>');
 
-  return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  if (logoBase64) {
+    const b64only = logoBase64.replace(/^data:[^;]+;base64,/, '');
+    zip.file('word/media/logo.' + logoExt, b64only, { base64: true });
+  }
+
+  return await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
 }
 
 
