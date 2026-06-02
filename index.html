@@ -3167,7 +3167,8 @@ function renderPasses() {
 // Open pass modal then download as Word
 function viewAndDownload(passNo) {
   viewPass(passNo);
-  setTimeout(() => downloadPassAsDocx(), 200);
+  // Wait for modal + table to render fully before reading DOM
+  setTimeout(() => downloadPassAsDocx(), 350);
 }
 
 // ═══════════════════════════════════════════════
@@ -3181,83 +3182,77 @@ async function downloadPassAsDocx() {
   const count   = document.getElementById('cp-count').textContent.trim();
   const remarks = document.getElementById('cp-remarks').textContent.trim();
 
-  // Read grouped rows from table: [sl, item, cylinders]
-  // Skip the last "Total" row — we add it ourselves in buildDocxBlob
-  const allRows = [...document.querySelectorAll('#cp-ext-body tr')];
-  const dataRows = allRows.slice(0, -1); // exclude total row
+  // Read grouped rows — skip the last "Total" row (added by buildDocxBlob itself)
+  const allRows  = [...document.querySelectorAll('#cp-ext-body tr')];
+  const dataRows = allRows.slice(0, allRows.length - 1);
   const rows = dataRows.map(tr => {
     const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
     return { sl: cells[0] || '', item: cells[1] || '', cylinders: cells[2] || '' };
-  });
+  }).filter(r => r.sl && r.item); // skip empty rows
+
+  if (!rows.length) {
+    showToast('No extinguisher data to generate pass', 'error');
+    return;
+  }
 
   const btn = document.getElementById('btn-download-docx');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating...'; }
 
   try {
     const blob = await buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows });
-    saveAs(blob, `Refill-Pass-${passNo}.docx`);
-    showToast(`${passNo}.docx downloaded!`, 'success');
-  } catch (e) {
-    showToast('Word generation failed: ' + e.message, 'error');
-    console.error(e);
+    saveAs(blob, 'Refill-Pass-' + passNo + '.docx');
+    showToast(passNo + '.docx downloaded!', 'success');
+  } catch (err) {
+    showToast('Word generation failed: ' + err.message, 'error');
+    console.error('[buildDocxBlob]', err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Download Word'; }
   }
-
-  if (btn) { btn.disabled = false; btn.textContent = '⬇ Download Word'; }
 }
 
 async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows }) {
-  // Generates a complete NOTE document matching the organisation's pass template:
-  // Letterhead (logo + org name + factory + location) → NOTE title → date →
-  // Subject line → body text → extinguisher table → signatory → addressee → pass no.
-
   const x = s => String(s||'')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-  // Config
-  const orgSubtitle = CONFIG.orgSubtitle   || '';
-  const factoryName = CONFIG.factoryName   || '';
-  const factoryLoc  = CONFIG.factoryLocation || '';
-  const vendorName  = CONFIG.vendorName    || 'the AMC agency';
-  const sigName     = CONFIG.signatoryName || '';
-  const sigDesig    = CONFIG.signatoryDesig|| '';
-  const addressee   = CONFIG.addressee     || 'Security Inspector';
-  const logoBase64  = CONFIG.orgLogo       || '';
+  const orgSubtitle = CONFIG.orgSubtitle    || '';
+  const factoryName = CONFIG.factoryName    || '';
+  const factoryLoc  = CONFIG.factoryLocation|| '';
+  const vendorName  = CONFIG.vendorName     || 'the AMC agency';
+  const sigName     = CONFIG.signatoryName  || '';
+  const sigDesig    = CONFIG.signatoryDesig || '';
+  const addressee   = CONFIG.addressee      || 'Security Inspector';
+  const logoBase64  = CONFIG.orgLogo        || '';
   let   logoExt = 'png', logoType = 'image/png';
   if (logoBase64) {
-    const m = logoBase64.match(/^data:(image\/[^;]+);base64,(.+)$/);
+    const m = logoBase64.match(/^data:(image\/[^;]+);base64,/);
     if (m) { logoType = m[1]; logoExt = m[1].includes('jpeg')?'jpg':'png'; }
   }
 
-  // ── Namespaces ────────────────────────────────────────────────
+  // ── Namespaces ─────────────────────────────────────────────────
   const NS = [
-    'xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"',
     'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"',
     'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"',
-    'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"',
-    'xmlns:v="urn:schemas-microsoft-com:vml"',
     'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"',
-    'xmlns:w10="urn:schemas-microsoft-com:office:word"',
     'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"',
     'xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"',
-    'xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"',
     'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"',
     'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"',
-    'mc:Ignorable="w14 w15"'
+    'mc:Ignorable="w14"'
   ].join(' ');
 
-  // ── Helpers ────────────────────────────────────────────────────
+  // ── Font: all Arial throughout ─────────────────────────────────
+  const F = 'Arial';
+
   const rpr = (opts={}) => {
-    const { bold=false, sz=22, color='000000', font='Times New Roman',
-            underline=false, italic=false } = opts;
+    const { bold=false, sz=22, color='000000', underline=false, italic=false } = opts;
     return '<w:rPr>' +
-      (bold     ? '<w:b/><w:bCs/>'                         : '') +
-      (italic   ? '<w:i/><w:iCs/>'                         : '') +
-      (underline? '<w:u w:val="single"/>'                   : '') +
+      (bold      ? '<w:b/><w:bCs/>'              : '') +
+      (italic    ? '<w:i/><w:iCs/>'              : '') +
+      (underline ? '<w:u w:val="single"/>'       : '') +
       '<w:color w:val="' + color + '"/>' +
       '<w:sz w:val="' + sz + '"/><w:szCs w:val="' + sz + '"/>' +
-      '<w:rFonts w:ascii="' + font + '" w:hAnsi="' + font +
-        '" w:cs="' + font + '" w:eastAsia="' + font + '"/>' +
+      '<w:rFonts w:ascii="' + F + '" w:hAnsi="' + F + '" w:cs="' + F + '"/>' +
       '</w:rPr>';
   };
 
@@ -3265,12 +3260,10 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
     '<w:r>' + rpr(opts) + '<w:t xml:space="preserve">' + x(text) + '</w:t></w:r>';
 
   const para = (content, opts={}) => {
-    const { align='left', before=0, after=120, lineRule='', line='' } = opts;
-    const lineXml = lineRule ? '<w:line w:val="' + line + '" w:lineRule="' + lineRule + '"/>' : '';
+    const { align='left', before=0, after=120 } = opts;
     return '<w:p><w:pPr>' +
       '<w:jc w:val="' + align + '"/>' +
-      '<w:spacing w:before="' + before + '" w:after="' + after + '"' +
-        (lineRule ? ' w:line="' + line + '" w:lineRule="' + lineRule + '"' : '') + '/>' +
+      '<w:spacing w:before="' + before + '" w:after="' + after + '"/>' +
       '</w:pPr>' + content + '</w:p>';
   };
 
@@ -3280,11 +3273,11 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
   // ── Logo paragraph ─────────────────────────────────────────────
   let logoPara = '';
   if (logoBase64) {
-    const b64 = logoBase64.replace(/^data:[^;]+;base64,/, '');
-    logoPara = '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="60"/></w:pPr>' +
+    logoPara = '<w:p><w:pPr><w:jc w:val="center"/>' +
+      '<w:spacing w:before="0" w:after="60"/></w:pPr>' +
       '<w:r><w:rPr><w:noProof/></w:rPr><w:drawing>' +
         '<wp:inline distT="0" distB="0" distL="0" distR="0">' +
-          '<wp:extent cx="1440000" cy="720000"/>' +
+          '<wp:extent cx="2520000" cy="1260000"/>' +
           '<wp:docPr id="1" name="OrgLogo"/>' +
           '<a:graphic>' +
             '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
@@ -3298,7 +3291,7 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
                   '<a:stretch><a:fillRect/></a:stretch>' +
                 '</pic:blipFill>' +
                 '<pic:spPr>' +
-                  '<a:xfrm><a:off x="0" y="0"/><a:ext cx="1440000" cy="720000"/></a:xfrm>' +
+                  '<a:xfrm><a:off x="0" y="0"/><a:ext cx="2520000" cy="1260000"/></a:xfrm>' +
                   '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>' +
                 '</pic:spPr>' +
               '</pic:pic>' +
@@ -3308,118 +3301,122 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
       '</w:drawing></w:r></w:p>';
   }
 
-  // ── Letterhead ──────────────────────────────────────────────────
+  // ── Letterhead (logo + subtitle + factory + location, NO org name) ──
   const letterhead =
     logoPara +
-    para(run(org,        { bold:true,  sz:28, font:'Arial'          }), { align:'center', after:40  }) +
-    (orgSubtitle ? para(run(orgSubtitle, { sz:18, font:'Arial', color:'444444' }), { align:'center', after:40  }) : '') +
-    (factoryName ? para(run(factoryName, { bold:true, sz:22, font:'Arial' }),       { align:'center', after:40  }) : '') +
-    (factoryLoc  ? para(run(factoryLoc,  { bold:true, sz:22, underline:true, font:'Arial' }), { align:'center', after:240 }) : '');
+    (orgSubtitle ? para(run(orgSubtitle, { sz:18, color:'444444' }), { align:'center', after:40  }) : '') +
+    (factoryName ? para(run(factoryName, { bold:true, sz:22 }),       { align:'center', after:40  }) : '') +
+    (factoryLoc  ? para(run(factoryLoc,  { bold:true, sz:22, underline:true }), { align:'center', after:240 }) : '');
 
-  // ── NOTE title ─────────────────────────────────────────────────
+  // ── NOTE title ──────────────────────────────────────────────────
   const noteTitle = para(
-    run('NOTE', { bold:true, sz:26, underline:true, font:'Times New Roman' }),
+    run('NOTE', { bold:true, sz:26, underline:true }),
     { align:'center', after:240 }
   );
 
-  // ── Date (right-aligned) ────────────────────────────────────────
+  // ── Date right-aligned ──────────────────────────────────────────
   const dateLine = para(
-    run(reqDate, { sz:22, font:'Times New Roman' }),
+    run(reqDate, { sz:22 }),
     { align:'right', after:240 }
   );
 
-  // ── Subject line ────────────────────────────────────────────────
+  // ── Subject ─────────────────────────────────────────────────────
   const subject = para(
     run('Sub : Request for sending Fire Extinguishers for refilling Regd;',
-        { bold:true, sz:22, font:'Times New Roman' }),
+        { bold:true, sz:22 }),
     { after:120 }
   );
 
-  // ── Body paragraph ──────────────────────────────────────────────
+  // ── Body ────────────────────────────────────────────────────────
   const bodyText = para(
     run('The following Fire Extinguishers are sent for refilling to the AMC agency ' +
         vendorName + '. Kindly note that these items are being issued on a returnable basis',
-        { sz:22, font:'Times New Roman' }),
+        { sz:22 }),
     { after:200, align:'both' }
   );
 
-  // ── Table helpers ───────────────────────────────────────────────
+  // ── Table: auto-width, centred ─────────────────────────────────
+  // Use "auto" table width so Word sizes columns to fit content
   const bdr = '<w:tcBorders>' +
-    '<w:top w:val="single" w:sz="4" w:color="000000"/>' +
-    '<w:left w:val="single" w:sz="4" w:color="000000"/>' +
+    '<w:top    w:val="single" w:sz="4" w:color="000000"/>' +
+    '<w:left   w:val="single" w:sz="4" w:color="000000"/>' +
     '<w:bottom w:val="single" w:sz="4" w:color="000000"/>' +
-    '<w:right w:val="single" w:sz="4" w:color="000000"/>' +
+    '<w:right  w:val="single" w:sz="4" w:color="000000"/>' +
     '</w:tcBorders>';
 
-  const tc = (text, w, opts={}) => {
-    const { bold=false, align='left', shade='', sz=22, font='Times New Roman' } = opts;
+  // Cell: width 0 + type "auto" lets Word fit to content
+  const tc = (text, opts={}) => {
+    const { bold=false, align='center', shade='', sz=22 } = opts;
     return '<w:tc>' +
-      '<w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/>' + bdr +
+      '<w:tcPr><w:tcW w:w="0" w:type="auto"/>' + bdr +
         (shade ? '<w:shd w:val="clear" w:color="auto" w:fill="' + shade + '"/>' : '') +
       '</w:tcPr>' +
-      '<w:p><w:pPr><w:jc w:val="' + align + '"/><w:spacing w:before="60" w:after="60"/></w:pPr>' +
-        '<w:r>' + rpr({ bold, sz, font }) + '<w:t xml:space="preserve">' + x(text) + '</w:t></w:r>' +
+      '<w:p><w:pPr><w:jc w:val="' + align + '"/>' +
+        '<w:spacing w:before="60" w:after="60"/></w:pPr>' +
+        '<w:r>' + rpr({ bold, sz }) +
+          '<w:t xml:space="preserve">' + x(text) + '</w:t>' +
+        '</w:r>' +
       '</w:p></w:tc>';
   };
 
-  // Header row — col widths: Sl No 700 + Item 4826 + Cylinder no 3500 = 9026
   const hdr = '<w:tr>' +
-    tc('Sl No',       700,  { bold:true, align:'center', shade:'D9D9D9' }) +
-    tc('Item',        4826, { bold:true, align:'center', shade:'D9D9D9' }) +
-    tc('Cylinder no', 3500, { bold:true, align:'center', shade:'D9D9D9' }) +
+    tc('Sl No',       { bold:true, align:'center', shade:'D9D9D9' }) +
+    tc('Item',        { bold:true, align:'center', shade:'D9D9D9' }) +
+    tc('Cylinder no', { bold:true, align:'center', shade:'D9D9D9' }) +
     '</w:tr>';
 
   const dRows = rows.map(r =>
     '<w:tr>' +
-    tc(String(r.sl),  700,  { align:'center' }) +
-    tc(r.item,        4826, { align:'center' }) +
-    tc(r.cylinders,   3500, { align:'left'   }) +
+    tc(String(r.sl),  { align:'center' }) +
+    tc(r.item,        { align:'center' }) +
+    tc(r.cylinders,   { align:'left'   }) +
     '</w:tr>'
   ).join('');
 
   // Total row — merged, right-aligned
   const totalRow = '<w:tr><w:tc>' +
-    '<w:tcPr><w:tcW w:w="9026" w:type="dxa"/><w:gridSpan w:val="3"/>' + bdr +
+    '<w:tcPr><w:tcW w:w="0" w:type="auto"/><w:gridSpan w:val="3"/>' + bdr +
       '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr>' +
     '<w:p><w:pPr><w:jc w:val="right"/>' +
-      '<w:spacing w:before="60" w:after="60"/><w:ind w:right="180"/></w:pPr>' +
+      '<w:spacing w:before="60" w:after="60"/><w:ind w:right="120"/></w:pPr>' +
       '<w:r>' + rpr({ bold:true, sz:22 }) + '<w:t>Total    ' + count + ' Nos.</w:t></w:r>' +
     '</w:p></w:tc></w:tr>';
 
+  // Table: auto-fit width, centred on page
   const table =
     '<w:tbl>' +
-    '<w:tblPr><w:tblW w:w="9026" w:type="dxa"/>' +
-    '<w:tblBorders>' +
-      '<w:top w:val="single" w:sz="4" w:color="000000"/>' +
-      '<w:left w:val="single" w:sz="4" w:color="000000"/>' +
-      '<w:bottom w:val="single" w:sz="4" w:color="000000"/>' +
-      '<w:right w:val="single" w:sz="4" w:color="000000"/>' +
-      '<w:insideH w:val="single" w:sz="4" w:color="000000"/>' +
-      '<w:insideV w:val="single" w:sz="4" w:color="000000"/>' +
-    '</w:tblBorders></w:tblPr>' +
-    '<w:tblGrid>' +
-      '<w:gridCol w:w="700"/><w:gridCol w:w="4826"/><w:gridCol w:w="3500"/>' +
-    '</w:tblGrid>' +
+    '<w:tblPr>' +
+      '<w:tblW w:w="0" w:type="auto"/>' +
+      '<w:jc w:val="center"/>' +
+      '<w:tblLayout w:type="autofit"/>' +
+      '<w:tblBorders>' +
+        '<w:top    w:val="single" w:sz="4" w:color="000000"/>' +
+        '<w:left   w:val="single" w:sz="4" w:color="000000"/>' +
+        '<w:bottom w:val="single" w:sz="4" w:color="000000"/>' +
+        '<w:right  w:val="single" w:sz="4" w:color="000000"/>' +
+        '<w:insideH w:val="single" w:sz="4" w:color="000000"/>' +
+        '<w:insideV w:val="single" w:sz="4" w:color="000000"/>' +
+      '</w:tblBorders>' +
+      '<w:tblCellMar>' +
+        '<w:top    w:w="80" w:type="dxa"/>' +
+        '<w:left   w:w="120" w:type="dxa"/>' +
+        '<w:bottom w:w="80" w:type="dxa"/>' +
+        '<w:right  w:w="120" w:type="dxa"/>' +
+      '</w:tblCellMar>' +
+    '</w:tblPr>' +
     hdr + dRows + totalRow + '</w:tbl>';
 
-  // ── Signatory (right-aligned) ────────────────────────────────────
+  // ── Signatory right-aligned ─────────────────────────────────────
   const signatory =
     sp(400) +
-    (sigName  ? para(run(sigName,  { bold:true, sz:22, font:'Times New Roman' }), { align:'right', after:40  }) : '') +
-    (sigDesig ? para(run(sigDesig, { bold:true, sz:22, font:'Times New Roman' }), { align:'right', after:400 }) : '');
+    (sigName  ? para(run(sigName,  { bold:true, sz:22 }), { align:'right', after:40  }) : '') +
+    (sigDesig ? para(run(sigDesig, { bold:true, sz:22 }), { align:'right', after:400 }) : '');
 
   // ── Addressee block ─────────────────────────────────────────────
   const addrBlock =
-    para(run('To,',      { sz:22, font:'Times New Roman' }), { after:40 }) +
+    para(run('To,',     { sz:22 }), { after:40  }) +
     sp(40) +
-    para(run('',         { sz:22 }),                          { after:40 }) +
-    para(run(addressee,  { bold:true, sz:22, font:'Times New Roman' }), { after:200 });
-
-  // ── Pass number footnote ────────────────────────────────────────
-  const footer = para(
-    run('Pass No: ' + passNo, { sz:16, color:'666666', font:'Arial' }),
-    { after:0 }
-  );
+    para(run(addressee, { bold:true, sz:22 }), { after:0 });
 
   // ── Section properties (A4 portrait) ───────────────────────────
   const sectPr =
@@ -3429,7 +3426,7 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
                'w:header="708" w:footer="708" w:gutter="0"/>' +
     '</w:sectPr>';
 
-  // ── Assemble document.xml ───────────────────────────────────────
+  // ── Assemble ────────────────────────────────────────────────────
   const docXml =
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<w:document ' + NS + '><w:body>' +
@@ -3442,7 +3439,6 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
     table +
     signatory +
     addrBlock +
-    footer +
     '</w:body></w:document>';
 
   // ── Build ZIP ────────────────────────────────────────────────────
@@ -3456,25 +3452,26 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
     '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
       '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
       '<Default Extension="xml"  ContentType="application/xml"/>' +
-      '<Default Extension="' + logoExt + '" ContentType="' + logoType + '"/>' +
-      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+      (logoBase64 ? '<Default Extension="' + logoExt + '" ContentType="' + logoType + '"/>' : '') +
+      '<Override PartName="/word/document.xml"' +
+        ' ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
       logoOverride +
     '</Types>');
 
   zip.file('_rels/.rels',
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Id="rId1" ' +
-        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" ' +
-        'Target="word/document.xml"/>' +
+      '<Relationship Id="rId1"' +
+        ' Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"' +
+        ' Target="word/document.xml"/>' +
     '</Relationships>');
 
   zip.file('word/document.xml', docXml);
 
   const logoRel = logoBase64
-    ? '<Relationship Id="rIdLogo" ' +
-        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" ' +
-        'Target="media/logo.' + logoExt + '"/>'
+    ? '<Relationship Id="rIdLogo"' +
+        ' Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"' +
+        ' Target="media/logo.' + logoExt + '"/>'
     : '';
   zip.file('word/_rels/document.xml.rels',
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
@@ -3483,8 +3480,8 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
     '</Relationships>');
 
   if (logoBase64) {
-    const b64only = logoBase64.replace(/^data:[^;]+;base64,/, '');
-    zip.file('word/media/logo.' + logoExt, b64only, { base64: true });
+    zip.file('word/media/logo.' + logoExt,
+      logoBase64.replace(/^data:[^;]+;base64,/, ''), { base64: true });
   }
 
   return await zip.generateAsync({
@@ -4325,108 +4322,94 @@ function viewPass(passNo) {
 
 function printCombinedPass() {
   const passNo  = document.getElementById('cp-passno').textContent.trim();
-  const org     = document.getElementById('cp-org').textContent.trim();
   const reqDate = document.getElementById('cp-reqdate').textContent.trim();
   const reqBy   = document.getElementById('cp-reqby').textContent.trim();
-  const remarks = document.getElementById('cp-remarks').textContent.trim();
+  const count   = document.getElementById('cp-count').textContent.trim();
 
-  const orgSubtitle  = CONFIG.orgSubtitle  || '';
-  const factoryName  = CONFIG.factoryName  || '';
-  const factoryLoc   = CONFIG.factoryLocation || '';
-  const vendorName   = CONFIG.vendorName   || 'the AMC agency';
-  const sigName      = CONFIG.signatoryName|| '';
-  const sigDesig     = CONFIG.signatoryDesig|| '';
-  const addressee    = CONFIG.addressee    || 'Security Inspector';
+  const orgSubtitle = CONFIG.orgSubtitle    || '';
+  const factoryName = CONFIG.factoryName    || '';
+  const factoryLoc  = CONFIG.factoryLocation|| '';
+  const vendorName  = CONFIG.vendorName     || 'the AMC agency';
+  const sigName     = CONFIG.signatoryName  || '';
+  const sigDesig    = CONFIG.signatoryDesig || '';
+  const addressee   = CONFIG.addressee      || 'Security Inspector';
+  const logoSrc     = CONFIG.orgLogo        || '';
 
-  // Build grouped rows directly from the modal DOM (data rows only, skip total row)
-  const allTrs = [...document.querySelectorAll('#cp-ext-body tr')];
-  const dataOnlyTrs = allTrs.slice(0, -1); // exclude last (total) row
-  const tableRows = dataOnlyTrs.map(tr => {
+  // Data rows (exclude last Total row)
+  const allTrs  = [...document.querySelectorAll('#cp-ext-body tr')];
+  const dataRows = allTrs.slice(0, allTrs.length - 1).map(tr => {
     const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
-    return `<tr>
-      <td style="text-align:center; width:10%;">${cells[0]}</td>
-      <td style="text-align:left; width:40%;">${cells[1]}</td>
-      <td style="width:50%;">${cells[2]}</td>
-    </tr>`;
+    return '<tr>' +
+      '<td style="text-align:center;">' + (cells[0]||'') + '</td>' +
+      '<td style="text-align:center;">' + (cells[1]||'') + '</td>' +
+      '<td>' + (cells[2]||'') + '</td>' +
+      '</tr>';
   }).join('');
 
-  // Merged total row — single cell spanning all 3 columns
-  const totalRow = `<tr style="background:#E8E8E8; font-weight:bold;">
-    <td colspan="3" style="text-align:right; padding:7px 16px 7px 10px;">
-      Total &nbsp;&nbsp; ${count} Nos.
-    </td>
-  </tr>`;
+  const totalRow = '<tr style="background:#EEEEEE;font-weight:bold;">' +
+    '<td colspan="3" style="text-align:right;padding:5px 14px;">' +
+    'Total &nbsp;&nbsp; ' + count + ' Nos.</td></tr>';
+
+  const logoHtml = logoSrc
+    ? '<img src="' + logoSrc + '" alt="" style="max-height:65px;max-width:180px;object-fit:contain;display:block;margin:0 auto 6px;">'
+    : '';
+
+  const html = `<!DOCTYPE html>
+<html><head><title>Refill Pass ${passNo}</title>
+<style>
+  @page { size:A4; margin:22mm 20mm; }
+  * { box-sizing:border-box; }
+  body { font-family:Arial,sans-serif; font-size:11pt; color:#000; background:#fff; line-height:1.5; }
+  .letterhead { text-align:center; margin-bottom:6px; }
+  .org-sub  { font-size:9pt; color:#444; }
+  .factory  { font-size:11pt; font-weight:bold; margin-top:4px; }
+  .fac-loc  { font-size:11pt; font-weight:bold; text-decoration:underline; }
+  .note-title { text-align:center; font-size:14pt; font-weight:bold; text-decoration:underline; margin:20px 0 16px; letter-spacing:3px; }
+  .date-line  { text-align:right; margin-bottom:16px; }
+  .subject    { font-weight:bold; margin-bottom:8px; }
+  .body-para  { margin-bottom:18px; text-align:justify; }
+  .tbl-wrap   { display:flex; justify-content:center; margin-bottom:24px; }
+  table       { border-collapse:collapse; width:auto; min-width:55%; }
+  th { border:1px solid #000; padding:5px 14px; text-align:center; background:#d9d9d9; font-weight:bold; }
+  td { border:1px solid #000; padding:5px 14px; }
+  .signatory { text-align:right; margin-top:40px; font-weight:bold; }
+  .sig-desig { text-align:right; font-weight:bold; margin-top:2px; }
+  .to-block  { margin-top:40px; }
+  .to-name   { font-weight:bold; }
+  @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style></head><body>
+
+<div class="letterhead">
+  ${logoHtml}
+  ${orgSubtitle ? '<div class="org-sub">' + orgSubtitle + '</div>' : ''}
+  ${factoryName ? '<div class="factory">' + factoryName + '</div>' : ''}
+  ${factoryLoc  ? '<div class="fac-loc">' + factoryLoc  + '</div>' : ''}
+</div>
+
+<div class="note-title">NOTE</div>
+<div class="date-line">${reqDate}</div>
+<p class="subject">Sub : Request for sending Fire Extinguishers for refilling Regd;</p>
+<p class="body-para">The following Fire Extinguishers are sent for refilling to the AMC agency ${vendorName}. Kindly note that these items are being issued on a returnable basis</p>
+
+<div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Sl No</th><th>Item</th><th>Cylinder no</th></tr></thead>
+    <tbody>${dataRows}${totalRow}</tbody>
+  </table>
+</div>
+
+${sigName  ? '<div class="signatory">' + sigName  + '</div>' : ''}
+${sigDesig ? '<div class="sig-desig">' + sigDesig + '</div>' : ''}
+
+<div class="to-block">
+  <div>To,</div><br>
+  <div class="to-name">${addressee}</div>
+</div>
+
+</body></html>`;
 
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Refill Pass ${passNo}</title>
-  <style>
-    @page { margin: 20mm 18mm; }
-    body { font-family: 'Times New Roman', Times, serif; background: #fff; color: #000;
-           font-size: 12pt; line-height: 1.5; }
-    .letterhead { text-align: center; margin-bottom: 10px; }
-    .org-name { font-size: 16pt; font-weight: bold; }
-    .org-sub  { font-size: 9pt; color: #444; }
-    .factory  { font-size: 12pt; font-weight: bold; margin-top: 6px; }
-    .location { font-size: 12pt; font-weight: bold; text-decoration: underline; }
-    .note-title { text-align: center; font-size: 14pt; font-weight: bold;
-                  text-decoration: underline; margin: 20px 0 16px; letter-spacing: 2px; }
-    .date-line  { text-align: right; margin-bottom: 20px; font-size: 11pt; }
-    .subject    { font-weight: bold; margin-bottom: 10px; font-size: 11pt; }
-    .body-text  { margin-bottom: 16px; font-size: 11pt; text-align: justify; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; }
-    th { border: 1px solid #000; padding: 6px 10px; text-align: center;
-         background: #e8e8e8; font-weight: bold; }
-    td { border: 1px solid #000; padding: 6px 10px; }
-    .signatory  { text-align: right; margin-top: 30px; font-weight: bold; font-size: 11pt; }
-    .sig-desig  { text-align: right; font-weight: bold; font-size: 11pt; }
-    .to-block   { margin-top: 30px; font-size: 11pt; }
-    .to-name    { font-weight: bold; }
-    .pass-footer{ margin-top: 30px; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding-top: 4px; }
-    @media print { body { margin: 0; } }
-  </style></head><body>
-
-  <div class="letterhead">
-    ${CONFIG.orgLogo ? `<div style="margin-bottom:6px;"><img src="${CONFIG.orgLogo}" alt="Logo" style="max-height:60px; max-width:160px; object-fit:contain;"></div>` : ''}
-    <div class="org-name">${org}</div>
-    ${orgSubtitle ? `<div class="org-sub">${orgSubtitle}</div>` : ''}
-    ${factoryName ? `<div class="factory">${factoryName}</div>` : ''}
-    ${factoryLoc  ? `<div class="location">${factoryLoc}</div>` : ''}
-  </div>
-
-  <div class="note-title">NOTE</div>
-
-  <div class="date-line">${reqDate}</div>
-
-  <div class="subject">Sub : Request for sending Fire Extinguishers for refilling Regd;</div>
-
-  <div class="body-text">
-    The following Fire Extinguishers are sent for refilling to the AMC agency ${vendorName}.
-    Kindly note that these items are being issued on a returnable basis
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width:10%;">Sl No</th>
-        <th style="width:45%;">Item</th>
-        <th style="width:45%;">Cylinder no</th>
-      </tr>
-    </thead>
-    <tbody>${tableRows}${totalRow}</tbody>
-  </table>
-
-  ${sigName ? `<div class="signatory">${sigName}</div>` : ''}
-  ${sigDesig ? `<div class="sig-desig">${sigDesig}</div>` : ''}
-
-  <div class="to-block">
-    <div>To,</div>
-    <div>&nbsp;</div>
-    <div class="to-name">${addressee}</div>
-  </div>
-
-  <div class="pass-footer">Pass No: ${passNo} &nbsp;|&nbsp; Agency: ${reqBy}</div>
-
-  </body></html>`);
+  w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 400);
 }
