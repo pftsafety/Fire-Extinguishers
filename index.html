@@ -967,7 +967,7 @@
               <tr>
                 <th style="width:40px;"><div class="cb-wrap"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" title="Select all on this page"></div></th>
                 <th>Ext. No.</th><th>Type</th><th>Weight (kg)</th><th>Current Location</th>
-                <th>Original Location</th><th>Mfg Date</th><th>Last Refill</th><th>Next Due</th>
+                <th>Original Location</th><th>Mfg Year</th><th>Last Refill</th><th>Next Due</th>
                 <th>Hydro Test</th><th>Status</th><th>Actions</th>
               </tr>
             </thead>
@@ -1377,8 +1377,8 @@
           <input type="text" id="f-location" placeholder="Building A - Floor 2">
         </div>
         <div class="form-group">
-          <label>Manufacturing Date</label>
-          <input type="date" id="f-mfgdate">
+          <label>Manufacturing Year</label>
+          <input type="number" id="f-mfgdate" placeholder="e.g. 2019" min="1990" max="2099" step="1" style="width:100%;">
         </div>
         <div class="form-group">
           <label>Last Refill Date</label>
@@ -1854,7 +1854,7 @@
             <tr>
               <th><input type="checkbox" id="bulk-recv-select-all" onchange="toggleBulkRecvAll(this)" checked></th>
               <th>Ext. No.</th><th>Type</th><th>Location</th>
-              <th>Received Date</th><th>New Weight (kg)</th><th>Next Refill Due</th>
+              <th>Received Date</th><th>New Weight (kg)</th><th>Next Due</th>
             </tr>
           </thead>
           <tbody id="bulk-recv-body"></tbody>
@@ -1916,6 +1916,43 @@ let editingExtNo = null;
 let currentRefillId = null;
 let activeRefillFilter = 'all';
 let selectedExtNos = new Set(); // multi-select state
+
+
+// ── Clean extinguisher data loaded from Sheet ────────────────
+// Strips any Date-object-style strings (e.g. "Wed Jan 01 2025 00:00:00 GMT+0530")
+// back to clean ISO YYYY-MM-DD or year-only strings.
+function cleanExtData(e) {
+  const dateFields = ['LastRefillDate','NextRefillDue','MfgDate','CreatedAt','UpdatedAt'];
+  dateFields.forEach(field => {
+    if (!e[field]) return;
+    const s = String(e[field]).trim();
+    // Long JS date string from Sheet Date object — parse and reformat
+    if (s.length > 20 && (s.includes('GMT') || s.includes('UTC') || s.startsWith('Mon') ||
+        s.startsWith('Tue') || s.startsWith('Wed') || s.startsWith('Thu') ||
+        s.startsWith('Fri') || s.startsWith('Sat') || s.startsWith('Sun'))) {
+      try {
+        const dt = new Date(s);
+        if (!isNaN(dt.getTime())) {
+          // MfgDate — store as year only
+          if (field === 'MfgDate') {
+            e[field] = String(dt.getFullYear());
+          } else {
+            // Other date fields — store as YYYY-MM-DD
+            const yr  = dt.getFullYear();
+            const mo  = String(dt.getMonth()+1).padStart(2,'0');
+            const day = String(dt.getDate()).padStart(2,'0');
+            e[field]  = yr + '-' + mo + '-' + day;
+          }
+        }
+      } catch(_) {}
+    }
+    // MfgDate with full date like "2019-01-01" — strip to year
+    if (field === 'MfgDate' && /^\d{4}-/.test(s)) {
+      e[field] = s.substring(0, 4);
+    }
+  });
+  return e;
+}
 
 // ═══════════════════════════════════════════════
 // INIT
@@ -2081,14 +2118,14 @@ function setDefaultDates() {
 // ═══════════════════════════════════════════════
 function loadSampleData() {
   DATA.extinguishers = [
-    { ExtNo:'EXT-001', Type:'ABC', Weight:'6', Location:'Building A - Entrance', MfgDate:'2019-03-15', LastRefillDate:'2023-01-10', NextRefillDue:'2024-01-10', Status:'overdue', CurrentLocation:'Building A - Entrance', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-002', Type:'CO₂', Weight:'4.5', Location:'Server Room B', MfgDate:'2020-06-20', LastRefillDate:'2023-06-01', NextRefillDue:'2024-06-01', Status:'ok', CurrentLocation:'Server Room B', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-003', Type:'ABC', Weight:'9', Location:'Warehouse Floor 1', MfgDate:'2018-11-05', LastRefillDate:'2022-11-20', NextRefillDue:'2023-11-20', Status:'overdue', CurrentLocation:'Warehouse Floor 1', OriginalLocation:'', SubstituteFor:'', Remarks:'Old unit' },
-    { ExtNo:'EXT-004', Type:'FOAM', Weight:'6', Location:'Kitchen / Canteen', MfgDate:'2021-02-14', LastRefillDate:'2023-08-15', NextRefillDue:'2025-08-15', Status:'ok', CurrentLocation:'Kitchen / Canteen', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-005', Type:'CO₂', Weight:'2', Location:'Control Room', MfgDate:'2022-09-01', LastRefillDate:'2024-09-01', NextRefillDue:'2026-09-01', Status:'ok', CurrentLocation:'Control Room', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-006', Type:'FOAM', Weight:'9', Location:'Building C - Floor 3', MfgDate:'2020-04-22', LastRefillDate:'2023-04-22', NextRefillDue:'2024-04-22', Status:'pending', CurrentLocation:'With Vendor', OriginalLocation:'Building C - Floor 3', SubstituteFor:'', Remarks:'Sent for service' },
-    { ExtNo:'EXT-007', Type:'ABC', Weight:'6', Location:'Parking Level B1', MfgDate:'2021-07-30', LastRefillDate:'2023-07-30', NextRefillDue:'2025-07-30', Status:'ok', CurrentLocation:'Parking Level B1', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-008', Type:'ABC', Weight:'6', Location:'Storeroom', MfgDate:'2022-01-10', LastRefillDate:'2024-01-10', NextRefillDue:'2026-01-10', Status:'in-store', CurrentLocation:'Storeroom', OriginalLocation:'', SubstituteFor:'', Remarks:'Ready for deployment' },
+    { ExtNo:'EXT-001', Type:'ABC', Weight:'6', Location:'Building A - Entrance', MfgDate:'2019', LastRefillDate:'2023-01-10', NextRefillDue:'2024-01-10', Status:'overdue', CurrentLocation:'Building A - Entrance', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-002', Type:'CO₂', Weight:'4.5', Location:'Server Room B', MfgDate:'2020', LastRefillDate:'2023-06-01', NextRefillDue:'2024-06-01', Status:'ok', CurrentLocation:'Server Room B', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-003', Type:'ABC', Weight:'9', Location:'Warehouse Floor 1', MfgDate:'2018', LastRefillDate:'2022-11-20', NextRefillDue:'2023-11-20', Status:'overdue', CurrentLocation:'Warehouse Floor 1', OriginalLocation:'', SubstituteFor:'', Remarks:'Old unit' },
+    { ExtNo:'EXT-004', Type:'FOAM', Weight:'6', Location:'Kitchen / Canteen', MfgDate:'2021', LastRefillDate:'2023-08-15', NextRefillDue:'2025-08-15', Status:'ok', CurrentLocation:'Kitchen / Canteen', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-005', Type:'CO₂', Weight:'2', Location:'Control Room', MfgDate:'2022', LastRefillDate:'2024-09-01', NextRefillDue:'2026-09-01', Status:'ok', CurrentLocation:'Control Room', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-006', Type:'FOAM', Weight:'9', Location:'Building C - Floor 3', MfgDate:'2020', LastRefillDate:'2023-04-22', NextRefillDue:'2024-04-22', Status:'pending', CurrentLocation:'With Vendor', OriginalLocation:'Building C - Floor 3', SubstituteFor:'', Remarks:'Sent for service' },
+    { ExtNo:'EXT-007', Type:'ABC', Weight:'6', Location:'Parking Level B1', MfgDate:'2021', LastRefillDate:'2023-07-30', NextRefillDue:'2025-07-30', Status:'ok', CurrentLocation:'Parking Level B1', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
+    { ExtNo:'EXT-008', Type:'ABC', Weight:'6', Location:'Storeroom', MfgDate:'2022', LastRefillDate:'2024-01-10', NextRefillDue:'2026-01-10', Status:'in-store', CurrentLocation:'Storeroom', OriginalLocation:'', SubstituteFor:'', Remarks:'Ready for deployment' },
   ];
   DATA.hydroTests = [
     { TestID:'HT-001', ExtNo:'EXT-001', TestDate:'2022-03-15', TestBy:'SafeTech Pvt Ltd', Pressure:'25', Result:'pass', NextDue:'2027-03-15', CertNo:'CERT-2022-001' },
@@ -2174,7 +2211,7 @@ async function refreshData(silent = false) {
   const res = await apiCall('getAll', {}, true);
   if (!silent) hideLoading();
   if (res && res.success) {
-    DATA.extinguishers = res.extinguishers || [];
+    DATA.extinguishers = (res.extinguishers || []).map(cleanExtData);
     DATA.hydroTests    = res.hydroTests    || [];
     DATA.refills       = res.refills       || [];
     DATA.passes        = res.passes        || [];
@@ -3726,7 +3763,9 @@ function editExtinguisher(extNo) {
   document.getElementById('f-type').value = ext.Type;
   document.getElementById('f-weight').value = ext.Weight;
   document.getElementById('f-location').value = ext.Location;
-  document.getElementById('f-mfgdate').value = ext.MfgDate;
+  // MfgDate stored as year-only — show just the year
+  const mfgVal = ext.MfgDate ? String(ext.MfgDate).substring(0,4) : '';
+  document.getElementById('f-mfgdate').value = mfgVal;
   document.getElementById('f-lastrefill').value = ext.LastRefillDate;
   document.getElementById('f-nextdue').value = ext.NextRefillDue;
   document.getElementById('f-status').value = ext.Status;
@@ -3766,7 +3805,7 @@ async function saveExtinguisher() {
     CurrentLocation: document.getElementById('f-location').value.trim(),
     OriginalLocation: '',
     SubstituteFor: '',
-    MfgDate: document.getElementById('f-mfgdate').value,
+    MfgDate: String(document.getElementById('f-mfgdate').value || '').substring(0,4),
     LastRefillDate: document.getElementById('f-lastrefill').value,
     NextRefillDue: document.getElementById('f-nextdue').value,
     Status: document.getElementById('f-status').value,
@@ -4645,9 +4684,17 @@ function statusBadge(status) {
 }
 
 function fmtDate(d) {
-  if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
-  catch { return d; }
+  if (!d || String(d).trim() === '' || String(d) === 'undefined' || String(d) === 'null') return '—';
+  const s = String(d).trim();
+  // Year-only (exactly 4 digits) — MfgDate
+  if (/^\d{4}$/.test(s)) return s;
+  // Already nicely formatted (e.g. "15-Jun-2026") — return as-is
+  if (/^\d{2}-[A-Za-z]{3}-\d{4}$/.test(s)) return s;
+  try {
+    const dt = new Date(s);
+    if (isNaN(dt.getTime())) return s; // unparseable — return raw
+    return dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  } catch(_) { return s; }
 }
 
 // ═══════════════════════════════════════════════
