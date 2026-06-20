@@ -967,7 +967,7 @@
               <tr>
                 <th style="width:40px;"><div class="cb-wrap"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" title="Select all on this page"></div></th>
                 <th>Ext. No.</th><th>Type</th><th>Weight (kg)</th><th>Current Location</th>
-                <th>Original Location</th><th>Mfg Year</th><th>Last Refill</th><th>Next Due</th>
+                <th>Permanent Location</th><th>Mfg Year</th><th>Last Refill</th><th>Next Due</th>
                 <th>Hydro Test</th><th>Status</th><th>Actions</th>
               </tr>
             </thead>
@@ -1373,7 +1373,7 @@
           <input type="number" id="f-weight" placeholder="6" step="0.5">
         </div>
         <div class="form-group">
-          <label>Location *</label>
+          <label>Permanent Location *</label>
           <input type="text" id="f-location" placeholder="Building A - Floor 2">
         </div>
         <div class="form-group">
@@ -1886,8 +1886,8 @@
 // CONFIGURATION
 // ═══════════════════════════════════════════════
 let CONFIG = {
-  apiUrl: '',
-  sheetId: '',
+  apiUrl: 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec',
+  sheetId: '1kz79mAc305bp_CtKxE9enk6wt_XorHOrBMHsu6hQPrE',
   orgName: 'HLL Lifecare Limited',
   orgSubtitle: '(A Government of India Enterprise)',
   factoryName: 'PEROORKADA FACTORY',
@@ -1922,6 +1922,26 @@ let selectedExtNos = new Set(); // multi-select state
 // Strips any Date-object-style strings (e.g. "Wed Jan 01 2025 00:00:00 GMT+0530")
 // back to clean ISO YYYY-MM-DD or year-only strings.
 function cleanExtData(e) {
+  // Location field in sheet = permanent/original assigned location.
+  // CurrentLocation is managed by portal operations (With Vendor, Storeroom, etc.)
+  // If CurrentLocation is empty (older sheets), default it to Location.
+  // Location = permanent assigned location (from sheet)
+  // CurrentLocation = physical location right now
+  // If CurrentLocation not stored (old sheet rows), default to Location
+  if (!e.CurrentLocation || e.CurrentLocation.trim() === '') {
+    e.CurrentLocation = e.Location || '';
+  }
+  // OriginalLocation is a temp refill-cycle field — don't default it to Location
+  // If OriginalLocation is empty and extinguisher is not at its home location,
+  // it will be set by the portal when sent for refill — leave blank otherwise.
+
+  // If CurrentLocation is blank (old records), the Location IS the current location
+  if (!e.CurrentLocation || e.CurrentLocation.trim() === '') {
+    e.CurrentLocation = e.Location || '';
+  }
+  // If OriginalLocation is blank and extinguisher is NOT away, it has no original (it's home)
+  // Only set OriginalLocation when ext is sent for refill or in storeroom
+
   const dateFields = ['LastRefillDate','NextRefillDue','MfgDate','CreatedAt','UpdatedAt'];
   dateFields.forEach(field => {
     if (!e[field]) return;
@@ -1961,24 +1981,20 @@ document.addEventListener('DOMContentLoaded', () => {
   loadConfig();
   setDefaultDates();
   loadAmcData();
-  loadSampleData(); // Sample data — remove after connecting to Google Sheets
   populateAgencyDropdowns(); // Populate agency selects on load
   renderDashboard();
   renderMasterTable();
   renderRefills();
-  // Auto-sync if API URL is configured
-  if (CONFIG.apiUrl) {
-    setSyncStatus('syncing', 'Syncing...');
-    refreshData(true);
-  } else {
-    setSyncStatus('idle', 'Not connected');
-  }
+  // Auto-sync on load (API URL is hardcoded)
+  setSyncStatus('syncing', 'Syncing...');
+  refreshData(true);
 });
 
 function loadConfig() {
   const saved = localStorage.getItem('fireguard_config');
-  if (saved) {
-    CONFIG = { ...CONFIG, ...JSON.parse(saved) };
+  if (saved) CONFIG = { ...CONFIG, ...JSON.parse(saved) };
+  // Always populate form from CONFIG (which has hardcoded defaults above)
+  {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
     set('cfg-api-url',        CONFIG.apiUrl);
     set('cfg-sheet-id',       CONFIG.sheetId);
@@ -2113,34 +2129,6 @@ function setDefaultDates() {
   });
 }
 
-// ═══════════════════════════════════════════════
-// SAMPLE DATA (for demo — remove when live)
-// ═══════════════════════════════════════════════
-function loadSampleData() {
-  DATA.extinguishers = [
-    { ExtNo:'EXT-001', Type:'ABC', Weight:'6', Location:'Building A - Entrance', MfgDate:'2019', LastRefillDate:'2023-01-10', NextRefillDue:'2024-01-10', Status:'overdue', CurrentLocation:'Building A - Entrance', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-002', Type:'CO₂', Weight:'4.5', Location:'Server Room B', MfgDate:'2020', LastRefillDate:'2023-06-01', NextRefillDue:'2024-06-01', Status:'ok', CurrentLocation:'Server Room B', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-003', Type:'ABC', Weight:'9', Location:'Warehouse Floor 1', MfgDate:'2018', LastRefillDate:'2022-11-20', NextRefillDue:'2023-11-20', Status:'overdue', CurrentLocation:'Warehouse Floor 1', OriginalLocation:'', SubstituteFor:'', Remarks:'Old unit' },
-    { ExtNo:'EXT-004', Type:'FOAM', Weight:'6', Location:'Kitchen / Canteen', MfgDate:'2021', LastRefillDate:'2023-08-15', NextRefillDue:'2025-08-15', Status:'ok', CurrentLocation:'Kitchen / Canteen', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-005', Type:'CO₂', Weight:'2', Location:'Control Room', MfgDate:'2022', LastRefillDate:'2024-09-01', NextRefillDue:'2026-09-01', Status:'ok', CurrentLocation:'Control Room', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-006', Type:'FOAM', Weight:'9', Location:'Building C - Floor 3', MfgDate:'2020', LastRefillDate:'2023-04-22', NextRefillDue:'2024-04-22', Status:'pending', CurrentLocation:'With Vendor', OriginalLocation:'Building C - Floor 3', SubstituteFor:'', Remarks:'Sent for service' },
-    { ExtNo:'EXT-007', Type:'ABC', Weight:'6', Location:'Parking Level B1', MfgDate:'2021', LastRefillDate:'2023-07-30', NextRefillDue:'2025-07-30', Status:'ok', CurrentLocation:'Parking Level B1', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-008', Type:'ABC', Weight:'6', Location:'Storeroom', MfgDate:'2022', LastRefillDate:'2024-01-10', NextRefillDue:'2026-01-10', Status:'in-store', CurrentLocation:'Storeroom', OriginalLocation:'', SubstituteFor:'', Remarks:'Ready for deployment' },
-  ];
-  DATA.hydroTests = [
-    { TestID:'HT-001', ExtNo:'EXT-001', TestDate:'2022-03-15', TestBy:'SafeTech Pvt Ltd', Pressure:'25', Result:'pass', NextDue:'2027-03-15', CertNo:'CERT-2022-001' },
-    { TestID:'HT-002', ExtNo:'EXT-003', TestDate:'2021-11-05', TestBy:'FireCert Co.', Pressure:'25', Result:'pass', NextDue:'2026-11-05', CertNo:'CERT-2021-045' },
-    { TestID:'HT-003', ExtNo:'EXT-004', TestDate:'2020-02-14', TestBy:'', Pressure:'', Result:'pass', NextDue:'2025-02-14', CertNo:'' },
-  ];
-  DATA.refills = [
-    { RefillID:'RF-001', ExtNo:'EXT-006', RequestDate:'2024-05-01', RequestBy:'M/S Red Firelines', SentDate:'2024-05-03', ReceivedDate:'', PassNo:'PASS-0001', Status:'sent', OriginalLocation:'Building C - Floor 3', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Pressure low' },
-    { RefillID:'RF-002', ExtNo:'EXT-001', RequestDate:'2024-04-20', RequestBy:'M/S Red Firelines', SentDate:'', ReceivedDate:'', PassNo:'PASS-0002', Status:'pending', OriginalLocation:'Building A - Entrance', SubstituteExtNo:'', LocationAction:'vacant', Remarks:'Annual refill' },
-  ];
-  DATA.passes = [
-    { PassNo:'PASS-0001', ExtNo:'EXT-006', ExtList:'', Location:'Building C - Floor 3', Type:'FOAM', Weight:'9', GeneratedOn:'2024-05-01', GeneratedBy:'Safety Dept', Status:'sent', DocUrl:'' },
-    { PassNo:'PASS-0002', ExtNo:'EXT-001', ExtList:'', Location:'Building A - Entrance', Type:'ABC', Weight:'6', GeneratedOn:'2024-04-20', GeneratedBy:'Admin', Status:'pending', DocUrl:'' },
-  ];
-}
 
 // ═══════════════════════════════════════════════
 // API CALLS  — All requests use GET to avoid CORS
@@ -2282,17 +2270,7 @@ let AMC_DATA = [];
 function loadAmcData() {
   try {
     const saved = localStorage.getItem('fireguard_amc');
-    if (saved) {
-      AMC_DATA = JSON.parse(saved);
-    } else {
-      // Sample AMC for demo
-      AMC_DATA = [
-        { id:'AMC-DEMO-1', vendor:'M/S Red Firelines', scope:'ABC & CO₂ — All blocks',
-          startDate:'2025-01-01', endDate:'2025-12-31', value:'85000', contact:'Suresh Kumar — 9876543210', remarks:'Annual renewal' },
-        { id:'AMC-DEMO-2', vendor:'FireSafe Engineers', scope:'DCP Trolley units',
-          startDate:'2025-04-01', endDate:'2026-03-31', value:'42000', contact:'Ravi Nair — 9845000123', remarks:'' }
-      ];
-    }
+    if (saved) AMC_DATA = JSON.parse(saved);
   } catch(_){ AMC_DATA=[]; }
 }
 function saveAmcData() {
@@ -2610,19 +2588,22 @@ function renderLocationMap() {
   const locationMap = new Map();
 
   DATA.extinguishers.forEach(e => {
-    // Skip storeroom and vendor — they're not fixed locations
-    const curr = (e.CurrentLocation || e.Location || '').trim();
-    if (!curr || curr === 'Storeroom' || curr === 'With Vendor') {
-      // But register their OriginalLocation as a potentially vacant slot
-      const orig = (e.OriginalLocation || '').trim();
-      if (orig && orig !== 'Storeroom' && orig !== 'With Vendor') {
-        if (!locationMap.has(orig)) locationMap.set(orig, []);
-        // Don't push the ext itself — it's not physically there
-      }
-      return;
+    // The permanent assigned location is always e.Location (what's in the sheet).
+    // e.CurrentLocation tracks where it physically is now (may be Storeroom/With Vendor).
+    const assignedLoc = (e.Location || '').trim();
+    if (!assignedLoc || assignedLoc === 'Storeroom' || assignedLoc === 'With Vendor') return;
+
+    // Always register the assigned location as a slot
+    if (!locationMap.has(assignedLoc)) locationMap.set(assignedLoc, []);
+
+    // Only push the extinguisher if it's physically at its assigned location
+    const currLoc = (e.CurrentLocation || e.Location || '').trim();
+    const isAway  = currLoc === 'Storeroom' || currLoc === 'With Vendor' ||
+                    (e.Status === 'pending') || (e.Status === 'in-store');
+    if (!isAway) {
+      locationMap.get(assignedLoc).push(e);
     }
-    if (!locationMap.has(curr)) locationMap.set(curr, []);
-    locationMap.get(curr).push(e);
+    // If away — slot remains in map but empty → shown as vacant
   });
 
   let entries = [...locationMap.entries()].sort((a,b) => a[0].localeCompare(b[0]));
@@ -3127,8 +3108,10 @@ function renderMasterTable(data) {
     if (e.SubstituteFor) subDisplay = `<div style="margin-top:3px;"><span class="loc-substitute">↔ Sub for ${e.SubstituteFor}</span></div>`;
 
     // Original location (shown when away or in store)
-    let origDisplay = origLoc
-      ? `<span style="font-size:12px;color:var(--grey);">${origLoc}</span>`
+    // OriginalLocation is the permanent home. If blank, use Location (same meaning for active units)
+    const homeLocation = origLoc || e.Location || '';
+    let origDisplay = homeLocation
+      ? `<span style="font-size:12px;color:var(--grey);">${homeLocation}</span>`
       : `<span style="color:var(--muted);font-size:11px;">—</span>`;
 
     // Check if original location is vacant
@@ -3278,7 +3261,7 @@ function renderRefills() {
         <div class="refill-icon ${iconClass}">${icons[r.Status] || '🔄'}</div>
         <div class="refill-info">
           <div class="refill-num">${r.ExtNo} &nbsp;·&nbsp; Pass: ${r.PassNo}</div>
-          <div class="refill-desc">${ext.Type || '—'} &nbsp;·&nbsp; Original: <strong style="color:var(--body)">${origLoc}</strong></div>
+          <div class="refill-desc">${ext.Type || '—'} &nbsp;·&nbsp; Assigned: <strong style="color:var(--body)">${origLoc}</strong></div>
           <div class="refill-meta" style="margin-top:3px;">${locLine}</div>
           <div class="refill-meta">Agency: ${r.RequestBy || '—'} &nbsp;·&nbsp; ${fmtDate(r.RequestDate)}${r.SentDate ? ' · Sent: ' + fmtDate(r.SentDate) : ''}${r.ReceivedDate ? ' · Received: ' + fmtDate(r.ReceivedDate) : ''}</div>
         </div>
@@ -3801,9 +3784,9 @@ async function saveExtinguisher() {
     ExtNo: extNoVal,
     Type: document.getElementById('f-type').value,
     Weight: document.getElementById('f-weight').value,
-    Location: document.getElementById('f-location').value.trim(),
-    CurrentLocation: document.getElementById('f-location').value.trim(),
-    OriginalLocation: '',
+    Location:        document.getElementById('f-location').value.trim(), // permanent home location
+    CurrentLocation: document.getElementById('f-location').value.trim(), // same as home when first added
+    OriginalLocation: '',  // only set when ext is sent away
     SubstituteFor: '',
     MfgDate: String(document.getElementById('f-mfgdate').value || '').substring(0,4),
     LastRefillDate: document.getElementById('f-lastrefill').value,
@@ -4014,7 +3997,7 @@ async function markReceived() {
   if (extIdx !== -1) {
     DATA.extinguishers[extIdx].Status = 'in-store';
     DATA.extinguishers[extIdx].CurrentLocation = 'Storeroom';
-    DATA.extinguishers[extIdx].OriginalLocation = refill.OriginalLocation || DATA.extinguishers[extIdx].Location;
+    DATA.extinguishers[extIdx].OriginalLocation = DATA.extinguishers[extIdx].Location || ''; // permanent location
     if (newWeight) DATA.extinguishers[extIdx].Weight = newWeight;
     if (nextDue) DATA.extinguishers[extIdx].NextRefillDue = nextDue;
     DATA.extinguishers[extIdx].LastRefillDate = recDate;
@@ -4373,10 +4356,11 @@ async function submitBulkRefill() {
     const refillId = 'RF-' + String(DATA.refills.length + refillRecords.length + 1).padStart(3, '0');
     const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
     const la = locActions[extNo] || { action: 'vacant', subExtNo: '' };
+    // e.Location is the permanent assigned location — store as OriginalLocation in refill record
     refillRecords.push({
       RefillID: refillId, ExtNo: extNo, RequestDate: reqDate, RequestBy: reqBy,
       SentDate: '', ReceivedDate: '', PassNo: passNo, Status: 'pending',
-      OriginalLocation: ext.Location || ext.CurrentLocation || '',
+      OriginalLocation: ext.Location || '',
       LocationAction: la.action,
       SubstituteExtNo: la.subExtNo,
       Remarks: remarks
@@ -4401,7 +4385,9 @@ async function submitBulkRefill() {
   extNosArray.forEach(extNo => {
     const idx = DATA.extinguishers.findIndex(e => e.ExtNo === extNo);
     if (idx !== -1) {
-      DATA.extinguishers[idx].OriginalLocation = DATA.extinguishers[idx].Location || DATA.extinguishers[idx].CurrentLocation || '';
+      // Location (permanent) stays unchanged — it's the assigned slot
+      // CurrentLocation tracks physical position → 'With Vendor' when sent out
+      // OriginalLocation in the refill record already stores e.Location
       DATA.extinguishers[idx].CurrentLocation = 'With Vendor';
       DATA.extinguishers[idx].Status = 'pending';
     }
