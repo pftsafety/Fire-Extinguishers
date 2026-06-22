@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root {
     /* ── Brand / Accent ── */
@@ -129,12 +130,6 @@
     padding: 14px 16px; border-top: 1px solid var(--sidebar-border);
     font-size: 11px; color: var(--sidebar-text);
   }
-  .config-btn {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px; border-radius: 6px;
-    cursor: pointer; transition: all .15s;
-  }
-  .config-btn:hover { background: var(--sidebar-surface); color: #E2EAF4; }
 
   /* ─── MAIN ─── */
   .main { margin-left: 240px; min-height: 100vh; }
@@ -772,6 +767,17 @@
   .recv-status-ok   { color:var(--green);  font-size:11px; }
   .recv-status-skip { color:var(--muted);  font-size:11px; }
 
+  /* ─── QR CODES ─── */
+  .qr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:14px; padding:4px; }
+  .qr-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:14px; text-align:center;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .qr-card-num  { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--accent); margin-top:10px; }
+  .qr-card-loc  { font-size:10px; color:var(--grey); margin-top:3px; line-height:1.4; }
+  .qr-card-type { font-size:10px; color:var(--muted); margin-top:2px; }
+
   /* ─── INSPECTION CHECKLIST ─── */
   .insp-section { margin-bottom:20px; }
   .insp-section-title {
@@ -831,15 +837,9 @@
     <div class="nav-item" onclick="showPage('amc')">
       <span class="icon">📋</span> AMC Tracker
     </div>
-    <div class="nav-item" onclick="showPage('config')">
-      <span class="icon">⚙️</span> Configuration
-    </div>
+
   </nav>
-  <div class="sidebar-footer">
-    <div class="config-btn" onclick="showPage('config')">
-      <span>⚙️</span> Settings & API Config
-    </div>
-  </div>
+
 </aside>
 
 <!-- MAIN -->
@@ -978,6 +978,10 @@
         </div>
         <div class="pagination">
           <span id="table-count">Showing 0 records</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="Download visible rows as CSV">⬇ CSV</button>
+            <button class="btn btn-ghost btn-sm" onclick="openQRModal()" title="Print QR codes for selected extinguishers">⬛ QR Codes</button>
+          </div>
           <div class="page-btns" id="page-btns"></div>
         </div>
       </div>
@@ -1115,14 +1119,33 @@
 
     <!-- ═══ REFILLS ═══ -->
     <div class="page" id="page-refills">
-      <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+      <div style="display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
         <button class="btn btn-primary" onclick="openRefillRequestModal()">＋ New Refill Request</button>
-        <button class="btn btn-ghost" onclick="filterRefills('all')" id="refill-tab-all">All</button>
-        <button class="btn btn-ghost" onclick="filterRefills('pending')" id="refill-tab-pending">Pending</button>
-        <button class="btn btn-ghost" onclick="filterRefills('sent')" id="refill-tab-sent">Sent Out</button>
-        <button class="btn btn-ghost" onclick="filterRefills('received')" id="refill-tab-received">Received</button>
-        <button class="btn btn-ghost" onclick="filterRefills('in-store')" id="refill-tab-in-store">📦 In Storeroom</button>
-        <button class="btn btn-ghost" onclick="filterRefills('deployed')" id="refill-tab-deployed">✅ Deployed</button>
+        <button class="btn btn-ghost" onclick="filterRefills('all')"       id="refill-tab-all">All</button>
+        <button class="btn btn-ghost" onclick="filterRefills('pending')"   id="refill-tab-pending">Pending</button>
+        <button class="btn btn-ghost" onclick="filterRefills('sent')"      id="refill-tab-sent">Sent Out</button>
+        <button class="btn btn-ghost" onclick="filterRefills('received')"  id="refill-tab-received">Received</button>
+        <button class="btn btn-ghost" onclick="filterRefills('in-store')"  id="refill-tab-in-store">📦 In Storeroom</button>
+        <button class="btn btn-ghost" onclick="filterRefills('deployed')"  id="refill-tab-deployed">✅ Deployed</button>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+        <div class="search-box" style="max-width:260px;">
+          <span>🔍</span>
+          <input type="text" id="refill-search" placeholder="Ext. No., agency, pass no..."
+            oninput="renderRefills()">
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--grey);">
+          <span>From</span>
+          <input type="date" id="refill-date-from" onchange="renderRefills()"
+            style="padding:6px 10px; border:1px solid var(--border); border-radius:8px;
+                   font-family:inherit; font-size:12px; background:var(--surface2); color:var(--body); outline:none;">
+          <span>To</span>
+          <input type="date" id="refill-date-to" onchange="renderRefills()"
+            style="padding:6px 10px; border:1px solid var(--border); border-radius:8px;
+                   font-family:inherit; font-size:12px; background:var(--surface2); color:var(--body); outline:none;">
+          <button class="btn btn-ghost btn-sm" onclick="clearRefillFilters()" title="Clear filters">✕ Clear</button>
+        </div>
+        <span style="font-size:11px; color:var(--muted);" id="refill-count-label"></span>
       </div>
       <div class="refill-grid" id="refill-list">
         <div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">No refill records found.</div></div>
@@ -1150,184 +1173,6 @@
               <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">No passes generated yet.</div></div></td></tr>
             </tbody>
           </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ CONFIG ═══ -->
-    <div class="page" id="page-config">
-      <div class="alert alert-warn">
-        ⚠️ Configure your Google Apps Script Web App URL below. Settings are saved in your browser only.
-      </div>
-
-      <!-- Connection error alert — shown after failed test -->
-      <div class="alert" id="connection-error-alert"
-        style="display:none; background:var(--red-bg); border:1px solid var(--red-bd); color:var(--red); font-size:13px; line-height:1.8; margin-bottom:0;">
-      </div>
-
-      <div class="config-section">
-        <div class="config-section-title">🔗 Google Apps Script API</div>
-
-        <div class="form-grid">
-          <div class="form-group full">
-            <label>Apps Script Web App URL  <span id="url-status" style="margin-left:8px; font-size:11px;"></span></label>
-            <input type="text" id="cfg-api-url"
-              placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-              oninput="validateApiUrl(this.value)">
-            <div id="url-hint" style="font-size:11px; color:var(--grey); margin-top:5px; line-height:1.5;"></div>
-          </div>
-          <div class="form-group">
-            <label>Google Sheet ID</label>
-            <input type="text" id="cfg-sheet-id"
-              placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
-          </div>
-          <div class="form-group">
-            <label>Doc Template ID (Google Docs) <span style="color:var(--grey);font-weight:400;">optional</span></label>
-            <input type="text" id="cfg-template-id" placeholder="Document ID from Docs URL">
-          </div>
-          <div class="form-group">
-            <label>Output Drive Folder ID <span style="color:var(--grey);font-weight:400;">optional</span></label>
-            <input type="text" id="cfg-folder-id" placeholder="Google Drive folder for PDFs">
-          </div>
-        </div>
-
-        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
-          <div style="font-size:12px; font-weight:700; color:var(--body); text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px;">📄 Note / Gatepass Template Details</div>
-
-          <!-- Logo upload -->
-          <div style="margin-bottom:18px; padding:16px; background:var(--surface2); border:1px solid var(--border); border-radius:10px;">
-            <div style="font-size:12px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px;">Organisation Logo</div>
-            <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
-              <div id="logo-preview-wrap" style="width:90px; height:60px; border:1px dashed var(--border2); border-radius:8px; display:flex; align-items:center; justify-content:center; background:var(--surface); overflow:hidden; flex-shrink:0;">
-                <img id="logo-preview-img" src="" alt="" style="max-width:88px; max-height:58px; object-fit:contain; display:none;">
-                <span id="logo-preview-placeholder" style="font-size:22px; color:var(--muted);">🏢</span>
-              </div>
-              <div style="flex:1; min-width:180px;">
-                <div style="font-size:12px; color:var(--grey); margin-bottom:8px; line-height:1.5;">Upload your organisation logo (PNG, JPG, SVG). It will appear in the pass letterhead, print output, and Word download.</div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <label class="btn btn-ghost btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-                    📁 Choose Logo
-                    <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg,image/svg+xml,image/gif" style="display:none;" onchange="handleLogoUpload(this)">
-                  </label>
-                  <button class="btn btn-ghost btn-sm" onclick="clearLogo()" id="cfg-logo-clear" style="display:none; color:var(--red);">✕ Remove</button>
-                </div>
-                <div id="cfg-logo-hint" style="font-size:11px; color:var(--muted); margin-top:6px;">Recommended: transparent PNG, ~200×80px, max 500 KB</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Organisation Name</label>
-              <input type="text" id="cfg-org-name" placeholder="HLL Lifecare Limited">
-            </div>
-            <div class="form-group">
-              <label>Organisation Subtitle</label>
-              <input type="text" id="cfg-org-subtitle" placeholder="(A Government of India Enterprise)">
-            </div>
-            <div class="form-group">
-              <label>Factory / Unit Name</label>
-              <input type="text" id="cfg-factory-name" placeholder="PEROORKADA FACTORY">
-            </div>
-            <div class="form-group">
-              <label>Location / City</label>
-              <input type="text" id="cfg-factory-loc" placeholder="THIRUVANANTHAPURAM">
-            </div>
-            <div class="form-group">
-              <label>AMC / Vendor Name</label>
-              <input type="text" id="cfg-vendor-name" placeholder="M/S Red Firelines">
-            </div>
-            <div class="form-group">
-              <label>Addressee (To:)</label>
-              <input type="text" id="cfg-addressee" placeholder="Security Inspector">
-            </div>
-            <div class="form-group">
-              <label>Signatory Name</label>
-              <input type="text" id="cfg-signatory-name" placeholder="GOKUL V BABU">
-            </div>
-            <div class="form-group">
-              <label>Signatory Designation</label>
-              <input type="text" id="cfg-signatory-desig" placeholder="SM (Safety &amp; Environment)">
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
-          <button class="btn btn-ghost" onclick="testConnection()">🔌 Test Connection</button>
-          <a id="cfg-open-url" href="#" target="_blank"
-            style="display:none; font-size:12px; color:var(--blue); padding:4px 8px; border-radius:6px; background:var(--blue-bg);">
-            🔗 Open API URL in browser
-          </a>
-        </div>
-      </div>
-
-      <!-- Deployment checklist -->
-      <div class="config-section">
-        <div class="config-section-title">🚀 Deployment Checklist — Fix "Failed to fetch"</div>
-        <div style="font-size:13px; color:var(--grey); line-height:2; counter-reset:step;">
-
-          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">1</span>
-            <span>Open your Apps Script project → <strong style="color:var(--body);">Deploy → New deployment</strong> (or Manage deployments → Edit)</span>
-          </div>
-          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">2</span>
-            <span>Set <strong style="color:var(--body);">Execute as: Me</strong> and <strong style="color:var(--body);">Who has access: Anyone</strong> — not "Anyone within domain" (GitHub Pages is external)</span>
-          </div>
-          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">3</span>
-            <span>Copy the URL ending in <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">/exec</code> — not <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">/dev</code> (dev URLs block external access)</span>
-          </div>
-          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">4</span>
-            <span>After <em>any</em> code change, you must <strong style="color:var(--body);">create a new version</strong> — existing deployments do not auto-update</span>
-          </div>
-          <div style="display:flex; gap:10px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">5</span>
-            <span>Grant permissions when prompted — click <strong style="color:var(--body);">Review permissions → Advanced → Go to app (unsafe) → Allow</strong></span>
-          </div>
-
-          <div style="margin-top:14px; padding:10px 14px; background:var(--blue-bg); border:1px solid var(--blue-bd); border-radius:8px; font-size:12px; color:var(--blue);">
-            💡 <strong>Why GET not POST?</strong> Apps Script handles CORS automatically for GET requests.
-            POST with <code>Content-Type: application/json</code> triggers a CORS preflight that Apps Script cannot respond to — causing "Failed to fetch". This portal uses GET with a <code>?payload=</code> param to avoid this entirely.
-          </div>
-        </div>
-      </div>
-
-      <div class="config-section">
-        <div class="config-section-title">📋 Sheet Tab & Column Reference</div>
-        <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:14px;">
-          Run <code style="background:var(--surface2);padding:1px 6px;border-radius:3px;">setupSheets()</code> in Apps Script editor to create all tabs automatically.
-        </p>
-        <div style="display:grid; gap:12px;">
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Extinguishers</code></div>
-            <div class="url-display" style="font-size:11px; line-height:1.8;">ExtNo | Type | Weight | Location | CurrentLocation | OriginalLocation | SubstituteFor | MfgDate | LastRefillDate | NextRefillDue | Status | Remarks | CreatedAt | UpdatedAt</div>
-          </div>
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Refills</code></div>
-            <div class="url-display" style="font-size:11px; line-height:1.8;">RefillID | ExtNo | RequestDate | RequestBy | SentDate | ReceivedDate | PassNo | Status | OriginalLocation | LocationAction | SubstituteExtNo | Remarks | CreatedAt | UpdatedAt</div>
-          </div>
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Passes</code></div>
-            <div class="url-display" style="font-size:11px; line-height:1.8;">PassNo | ExtNo | ExtList | Location | Type | Weight | GeneratedOn | GeneratedBy | Remarks | Status | DocUrl | CreatedAt</div>
-          </div>
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>HydroTests</code></div>
-            <div class="url-display" style="font-size:11px; line-height:1.8;">TestID | ExtNo | TestDate | TestBy | Pressure | Result | NextDue | CertNo | CreatedAt</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="config-section">
-        <div class="config-section-title">📄 Google Docs Template Placeholders</div>
-        <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:12px;">
-          Use these exact placeholders in your Google Docs template (the Word download does not use the template — it builds the file directly in the browser):
-        </p>
-        <div class="url-display" style="line-height:2.2; font-size:12px;">
-          <span style="color:var(--accent);">{{ORG_NAME}}</span> &nbsp; <span style="color:var(--accent);">{{PASS_NO}}</span> &nbsp; <span style="color:var(--accent);">{{REQUEST_DATE}}</span> &nbsp; <span style="color:var(--accent);">{{REQUEST_BY}}</span><br>
-          <span style="color:var(--accent);">{{EXT_COUNT}}</span> &nbsp; <span style="color:var(--accent);">{{REMARKS}}</span> &nbsp; <span style="color:var(--accent);">{{EXT_TABLE}}</span> &nbsp; <span style="color:var(--accent);">{{GENERATED_DATE}}</span>
         </div>
       </div>
     </div>
@@ -1872,6 +1717,61 @@
   </div>
 </div>
 
+<!-- QR Code Print Modal -->
+<div class="modal-overlay" id="modal-qr">
+  <div class="modal" style="max-width:820px;">
+    <div class="modal-head">
+      <div class="modal-title">⬛ QR Codes</div>
+      <button class="modal-close" onclick="closeModal('modal-qr')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+        <span style="font-size:13px; color:var(--grey);">
+          Showing QR codes for <strong id="qr-count">0</strong> extinguisher(s).
+          Each QR encodes the Ext. No. for scanner lookup.
+        </span>
+        <button class="btn btn-primary btn-sm" onclick="printQRCodes()" style="margin-left:auto;">🖨️ Print</button>
+      </div>
+      <div class="qr-grid" id="qr-grid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-qr')">Close</button>
+      <button class="btn btn-primary" onclick="printQRCodes()">🖨️ Print All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Refill History Modal -->
+<div class="modal-overlay" id="modal-history">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <div class="modal-title" id="history-modal-title">Refill History</div>
+      <button class="modal-close" onclick="closeModal('modal-history')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div id="history-ext-banner" style="padding:16px 24px 12px; border-bottom:1px solid var(--border); background:var(--surface2);"></div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead>
+            <tr>
+              <th style="padding:10px 16px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--grey); background:var(--surface2); font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap;">Pass No.</th>
+              <th style="padding:10px 16px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--grey); background:var(--surface2); font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap;">Request Date</th>
+              <th style="padding:10px 16px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--grey); background:var(--surface2); font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap;">Agency</th>
+              <th style="padding:10px 16px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--grey); background:var(--surface2); font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap;">Sent</th>
+              <th style="padding:10px 16px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--grey); background:var(--surface2); font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap;">Received</th>
+              <th style="padding:10px 16px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--grey); background:var(--surface2); font-weight:600; border-bottom:1px solid var(--border); white-space:nowrap;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-history')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOADING -->
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
@@ -1885,9 +1785,11 @@
 // ═══════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════
+// API URL is the only runtime config the frontend needs.
+// All IDs (Sheet, Template, Folder) live in FireGuard_Backend.gs.
+// Org details below are used for Word pass generation — edit here to customise.
 let CONFIG = {
   apiUrl: 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec',
-  sheetId: '1kz79mAc305bp_CtKxE9enk6wt_XorHOrBMHsu6hQPrE',
   orgName: 'HLL Lifecare Limited',
   orgSubtitle: '(A Government of India Enterprise)',
   factoryName: 'PEROORKADA FACTORY',
@@ -1896,9 +1798,7 @@ let CONFIG = {
   signatoryName: 'GOKUL V BABU',
   signatoryDesig: 'SM (Safety & Environment)',
   addressee: 'Security Inspector',
-  orgLogo: '',   // base64 data-URL of org logo
-  templateId: '',
-  folderId: ''
+  orgLogo: ''    // base64 data-URL — stored in localStorage by logo uploader
 };
 
 // LOCAL DATA STORE (populated from Sheets)
@@ -1974,11 +1874,26 @@ function cleanExtData(e) {
   return e;
 }
 
+// ── Auto-derive Status from NextRefillDue on every sync ─────
+// Never overwrites pending / in-store — those are set by workflow actions.
+function recalcStatus(e) {
+  if (e.Status === 'pending' || e.Status === 'in-store') return e;
+  if (!e.NextRefillDue) return e;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due   = new Date(e.NextRefillDue); due.setHours(0, 0, 0, 0);
+  if (isNaN(due.getTime())) return e;
+  const diff = Math.round((due - today) / 86400000);
+  if (diff < 0)        e.Status = 'overdue';
+  else if (diff <= 30) e.Status = 'due';
+  else                 e.Status = 'ok';
+  return e;
+}
+
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-  loadConfig();
+  loadConfig();       // restore org settings + logo from localStorage
   setDefaultDates();
   loadAmcData();
   populateAgencyDropdowns(); // Populate agency selects on load
@@ -1991,34 +1906,27 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadConfig() {
-  const saved = localStorage.getItem('fireguard_config');
-  if (saved) CONFIG = { ...CONFIG, ...JSON.parse(saved) };
-  // Always populate form from CONFIG (which has hardcoded defaults above)
-  {
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-    set('cfg-api-url',        CONFIG.apiUrl);
-    set('cfg-sheet-id',       CONFIG.sheetId);
-    set('cfg-org-name',       CONFIG.orgName);
-    set('cfg-org-subtitle',   CONFIG.orgSubtitle);
-    set('cfg-factory-name',   CONFIG.factoryName);
-    set('cfg-factory-loc',    CONFIG.factoryLocation);
-    set('cfg-vendor-name',    CONFIG.vendorName);
-    set('cfg-signatory-name', CONFIG.signatoryName);
-    set('cfg-signatory-desig',CONFIG.signatoryDesig);
-    set('cfg-addressee',      CONFIG.addressee);
-    set('cfg-template-id',    CONFIG.templateId);
-    set('cfg-folder-id',      CONFIG.folderId);
-    if (CONFIG.apiUrl) validateApiUrl(CONFIG.apiUrl);
+  // Restore any user-saved org settings and logo from localStorage
+  const saved = localStorage.getItem('fireguard_org_settings');
+  if (saved) {
+    try {
+      const s = JSON.parse(saved);
+      Object.assign(CONFIG, s);
+    } catch(_) {}
   }
-  // Logo stored separately (can be large)
   const savedLogo = localStorage.getItem('fireguard_logo');
-  if (savedLogo) {
-    CONFIG.orgLogo = savedLogo;
-    renderLogoPreview(savedLogo);
-  }
+  if (savedLogo) { CONFIG.orgLogo = savedLogo; renderLogoPreview(savedLogo); }
 }
 
-// ── Logo upload / preview ────────────────────────────────────
+function saveOrgSettings() {
+  const fields = ['orgName','orgSubtitle','factoryName','factoryLocation',
+                  'vendorName','signatoryName','signatoryDesig','addressee'];
+  const s = {};
+  fields.forEach(k => { if (CONFIG[k]) s[k] = CONFIG[k]; });
+  localStorage.setItem('fireguard_org_settings', JSON.stringify(s));
+}
+
+
 function handleLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
@@ -2071,55 +1979,7 @@ function clearLogo() {
   showToast('Logo removed', 'info');
 }
 
-function validateApiUrl(val) {
-  const statusEl = document.getElementById('url-status');
-  const hintEl   = document.getElementById('url-hint');
-  const openEl   = document.getElementById('cfg-open-url');
-  if (!val) {
-    statusEl.textContent = '';
-    hintEl.textContent = '';
-    if (openEl) openEl.style.display = 'none';
-    return;
-  }
-  const isExec  = val.includes('/exec');
-  const isDev   = val.includes('/dev');
-  const isGas   = val.includes('script.google.com/macros/s/');
-  if (isDev) {
-    statusEl.innerHTML = '<span style="color:var(--red);">⚠ /dev URL</span>';
-    hintEl.innerHTML   = '❌ <strong>/dev</strong> URLs block external access. Use the <strong>/exec</strong> URL from Manage Deployments.';
-  } else if (!isGas) {
-    statusEl.innerHTML = '<span style="color:var(--yellow);">⚠ Check URL</span>';
-    hintEl.textContent = 'URL should start with https://script.google.com/macros/s/…/exec';
-  } else if (isExec) {
-    statusEl.innerHTML = '<span style="color:var(--green);">✓ Looks good</span>';
-    hintEl.textContent = '';
-  }
-  if (openEl) {
-    openEl.href = val + '?action=ping';
-    openEl.style.display = 'inline-flex';
-  }
-}
 
-function saveConfig() {
-  const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-  CONFIG.apiUrl          = get('cfg-api-url');
-  CONFIG.sheetId         = get('cfg-sheet-id');
-  CONFIG.orgName         = get('cfg-org-name')        || 'Organisation';
-  CONFIG.orgSubtitle     = get('cfg-org-subtitle');
-  CONFIG.factoryName     = get('cfg-factory-name');
-  CONFIG.factoryLocation = get('cfg-factory-loc');
-  CONFIG.vendorName      = get('cfg-vendor-name');
-  CONFIG.signatoryName   = get('cfg-signatory-name');
-  CONFIG.signatoryDesig  = get('cfg-signatory-desig');
-  CONFIG.addressee       = get('cfg-addressee');
-  CONFIG.templateId      = get('cfg-template-id');
-  CONFIG.folderId        = get('cfg-folder-id');
-  localStorage.setItem('fireguard_config', JSON.stringify(CONFIG));
-  const alertEl = document.getElementById('connection-error-alert');
-  if (alertEl) alertEl.style.display = 'none';
-  validateApiUrl(CONFIG.apiUrl);
-  showToast('Configuration saved!', 'success');
-}
 
 function setDefaultDates() {
   const today = new Date().toISOString().split('T')[0];
@@ -2199,7 +2059,7 @@ async function refreshData(silent = false) {
   const res = await apiCall('getAll', {}, true);
   if (!silent) hideLoading();
   if (res && res.success) {
-    DATA.extinguishers = (res.extinguishers || []).map(cleanExtData);
+    DATA.extinguishers = (res.extinguishers || []).map(cleanExtData).map(recalcStatus);
     DATA.hydroTests    = res.hydroTests    || [];
     DATA.refills       = res.refills       || [];
     DATA.passes        = res.passes        || [];
@@ -2227,40 +2087,6 @@ function setSyncStatus(state, label) {
   if (lbl) lbl.textContent = label;
 }
 
-async function testConnection() {
-  if (!CONFIG.apiUrl) { showToast('Enter API URL first', 'error'); return; }
-
-  const btn = document.querySelector('[onclick="testConnection()"]');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Testing...'; }
-
-  showLoading('Testing connection to Google Sheets...');
-  const res = await apiCall('ping', {}, true);
-  hideLoading();
-
-  if (btn) { btn.disabled = false; btn.textContent = '🔌 Test Connection'; }
-
-  if (res && res.success) {
-    showToast('✅ Connected! Apps Script is running.', 'success');
-    // Show server timestamp to confirm live connection
-    if (res.ts) console.log('[FireGuard] Server time:', res.ts);
-  } else {
-    const hint = res?.error || 'No response';
-    showToast('❌ Connection failed: ' + hint, 'error');
-
-    // Show inline diagnostics in config page
-    const alertEl = document.getElementById('connection-error-alert');
-    if (alertEl) {
-      alertEl.style.display = 'block';
-      alertEl.innerHTML = `
-        <strong>Connection failed.</strong> Common fixes:<br>
-        1. In Apps Script → <strong>Deploy → Manage deployments → ✏️ Edit</strong> → set version to <em>New version</em> → re-deploy<br>
-        2. "Who has access" must be <strong>Anyone</strong> (not domain-restricted for GitHub Pages)<br>
-        3. Copy the URL ending in <code>/exec</code> — not <code>/dev</code><br>
-        4. <a href="${CONFIG.apiUrl}?action=ping" target="_blank" style="color:var(--blue);">Open API URL in new tab</a> to check for errors
-      `;
-    }
-  }
-}
 
 // ═══════════════════════════════════════════════
 // DASHBOARD
@@ -2665,8 +2491,9 @@ function renderLocationMap() {
       </div>`;
     }
 
+    const safeLoc = loc.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     return `
-      <div class="locmap-slot ${cls}" data-loc="${loc.replace(/"/g,'&quot;')}"
+      <div class="locmap-slot ${cls}" data-loc="${safeLoc}"
            onclick="filterToLocation(this.dataset.loc)" style="cursor:pointer;">
         <div class="locmap-badge">${badge}</div>
         <div class="locmap-name">${loc}</div>
@@ -3142,7 +2969,8 @@ function renderMasterTable(data) {
       <td>${statusBadge(e.Status)}</td>
       <td>
         <div class="actions-cell">
-          <button class="btn btn-ghost btn-sm" onclick="editExtinguisher('${e.ExtNo}')">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="editExtinguisher('${e.ExtNo}')" title="Edit">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="openHistoryModal('${e.ExtNo}')" title="Refill history">📋</button>
           ${isInStore
             ? `<button class="btn btn-green btn-sm" onclick="openDeployModal('${e.ExtNo}')" title="Deploy to location">📍 Deploy</button>`
             : `<button class="btn btn-blue btn-sm" onclick="quickRefill('${e.ExtNo}')" ${disableCb ? 'disabled style="opacity:.4"' : ''} title="Send for refill">🔄</button>`
@@ -3224,8 +3052,29 @@ function filterHydro() {
 // REFILLS
 // ═══════════════════════════════════════════════
 function renderRefills() {
-  const all = DATA.refills;
-  const rows = activeRefillFilter === 'all' ? all : all.filter(r => r.Status === activeRefillFilter);
+  const q        = (document.getElementById('refill-search')?.value  || '').toLowerCase();
+  const dateFrom = document.getElementById('refill-date-from')?.value || '';
+  const dateTo   = document.getElementById('refill-date-to')?.value   || '';
+
+  let rows = activeRefillFilter === 'all'
+    ? DATA.refills
+    : DATA.refills.filter(r => r.Status === activeRefillFilter);
+
+  // Text search — ExtNo, PassNo, agency, location
+  if (q) rows = rows.filter(r =>
+    (r.ExtNo           || '').toLowerCase().includes(q) ||
+    (r.PassNo          || '').toLowerCase().includes(q) ||
+    (r.RequestBy       || '').toLowerCase().includes(q) ||
+    (r.OriginalLocation|| '').toLowerCase().includes(q)
+  );
+
+  // Date range — filter by RequestDate
+  if (dateFrom) rows = rows.filter(r => r.RequestDate && r.RequestDate >= dateFrom);
+  if (dateTo)   rows = rows.filter(r => r.RequestDate && r.RequestDate <= dateTo);
+
+  const countLbl = document.getElementById('refill-count-label');
+  if (countLbl) countLbl.textContent = rows.length + ' record' + (rows.length !== 1 ? 's' : '');
+
   const container = document.getElementById('refill-list');
 
   if (!rows.length) {
@@ -3285,6 +3134,16 @@ function filterRefills(type) {
   renderRefills();
 }
 
+function clearRefillFilters() {
+  const s = document.getElementById('refill-search');
+  const f = document.getElementById('refill-date-from');
+  const t = document.getElementById('refill-date-to');
+  if (s) s.value = '';
+  if (f) f.value = '';
+  if (t) t.value = '';
+  renderRefills();
+}
+
 // ═══════════════════════════════════════════════
 // PASSES
 // ═══════════════════════════════════════════════
@@ -3295,24 +3154,50 @@ function renderPasses() {
     return;
   }
   tbody.innerHTML = DATA.passes.map(p => {
-    // Count extinguishers: ExtList JSON or comma-split ExtNo
-    let extCount = 1;
-    let extLabel = p.ExtNo;
+
+    // ── Ext. Count: derive from ExtList JSON → fallback to comma-split ExtNo ──────
+    let extCount = 0;
+    let extLabel = '';
     try {
       const list = JSON.parse(p.ExtList || '[]');
-      if (list.length) { extCount = list.length; extLabel = list.map(e => e.extNo).join(', '); }
-    } catch (_) {
-      extCount = p.ExtNo ? p.ExtNo.split(',').length : 1;
+      if (list.length) {
+        extCount = list.length;
+        extLabel = list.map(e => e.extNo).join(', ');
+      }
+    } catch (_) {}
+    // Fallback: ExtList was empty/missing — split p.ExtNo by comma
+    if (!extCount && p.ExtNo) {
+      const parts = p.ExtNo.split(',').map(s => s.trim()).filter(Boolean);
+      extCount = parts.length;
+      extLabel = parts.join(', ');
     }
-    const extDisplay = extCount > 1
-      ? `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">${extCount} extinguishers</span>`
-      : `<span class="ext-num">${p.ExtNo}</span>`;
+
+    // Display: show IDs when few enough to fit; show "N extinguishers" when many
+    let extDisplay;
+    if (extCount === 0) {
+      extDisplay = '<span style="color:var(--muted);">—</span>';
+    } else if (extCount === 1) {
+      extDisplay = `<span class="ext-num">${extLabel || p.ExtNo}</span>`;
+    } else if (extCount <= 6) {
+      // Show all IDs (fits in cell for up to 6)
+      extDisplay = `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">${extLabel}</span>`;
+    } else {
+      // Too many — show count with tooltip listing all IDs
+      extDisplay = `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);" title="${extLabel}">${extCount} extinguishers</span>`;
+    }
+
+    // ── Agency & Generated On: use GeneratedBy / GeneratedOn with safe fallbacks ──
+    // GeneratedBy = agency name (who the pass was sent to)
+    // GeneratedOn = date the pass was created
+    const agencyDisplay = p.GeneratedBy || '—';
+    const dateDisplay   = fmtDate(p.GeneratedOn || p.RequestDate || '');
+
     return `
     <tr>
       <td><span class="ext-num">${p.PassNo}</span></td>
       <td>${extDisplay}</td>
-      <td>${p.GeneratedBy}</td>
-      <td>${fmtDate(p.GeneratedOn)}</td>
+      <td>${agencyDisplay}</td>
+      <td>${dateDisplay}</td>
       <td>${statusBadge(p.Status)}</td>
       <td>
         <div class="actions-cell">
@@ -3804,10 +3689,10 @@ async function saveExtinguisher() {
 
   if (editingExtNo) {
     const idx = DATA.extinguishers.findIndex(e => e.ExtNo === editingExtNo);
-    if (idx !== -1) DATA.extinguishers[idx] = { ...DATA.extinguishers[idx], ...data };
+    if (idx !== -1) DATA.extinguishers[idx] = recalcStatus({ ...DATA.extinguishers[idx], ...data });
     showToast('Extinguisher updated!', 'success');
   } else {
-    DATA.extinguishers.push(data);
+    DATA.extinguishers.push(recalcStatus(data));
     showToast(`${data.ExtNo} added!`, 'success');
   }
 
@@ -3955,7 +3840,6 @@ function openReceiveModal(refillId) {
   document.getElementById('rec-date').value = today;
   document.getElementById('rec-weight').value = '';
   document.getElementById('rec-nextdue').value = '';
-  document.getElementById('rec-by').value = '';
   document.getElementById('rec-remarks').value = '';
 
   // Show extinguisher info in modal
@@ -3985,12 +3869,11 @@ async function markReceived() {
   const recDate = document.getElementById('rec-date').value;
   const newWeight = document.getElementById('rec-weight').value;
   const nextDue = document.getElementById('rec-nextdue').value;
-  const recBy = '';
   const remarks = document.getElementById('rec-remarks').value;
 
   refill.ReceivedDate = recDate;
   refill.Status = 'received';
-  refill.Remarks = (refill.Remarks ? refill.Remarks + ' | ' : '') + `Received by ${recBy}: ${remarks}`;
+  refill.Remarks = (refill.Remarks ? refill.Remarks + ' | ' : '') + (remarks ? 'Note: ' + remarks : 'Received');
 
   // Move extinguisher to Storeroom (NOT original location)
   const extIdx = DATA.extinguishers.findIndex(e => e.ExtNo === refill.ExtNo);
@@ -5184,6 +5067,187 @@ async function confirmBulkReceive() {
   showToast(receivedCount + ' extinguisher' + (receivedCount!==1?'s':'') + ' received → Storeroom. Use Deploy to place back.', 'success');
 }
 
+// ═══════════════════════════════════════════════
+// FEATURE 9 — QR CODE GENERATOR
+// ═══════════════════════════════════════════════
+function openQRModal() {
+  // Use selected extinguishers if any, else use all filtered/visible rows
+  let exts = [];
+  if (selectedExtNos.size > 0) {
+    exts = [...selectedExtNos]
+      .map(no => DATA.extinguishers.find(e => e.ExtNo === no))
+      .filter(Boolean);
+  } else {
+    exts = filteredRows.length ? filteredRows : DATA.extinguishers;
+  }
+
+  if (!exts.length) { showToast('No extinguishers to generate QR codes for', 'error'); return; }
+
+  document.getElementById('qr-count').textContent = exts.length;
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = '';
+
+  exts.forEach(ext => {
+    const card = document.createElement('div');
+    card.className = 'qr-card';
+
+    const qrDiv = document.createElement('div');
+    qrDiv.id = 'qr-' + ext.ExtNo.replace(/[^a-zA-Z0-9]/g, '_');
+    qrDiv.style.cssText = 'display:flex; justify-content:center;';
+    card.appendChild(qrDiv);
+
+    const num = document.createElement('div');
+    num.className = 'qr-card-num';
+    num.textContent = ext.ExtNo;
+    card.appendChild(num);
+
+    const loc = document.createElement('div');
+    loc.className = 'qr-card-loc';
+    loc.textContent = ext.Location || ext.CurrentLocation || '—';
+    card.appendChild(loc);
+
+    const type = document.createElement('div');
+    type.className = 'qr-card-type';
+    type.textContent = (ext.Type || '') + (ext.Weight ? ' · ' + ext.Weight + ' kg' : '');
+    card.appendChild(type);
+
+    grid.appendChild(card);
+
+    // Generate QR after DOM insertion
+    setTimeout(() => {
+      try {
+        new QRCode(qrDiv, {
+          text:           ext.ExtNo,
+          width:          110,
+          height:         110,
+          colorDark:      '#1A2332',
+          colorLight:     '#FFFFFF',
+          correctLevel:   QRCode.CorrectLevel.M
+        });
+      } catch(err) {
+        qrDiv.innerHTML = '<div style="width:110px;height:110px;background:var(--surface3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);">QR unavailable</div>';
+      }
+    }, 0);
+  });
+
+  openModal('modal-qr');
+}
+
+function printQRCodes() {
+  const grid = document.getElementById('qr-grid');
+  if (!grid || !grid.children.length) { showToast('No QR codes to print', 'error'); return; }
+
+  const orgName  = CONFIG.orgName || 'Fire Extinguisher Management';
+  const dateStr  = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  const cardsHtml = [...grid.children].map(card => card.outerHTML).join('');
+
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html>
+<html><head><title>QR Codes — ${orgName}</title>
+<style>
+  @page { size:A4; margin:15mm; }
+  * { box-sizing:border-box; }
+  body { font-family:Arial,sans-serif; background:#fff; }
+  h2   { font-size:14pt; margin-bottom:4px; }
+  .sub { font-size:9pt; color:#666; margin-bottom:16px; }
+  .qr-grid {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+  }
+  .qr-card {
+    border:1px solid #DDE3EC;
+    border-radius:8px;
+    padding:12px;
+    text-align:center;
+    break-inside:avoid;
+  }
+  .qr-card img, .qr-card canvas { max-width:100px; height:auto; }
+  .qr-card-num  { font-family:monospace; font-size:11pt; font-weight:700; color:#0F6FBF; margin-top:8px; }
+  .qr-card-loc  { font-size:8pt; color:#5A6880; margin-top:3px; }
+  .qr-card-type { font-size:8pt; color:#8FA0B4; margin-top:2px; }
+  @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style></head>
+<body>
+  <h2>🧯 ${orgName} — Extinguisher QR Codes</h2>
+  <div class="sub">Generated: ${dateStr} &nbsp;·&nbsp; ${grid.children.length} extinguisher(s)</div>
+  <div class="qr-grid">${cardsHtml}</div>
+</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 600);
+}
+
+// ═══════════════════════════════════════════════
+// FEATURE 6 — EXPORT MASTER LIST TO CSV
+// ═══════════════════════════════════════════════
+function exportCSV() {
+  // filteredRows is populated by filterTable(). If the user hasn't
+  // visited the Master List yet it will be empty — fall back to full list.
+  const rows = (filteredRows && filteredRows.length) ? filteredRows : DATA.extinguishers;
+  if (!rows.length) { showToast('No data to export', 'error'); return; }
+
+  const cols = [
+    'ExtNo','Type','Weight','Location','CurrentLocation','OriginalLocation',
+    'MfgDate','LastRefillDate','NextRefillDue','Status','Remarks'
+  ];
+  const header = cols.join(',');
+  const escape = v => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? '"' + s.replace(/"/g, '""') + '"'
+      : s;
+  };
+  const lines = rows.map(r => cols.map(c => escape(r[c])).join(','));
+  const csv   = [header, ...lines].join('\n');
+  const blob  = new Blob([csv], { type: 'text/csv' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href      = url;
+  a.download  = 'FireGuard_Extinguishers_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Exported ' + rows.length + ' rows to CSV', 'success');
+}
+
+// ═══════════════════════════════════════════════
+// FEATURE 4 — REFILL HISTORY PER EXTINGUISHER
+// ═══════════════════════════════════════════════
+function openHistoryModal(extNo) {
+  const ext      = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
+  const refills  = DATA.refills.filter(r => r.ExtNo === extNo)
+    .sort((a, b) => new Date(b.RequestDate) - new Date(a.RequestDate));
+
+  document.getElementById('history-modal-title').textContent = extNo + ' — Refill History';
+
+  // Banner with ext details
+  document.getElementById('history-ext-banner').innerHTML = `
+    <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+      <span class="ext-num">${extNo}</span>
+      ${typeTag(ext.Type || '—')}
+      <span style="font-size:12px; color:var(--grey);">${ext.Weight || '—'} kg</span>
+      <span style="font-size:12px; color:var(--grey);">📍 ${ext.Location || '—'}</span>
+      <span style="margin-left:auto; font-size:12px; color:var(--muted);">${refills.length} refill record${refills.length !== 1 ? 's' : ''}</span>
+    </div>`;
+
+  const tbody = document.getElementById('history-body');
+  if (!refills.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state" style="padding:32px 20px;"><div class="empty-icon">📋</div><div class="empty-text">No refill history for this extinguisher.</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = refills.map((r, i) => `
+      <tr style="background:${i % 2 === 0 ? 'var(--surface)' : 'var(--surface2)'};">
+        <td style="padding:10px 16px;"><span class="ext-num">${r.PassNo || '—'}</span></td>
+        <td style="padding:10px 16px; font-size:12px;">${fmtDate(r.RequestDate)}</td>
+        <td style="padding:10px 16px; font-size:12px; color:var(--grey);">${r.RequestBy || '—'}</td>
+        <td style="padding:10px 16px; font-size:12px;">${r.SentDate ? fmtDate(r.SentDate) : '<span style="color:var(--muted);">—</span>'}</td>
+        <td style="padding:10px 16px; font-size:12px;">${r.ReceivedDate ? fmtDate(r.ReceivedDate) : '<span style="color:var(--muted);">—</span>'}</td>
+        <td style="padding:10px 16px;">${statusBadge(r.Status)}</td>
+      </tr>`).join('');
+  }
+  openModal('modal-history');
+}
+
 const pageTitles = {
   dashboard:   ['Dashboard',        'Overview'],
   masterlist:  ['Master List',      'All Extinguishers'],
@@ -5193,7 +5257,6 @@ const pageTitles = {
   inspection:   ['Inspection',       'Monthly Inspection Checklist'],
   locationmap: ['Location Map',     'All Locations at a Glance'],
   amc:         ['AMC Tracker',      'Annual Maintenance Contracts'],
-  config:      ['Configuration',    'API & Settings']
 };
 
 function showPage(id) {
