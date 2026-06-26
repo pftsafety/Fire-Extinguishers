@@ -2583,6 +2583,41 @@ function renderAlerts() {
     </div>`).join('');
   if (alerts.length > 6)
     banner.innerHTML += `<div style="font-size:12px;color:var(--grey);padding:4px 8px;">+${alerts.length-6} more alerts — check master list</div>`;
+
+
+  // ── Quarterly service due/overdue alerts ─────────────────
+  const _svcDismissed = JSON.parse(sessionStorage.getItem('dismissed_alerts') || '[]');
+  const _latestSvc = {};
+  DATA.services.forEach(s => {
+    if (!_latestSvc[s.ExtNo] || new Date(s.ServiceDate) > new Date(_latestSvc[s.ExtNo].ServiceDate))
+      _latestSvc[s.ExtNo] = s;
+  });
+  const _svcBanner = document.getElementById('alerts-banner');
+  if (_svcBanner) {
+    Object.values(_latestSvc).forEach(s => {
+      if (!s.NextDue) return;
+      const _svcDue  = new Date(s.NextDue); _svcDue.setHours(0,0,0,0);
+      const _svcDiff = Math.round((_svcDue - today) / 86400000);
+      const _svcKey  = 'svc_' + s.ExtNo;
+      if (_svcDismissed.includes(_svcKey)) return;
+      const _svcExt  = DATA.extinguishers.find(e => e.ExtNo === s.ExtNo);
+      const _svcLoc  = _svcExt ? (_svcExt.CurrentLocation || _svcExt.Location) : '—';
+      let _svcItem = '';
+      if (_svcDiff < 0)
+        _svcItem = '<div class="alert-item alert-red"><span class="alert-icon">🔧</span>' +
+          '<div class="alert-text"><strong>' + s.ExtNo + ' quarterly service overdue by ' +
+          Math.abs(_svcDiff) + ' day' + (Math.abs(_svcDiff)!==1?'s':'') + '</strong>' +
+          '<small>' + _svcLoc + ' — last serviced ' + fmtDate(s.ServiceDate) + '</small></div>' +
+          '<button class="alert-dismiss" onclick="dismissAlert(\'' + _svcKey + '\')" title="Dismiss">✕</button></div>';
+      else if (_svcDiff <= 14)
+        _svcItem = '<div class="alert-item alert-amber"><span class="alert-icon">🔧</span>' +
+          '<div class="alert-text"><strong>' + s.ExtNo + ' service due in ' + _svcDiff +
+          ' day' + (_svcDiff!==1?'s':'') + '</strong>' +
+          '<small>' + _svcLoc + ' — next due ' + fmtDate(s.NextDue) + '</small></div>' +
+          '<button class="alert-dismiss" onclick="dismissAlert(\'' + _svcKey + '\')" title="Dismiss">✕</button></div>';
+      if (_svcItem) _svcBanner.insertAdjacentHTML('beforeend', _svcItem);
+    });
+  }
 }
 
 function dismissAlert(key) {
@@ -5579,6 +5614,39 @@ function openHistoryModal(extNo) {
       </tr>`).join('');
   }
   openModal('modal-history');
+
+  // ── Populate service history tab ──
+  currentHistoryExtNo = extNo;
+  // Populate service tab
+  const services = DATA.services.filter(s => s.ExtNo === extNo)
+    .sort((a,b) => new Date(b.ServiceDate) - new Date(a.ServiceDate));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const condIcon = { ok:'✅', attention:'⚠️', condemned:'🚫' };
+  const stbody = document.getElementById('history-service-body');
+  if (stbody) {
+    if (!services.length) {
+      stbody.innerHTML = '<tr><td colspan="6"><div class="empty-state" style="padding:28px 20px;">' +
+        '<div class="empty-icon">🔧</div>' +
+        '<div class="empty-text">No service records for this extinguisher.</div></div></td></tr>';
+    } else {
+      stbody.innerHTML = services.map((s,i) => {
+        const due  = s.NextDue ? new Date(s.NextDue) : null;
+        const diff = due ? Math.round((due - today) / 86400000) : null;
+        const dueColor = diff === null ? '' : diff < 0 ? 'color:var(--red);font-weight:600;'
+                          : diff <= 14 ? 'color:var(--yellow);font-weight:600;' : '';
+        return '<tr style="background:' + (i%2===0?'var(--surface)':'var(--surface2)') + ';">' +
+          '<td style="padding:9px 14px;font-size:12px;">' + fmtDate(s.ServiceDate) + '</td>' +
+          '<td style="padding:9px 14px;font-size:12px;">' + (s.ServiceType||'—') + '</td>' +
+          '<td style="padding:9px 14px;font-size:12px;color:var(--grey);">' + (s.ServiceBy||'—') + '</td>' +
+          '<td style="padding:9px 14px;">' + (condIcon[s.Condition]||'—') + ' <span style="font-size:11px;">' + (s.Condition||'—') + '</span></td>' +
+          '<td style="padding:9px 14px;font-size:12px;' + dueColor + '">' + (s.NextDue ? fmtDate(s.NextDue) : '—') + '</td>' +
+          '<td style="padding:9px 14px;font-size:12px;color:var(--grey);">' + (s.Remarks||'—') + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+  }
+    // Reset to service tab
+  switchHistoryTab('service');
 }
 
 
@@ -5803,6 +5871,58 @@ function handleQRResult(rawData) {
 
   document.getElementById('scanner-result-panel').style.display = 'block';
   document.getElementById('scan-again-btn').style.display       = 'inline-flex';
+
+  // ── Inject service info after base result renders ──
+  {
+  
+    // After base result renders, inject service info
+    const extNo = rawData.trim();
+    const svcRecords = DATA.services.filter(s => s.ExtNo === extNo)
+      .sort((a,b) => new Date(b.ServiceDate) - new Date(a.ServiceDate));
+    const lastSvc = svcRecords[0] || null;
+  
+    if (!lastSvc) return; // no service records — nothing to add
+  
+    const today  = new Date(); today.setHours(0,0,0,0);
+    const details = document.getElementById('scanner-result-details');
+    if (!details) return;
+  
+    const due     = lastSvc.NextDue ? new Date(lastSvc.NextDue) : null;
+    const diff    = due ? Math.round((due - today) / 86400000) : null;
+    const dueColor= diff === null ? 'var(--body)' : diff < 0 ? 'var(--red)' : diff <= 14 ? 'var(--yellow)' : 'var(--green)';
+    const dueLabel= diff === null ? '—' : diff < 0
+      ? 'Overdue (' + Math.abs(diff) + 'd ago)'
+      : diff === 0 ? 'Due Today'
+      : 'In ' + diff + ' day' + (diff !== 1 ? 's' : '');
+  
+    const condIcon = { ok:'✅', attention:'⚠️', condemned:'🚫' };
+  
+    // Append service info rows to the existing details grid
+    details.insertAdjacentHTML('beforeend',
+      '<div class="scanner-detail-item" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">' +
+        '<span class="scanner-detail-lbl">Last Service</span>' +
+        '<span class="scanner-detail-val">' + fmtDate(lastSvc.ServiceDate) + ' — ' +
+          (condIcon[lastSvc.Condition] || '') + ' ' + (lastSvc.ServiceType||'') + '</span>' +
+      '</div>' +
+      '<div class="scanner-detail-item">' +
+        '<span class="scanner-detail-lbl">Serviced By</span>' +
+        '<span class="scanner-detail-val">' + (lastSvc.ServiceBy||'—') + '</span>' +
+      '</div>' +
+      '<div class="scanner-detail-item">' +
+        '<span class="scanner-detail-lbl">Next Service Due</span>' +
+        '<span class="scanner-detail-val" style="color:' + dueColor + ';">' + dueLabel + '</span>' +
+      '</div>'
+    );
+  
+    // Also add "Log Service" to action buttons
+    const actions = document.getElementById('scanner-result-actions');
+    if (actions) {
+      actions.insertAdjacentHTML('beforeend',
+        '<button class="btn btn-ghost btn-sm" ' +
+          'onclick="closeScannerModal(); openServiceModal(' + "'" + extNo + "'" + ');">🔧 Log Service</button>'
+      );
+    }
+  }
 }
 
 function resumeScanning() {
@@ -6020,140 +6140,6 @@ function closeSvcHistoryAndLog() {
   const extNo = currentHistoryExtNo;
   closeModal('modal-history');
   openServiceModal(extNo);
-}
-
-// ── Extend openHistoryModal to include service tab ─────────────
-const _origOpenHistoryModal = openHistoryModal;
-function openHistoryModal(extNo) {
-  currentHistoryExtNo = extNo;
-  _origOpenHistoryModal(extNo);
-
-  // Populate service tab
-  const services = DATA.services.filter(s => s.ExtNo === extNo)
-    .sort((a,b) => new Date(b.ServiceDate) - new Date(a.ServiceDate));
-  const today = new Date(); today.setHours(0,0,0,0);
-  const condIcon = { ok:'✅', attention:'⚠️', condemned:'🚫' };
-  const stbody = document.getElementById('history-service-body');
-  if (stbody) {
-    if (!services.length) {
-      stbody.innerHTML = '<tr><td colspan="6"><div class="empty-state" style="padding:28px 20px;">' +
-        '<div class="empty-icon">🔧</div>' +
-        '<div class="empty-text">No service records for this extinguisher.</div></div></td></tr>';
-    } else {
-      stbody.innerHTML = services.map((s,i) => {
-        const due  = s.NextDue ? new Date(s.NextDue) : null;
-        const diff = due ? Math.round((due - today) / 86400000) : null;
-        const dueColor = diff === null ? '' : diff < 0 ? 'color:var(--red);font-weight:600;'
-                          : diff <= 14 ? 'color:var(--yellow);font-weight:600;' : '';
-        return '<tr style="background:' + (i%2===0?'var(--surface)':'var(--surface2)') + ';">' +
-          '<td style="padding:9px 14px;font-size:12px;">' + fmtDate(s.ServiceDate) + '</td>' +
-          '<td style="padding:9px 14px;font-size:12px;">' + (s.ServiceType||'—') + '</td>' +
-          '<td style="padding:9px 14px;font-size:12px;color:var(--grey);">' + (s.ServiceBy||'—') + '</td>' +
-          '<td style="padding:9px 14px;">' + (condIcon[s.Condition]||'—') + ' <span style="font-size:11px;">' + (s.Condition||'—') + '</span></td>' +
-          '<td style="padding:9px 14px;font-size:12px;' + dueColor + '">' + (s.NextDue ? fmtDate(s.NextDue) : '—') + '</td>' +
-          '<td style="padding:9px 14px;font-size:12px;color:var(--grey);">' + (s.Remarks||'—') + '</td>' +
-        '</tr>';
-      }).join('');
-    }
-  }
-  // Reset to service tab
-  switchHistoryTab('service');
-}
-
-// ── Add service alerts to renderAlerts ────────────────────────
-const _origRenderAlerts = renderAlerts;
-function renderAlerts() {
-  _origRenderAlerts();
-  // Service due alerts appended to existing banner
-  const today = new Date(); today.setHours(0,0,0,0);
-  const SVC_WARN = 14;
-  const dismissed = JSON.parse(sessionStorage.getItem('dismissed_alerts') || '[]');
-
-  // Find latest service per extinguisher
-  const latestSvc = {};
-  DATA.services.forEach(s => {
-    if (!latestSvc[s.ExtNo] || new Date(s.ServiceDate) > new Date(latestSvc[s.ExtNo].ServiceDate)) {
-      latestSvc[s.ExtNo] = s;
-    }
-  });
-
-  const banner = document.getElementById('alerts-banner');
-  if (!banner) return;
-
-  Object.values(latestSvc).forEach(s => {
-    if (!s.NextDue) return;
-    const due  = new Date(s.NextDue); due.setHours(0,0,0,0);
-    const diff = Math.round((due - today) / 86400000);
-    const key  = 'svc_' + s.ExtNo;
-    if (dismissed.includes(key)) return;
-    const ext  = DATA.extinguishers.find(e => e.ExtNo === s.ExtNo);
-    const loc  = ext ? (ext.CurrentLocation || ext.Location) : '—';
-    let item = '';
-    if (diff < 0)
-      item = '<div class="alert-item alert-red"><span class="alert-icon">🔧</span>' +
-        '<div class="alert-text"><strong>' + s.ExtNo + ' quarterly service overdue by ' + Math.abs(diff) + ' day' + (Math.abs(diff)!==1?'s':'') + '</strong>' +
-        '<small>' + loc + ' — last serviced ' + fmtDate(s.ServiceDate) + '</small></div>' +
-        '<button class="alert-dismiss" onclick="dismissAlert(\'' + key + '\')" title="Dismiss">✕</button></div>';
-    else if (diff <= SVC_WARN)
-      item = '<div class="alert-item alert-amber"><span class="alert-icon">🔧</span>' +
-        '<div class="alert-text"><strong>' + s.ExtNo + ' service due in ' + diff + ' day' + (diff!==1?'s':'') + '</strong>' +
-        '<small>' + loc + ' — next due ' + fmtDate(s.NextDue) + '</small></div>' +
-        '<button class="alert-dismiss" onclick="dismissAlert(\'' + key + '\')" title="Dismiss">✕</button></div>';
-    if (item) banner.insertAdjacentHTML('beforeend', item);
-  });
-}
-
-// ── Extend QR scanner result to include service info ──────────
-const _origHandleQRResult = handleQRResult;
-function handleQRResult(rawData) {
-  _origHandleQRResult(rawData);
-  // After base result renders, inject service info
-  const extNo = rawData.trim();
-  const svcRecords = DATA.services.filter(s => s.ExtNo === extNo)
-    .sort((a,b) => new Date(b.ServiceDate) - new Date(a.ServiceDate));
-  const lastSvc = svcRecords[0] || null;
-
-  if (!lastSvc) return; // no service records — nothing to add
-
-  const today  = new Date(); today.setHours(0,0,0,0);
-  const details = document.getElementById('scanner-result-details');
-  if (!details) return;
-
-  const due     = lastSvc.NextDue ? new Date(lastSvc.NextDue) : null;
-  const diff    = due ? Math.round((due - today) / 86400000) : null;
-  const dueColor= diff === null ? 'var(--body)' : diff < 0 ? 'var(--red)' : diff <= 14 ? 'var(--yellow)' : 'var(--green)';
-  const dueLabel= diff === null ? '—' : diff < 0
-    ? 'Overdue (' + Math.abs(diff) + 'd ago)'
-    : diff === 0 ? 'Due Today'
-    : 'In ' + diff + ' day' + (diff !== 1 ? 's' : '');
-
-  const condIcon = { ok:'✅', attention:'⚠️', condemned:'🚫' };
-
-  // Append service info rows to the existing details grid
-  details.insertAdjacentHTML('beforeend',
-    '<div class="scanner-detail-item" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">' +
-      '<span class="scanner-detail-lbl">Last Service</span>' +
-      '<span class="scanner-detail-val">' + fmtDate(lastSvc.ServiceDate) + ' — ' +
-        (condIcon[lastSvc.Condition] || '') + ' ' + (lastSvc.ServiceType||'') + '</span>' +
-    '</div>' +
-    '<div class="scanner-detail-item">' +
-      '<span class="scanner-detail-lbl">Serviced By</span>' +
-      '<span class="scanner-detail-val">' + (lastSvc.ServiceBy||'—') + '</span>' +
-    '</div>' +
-    '<div class="scanner-detail-item">' +
-      '<span class="scanner-detail-lbl">Next Service Due</span>' +
-      '<span class="scanner-detail-val" style="color:' + dueColor + ';">' + dueLabel + '</span>' +
-    '</div>'
-  );
-
-  // Also add "Log Service" to action buttons
-  const actions = document.getElementById('scanner-result-actions');
-  if (actions) {
-    actions.insertAdjacentHTML('beforeend',
-      '<button class="btn btn-ghost btn-sm" ' +
-        'onclick="closeScannerModal(); openServiceModal(' + "'" + extNo + "'" + ');">🔧 Log Service</button>'
-    );
-  }
 }
 
 const pageTitles = {
