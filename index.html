@@ -5724,40 +5724,40 @@ function handleQRResult(rawData) {
   if (ext) {
     // Banner
     document.getElementById('scanner-result-ext').innerHTML = `
-      <span class="ext-num" style="font-size:16px;">\${ext.ExtNo}</span>
-      \${typeTag(ext.Type || '—')}
-      <span style="font-size:12px;color:var(--grey);">\${ext.Weight || '—'} kg</span>
-      <span style="margin-left:auto;">\${statusBadge(ext.Status)}</span>`;
+      <span class="ext-num" style="font-size:16px;">${ext.ExtNo}</span>
+      ${typeTag(ext.Type || '—')}
+      <span style="font-size:12px;color:var(--grey);">${ext.Weight || '—'} kg</span>
+      <span style="margin-left:auto;">${statusBadge(ext.Status)}</span>`;
 
     // Details grid
     document.getElementById('scanner-result-details').innerHTML = `
       <div class="scanner-detail-item">
         <span class="scanner-detail-lbl">Location</span>
-        <span class="scanner-detail-val">\${ext.CurrentLocation || ext.Location || '—'}</span>
+        <span class="scanner-detail-val">${ext.CurrentLocation || ext.Location || '—'}</span>
       </div>
       <div class="scanner-detail-item">
         <span class="scanner-detail-lbl">Permanent Slot</span>
-        <span class="scanner-detail-val">\${ext.Location || '—'}</span>
+        <span class="scanner-detail-val">${ext.Location || '—'}</span>
       </div>
       <div class="scanner-detail-item">
         <span class="scanner-detail-lbl">Last Refill</span>
-        <span class="scanner-detail-val">\${fmtDate(ext.LastRefillDate)}</span>
+        <span class="scanner-detail-val">${fmtDate(ext.LastRefillDate)}</span>
       </div>
       <div class="scanner-detail-item">
         <span class="scanner-detail-lbl">Next Due</span>
-        <span class="scanner-detail-val" style="color:\${
+        <span class="scanner-detail-val" style="color:${
           ext.Status === 'overdue' ? 'var(--red)' :
           ext.Status === 'due'     ? 'var(--yellow)' : 'var(--green)'};">
-          \${fmtDate(ext.NextRefillDue)}
+          ${fmtDate(ext.NextRefillDue)}
         </span>
       </div>
       <div class="scanner-detail-item">
         <span class="scanner-detail-lbl">Mfg Year</span>
-        <span class="scanner-detail-val">\${fmtDate(ext.MfgDate)}</span>
+        <span class="scanner-detail-val">${fmtDate(ext.MfgDate)}</span>
       </div>
       <div class="scanner-detail-item">
         <span class="scanner-detail-lbl">Hydro Test</span>
-        <span class="scanner-detail-val">\${hydroStatus(ext.ExtNo)}</span>
+        <span class="scanner-detail-val">${hydroStatus(ext.ExtNo)}</span>
       </div>`;
 
     // Action buttons
@@ -5765,32 +5765,32 @@ function handleQRResult(rawData) {
     document.getElementById('scanner-result-actions').innerHTML = `
       <button class="btn btn-primary btn-sm"
               onclick="closeScannerModal(); showPage('masterlist');
-                       document.getElementById('search-input').value='\${ext.ExtNo}';
+                       document.getElementById('search-input').value='${ext.ExtNo}';
                        filterTable();">
         🔍 View in List
       </button>
       <button class="btn btn-ghost btn-sm"
-              onclick="closeScannerModal(); openHistoryModal('\${ext.ExtNo}');">
+              onclick="closeScannerModal(); openHistoryModal('${ext.ExtNo}');">
         📋 History
       </button>
-      \${canRefill ? `<button class="btn btn-blue btn-sm"
-              onclick="closeScannerModal(); quickRefill('\${ext.ExtNo}');">
+      ${canRefill ? `<button class="btn btn-blue btn-sm"
+              onclick="closeScannerModal(); quickRefill('${ext.ExtNo}');">
         🔄 Send for Refill
       </button>` : ''}
-      \${ext.Status === 'in-store' ? `<button class="btn btn-green btn-sm"
-              onclick="closeScannerModal(); openDeployModal('\${ext.ExtNo}');">
+      ${ext.Status === 'in-store' ? `<button class="btn btn-green btn-sm"
+              onclick="closeScannerModal(); openDeployModal('${ext.ExtNo}');">
         📍 Deploy
       </button>` : ''}`;
 
   } else {
     // Unknown QR — show raw data
     document.getElementById('scanner-result-ext').innerHTML = `
-      <span class="ext-num" style="font-size:14px;">\${extNo}</span>
+      <span class="ext-num" style="font-size:14px;">${extNo}</span>
       <span style="font-size:12px; color:var(--red); margin-left:8px;">Not found in current data</span>`;
     document.getElementById('scanner-result-details').innerHTML = `
       <div class="scanner-detail-item" style="grid-column:1/-1;">
         <span class="scanner-detail-lbl">Raw QR content</span>
-        <span class="scanner-detail-val" style="font-family:'JetBrains Mono',monospace;">\${extNo}</span>
+        <span class="scanner-detail-val" style="font-family:'JetBrains Mono',monospace;">${extNo}</span>
       </div>
       <div class="scanner-detail-item" style="grid-column:1/-1;">
         <span class="scanner-detail-val" style="color:var(--muted);font-size:11px;">
@@ -5936,7 +5936,7 @@ function renderServicesTable() {
         '<div class="alert-text"><strong>' + d.msg + '</strong>' +
           '<small>' + d.loc + '</small></div>' +
         '<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" ' +
-          'onclick="openServiceModal('' + d.extNo + '')">＋ Log Now</button>' +
+          'onclick="openServiceModal(\'' + d.extNo + '\')">' + '＋ Log Now</button>' +
       '</div>'
     ).join('');
   }
@@ -5980,7 +5980,7 @@ function renderServicesTable() {
       '<td>' + (condIcon[s.Condition]||'—') + ' <span style="font-size:11px;">' + (s.Condition||'—') + '</span></td>' +
       '<td style="font-size:12px;' + dueColor + '">' + (s.NextDue ? fmtDate(s.NextDue) : '—') + '</td>' +
       '<td style="font-size:12px;color:var(--grey);max-width:160px;">' + (s.Remarks||'—') + '</td>' +
-      '<td><button class="btn btn-red btn-sm" onclick="deleteService('' + s.ServiceID + '')">🗑️</button></td>' +
+      '<td><button class="btn btn-red btn-sm" onclick="deleteService(\'' + s.ServiceID + '\')">🗑️</button></td>' +
     '</tr>';
   }).join('');
 }
@@ -6093,12 +6093,12 @@ function renderAlerts() {
       item = '<div class="alert-item alert-red"><span class="alert-icon">🔧</span>' +
         '<div class="alert-text"><strong>' + s.ExtNo + ' quarterly service overdue by ' + Math.abs(diff) + ' day' + (Math.abs(diff)!==1?'s':'') + '</strong>' +
         '<small>' + loc + ' — last serviced ' + fmtDate(s.ServiceDate) + '</small></div>' +
-        '<button class="alert-dismiss" onclick="dismissAlert('' + key + '')" title="Dismiss">✕</button></div>';
+        '<button class="alert-dismiss" onclick="dismissAlert(\'' + key + '\')" title="Dismiss">✕</button></div>';
     else if (diff <= SVC_WARN)
       item = '<div class="alert-item alert-amber"><span class="alert-icon">🔧</span>' +
         '<div class="alert-text"><strong>' + s.ExtNo + ' service due in ' + diff + ' day' + (diff!==1?'s':'') + '</strong>' +
         '<small>' + loc + ' — next due ' + fmtDate(s.NextDue) + '</small></div>' +
-        '<button class="alert-dismiss" onclick="dismissAlert('' + key + '')" title="Dismiss">✕</button></div>';
+        '<button class="alert-dismiss" onclick="dismissAlert(\'' + key + '\')" title="Dismiss">✕</button></div>';
     if (item) banner.insertAdjacentHTML('beforeend', item);
   });
 }
