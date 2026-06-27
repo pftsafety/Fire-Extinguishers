@@ -2113,6 +2113,13 @@
 // ═══════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════
+// Deep-link: ?ext=FE-1 opens the portal directly to that extinguisher
+let _deepLinkExtNo = null;
+try {
+  const _params = new URLSearchParams(window.location.search);
+  if (_params.has('ext')) _deepLinkExtNo = decodeURIComponent(_params.get('ext'));
+} catch(_) {}
+
 // API URL is the only runtime config the frontend needs.
 // All IDs (Sheet, Template, Folder) live in FireGuard_Backend.gs.
 // Org details below are used for Word pass generation — edit here to customise.
@@ -2402,6 +2409,17 @@ async function refreshData(silent = false) {
     const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok', 'Synced ' + now);
     if (!silent) showToast('Synced — ' + DATA.extinguishers.length + ' extinguishers loaded', 'success');
+    // Handle deep-link: ?ext=FE-1 (from QR scan via external scanner)
+    if (_deepLinkExtNo) {
+      const _dlExt = DATA.extinguishers.find(e => e.ExtNo === _deepLinkExtNo);
+      if (_dlExt) {
+        showToast('Opening ' + _deepLinkExtNo + ' from QR scan', 'info');
+        setTimeout(() => openHistoryModal(_deepLinkExtNo), 700);
+      } else {
+        showToast(_deepLinkExtNo + ' not found — data may still be loading', 'error');
+      }
+      _deepLinkExtNo = null; // only fire once
+    }
   } else {
     const errMsg = res?.error || 'No response from server';
     setSyncStatus('error', 'Sync failed');
@@ -5452,6 +5470,8 @@ function openQRModal() {
   if (!exts.length) { showToast('No extinguishers to generate QR codes for', 'error'); return; }
 
   document.getElementById('qr-count').textContent = exts.length;
+  // Base URL for deep-link QR codes — any QR scanner opens portal at this ext
+  const _portalBase = window.location.href.split('?')[0];
   const grid = document.getElementById('qr-grid');
   grid.innerHTML = '';
 
@@ -5485,7 +5505,7 @@ function openQRModal() {
     setTimeout(() => {
       try {
         new QRCode(qrDiv, {
-          text:           ext.ExtNo,
+          text:           _portalBase + '?ext=' + encodeURIComponent(ext.ExtNo),
           width:          110,
           height:         110,
           colorDark:      '#1A2332',
@@ -5508,6 +5528,8 @@ function printQRCodes() {
   const orgName  = CONFIG.orgName || 'Fire Extinguisher Management';
   const dateStr  = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
   const cardsHtml = [...grid.children].map(card => card.outerHTML).join('');
+  // Note: QR images in print are already rendered as <img> or <canvas>
+  // (qrcode.js renders inline) — portal URL is baked into the QR image itself
 
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html>
@@ -5534,6 +5556,7 @@ function printQRCodes() {
   .qr-card-num  { font-family:monospace; font-size:11pt; font-weight:700; color:#0F6FBF; margin-top:8px; }
   .qr-card-loc  { font-size:8pt; color:#5A6880; margin-top:3px; }
   .qr-card-type { font-size:8pt; color:#8FA0B4; margin-top:2px; }
+  .qr-card-url  { font-size:6pt; color:#AAA; margin-top:4px; word-break:break-all; }
   @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
 </style></head>
 <body>
@@ -5769,6 +5792,7 @@ function scanLoop() {
 
 function handleQRResult(rawData) {
   scannerPaused = true;
+  stopScanner();  // release camera — light goes off immediately after scan
 
   // Flash effect
   const wrap = document.getElementById('scanner-wrap');
@@ -5780,9 +5804,14 @@ function handleQRResult(rawData) {
   // Vibrate if supported
   if (navigator.vibrate) navigator.vibrate(80);
 
-  // Look up extinguisher
-  const extNo = rawData.trim();
-  const ext   = DATA.extinguishers.find(e => e.ExtNo === extNo);
+  // Extract ExtNo — handle both plain ExtNo and full portal URL format
+  let extNo = rawData.trim();
+  try {
+    const u = new URL(rawData.trim());
+    const p = u.searchParams.get('ext');
+    if (p) extNo = decodeURIComponent(p);
+  } catch(_) {}  // not a URL — use rawData as-is (bare ExtNo)
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
 
   // Status bar
   document.getElementById('scanner-status').textContent =
@@ -5930,8 +5959,8 @@ function resumeScanning() {
   scannerPaused    = false;
   document.getElementById('scanner-result-panel').style.display = 'none';
   document.getElementById('scan-again-btn').style.display       = 'none';
-  document.getElementById('scanner-status').textContent         = 'Scanning...';
-  scannerRafId = requestAnimationFrame(scanLoop);
+  document.getElementById('scanner-status').textContent         = 'Starting camera...';
+  startScanner();  // restart camera stream fresh
 }
 
 
