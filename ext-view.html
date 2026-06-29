@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Extinguisher Details</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent:    #0F6FBF;
+    --green:     #0D7F4A;  --green-bg:  #D1FAE5; --green-bd:  #6EE7B7;
+    --yellow:    #92680A;  --yellow-bg: #FEF3C7; --yellow-bd: #FCD34D;
+    --red:       #B91C1C;  --red-bg:    #FEE2E2; --red-bd:    #FCA5A5;
+    --blue:      #1D4ED8;  --blue-bg:   #DBEAFE; --blue-bd:   #93C5FD;
+    --grey:      #5A6880;  --muted:     #8FA0B4;
+    --body:      #1A2332;  --surface:   #FFFFFF;
+    --surface2:  #F8FAFC;  --border:    #DDE3EC;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: linear-gradient(135deg, #0F1E2E 0%, #1a3a5c 100%);
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--body);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .page-logo {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .page-title {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+
+  /* Card header band */
+  .card-head {
+    padding: 20px 22px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .ext-no {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .ext-type {
+    font-size: 12px;
+    color: var(--grey);
+    margin-top: 4px;
+  }
+  .status-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .pill-ok       { background: var(--green-bg);  color: var(--green);  border: 1px solid var(--green-bd); }
+  .pill-due      { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-bd); }
+  .pill-overdue  { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red-bd); }
+  .pill-pending  { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--blue-bd); }
+  .pill-instore  { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--blue-bd); }
+
+  /* Info grid */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .info-item {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-item.full { grid-column: 1 / -1; }
+  .info-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .info-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--body);
+    line-height: 1.4;
+  }
+  .info-value.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* Section divider */
+  .section-divider {
+    padding: 10px 22px 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--accent);
+    font-weight: 700;
+    background: #F0F7FF;
+    border-bottom: 1px solid var(--blue-bd);
+    grid-column: 1 / -1;
+  }
+
+  /* Due date colouring */
+  .due-ok       { color: var(--green); }
+  .due-soon     { color: var(--yellow); font-weight: 600; }
+  .due-overdue  { color: var(--red);    font-weight: 600; }
+
+  /* Hydro result */
+  .hydro-pass { color: var(--green); }
+  .hydro-fail { color: var(--red); }
+
+  /* Condition icons */
+  .cond-ok        { color: var(--green); }
+  .cond-attention { color: var(--yellow); }
+  .cond-condemned { color: var(--red); }
+
+  /* Footer */
+  .card-footer {
+    padding: 14px 22px;
+    background: var(--surface2);
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* Loading / error states */
+  .state-screen {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    padding: 48px 24px;
+    color: rgba(255,255,255,0.8);
+  }
+  .state-icon   { font-size: 52px; margin-bottom: 16px; display: block; }
+  .state-title  { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .state-sub    { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+  .spinner {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .portal-link {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background .15s;
+  }
+  .portal-link:hover { background: rgba(255,255,255,0.2); }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <span class="page-logo">🧯</span>
+  <div class="page-title">Fire Extinguisher Info</div>
+</div>
+
+<!-- Loading state -->
+<div class="state-screen" id="state-loading">
+  <div class="spinner"></div>
+  <div class="state-title">Fetching details...</div>
+  <div class="state-sub">Reading extinguisher record</div>
+</div>
+
+<!-- Error state -->
+<div class="state-screen" id="state-error" style="display:none;">
+  <span class="state-icon">⚠️</span>
+  <div class="state-title" id="err-title">Not Found</div>
+  <div class="state-sub" id="err-sub">Could not load extinguisher details.</div>
+  <a href="javascript:history.back()" class="portal-link">← Go Back</a>
+</div>
+
+<!-- Result card -->
+<div class="card" id="card" style="display:none;">
+
+  <!-- Header -->
+  <div class="card-head">
+    <div>
+      <div class="ext-no"  id="r-extno">—</div>
+      <div class="ext-type" id="r-type">—</div>
+    </div>
+    <div class="status-pill" id="r-status-pill">—</div>
+  </div>
+
+  <!-- Info grid -->
+  <div class="info-grid">
+
+    <div class="section-divider">📍 Location</div>
+
+    <div class="info-item full">
+      <div class="info-label">Current Location</div>
+      <div class="info-value" id="r-current-loc">—</div>
+    </div>
+    <div class="info-item full">
+      <div class="info-label">Permanent Assigned Location</div>
+      <div class="info-value" id="r-perm-loc">—</div>
+    </div>
+
+    <div class="section-divider">🔄 Refill Status</div>
+
+    <div class="info-item">
+      <div class="info-label">Last Refill</div>
+      <div class="info-value" id="r-last-refill">—</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Next Refill Due</div>
+      <div class="info-value" id="r-next-refill">—</div>
+    </div>
+
+    <div class="section-divider">🔧 Quarterly Service</div>
+
+    <div class="info-item">
+      <div class="info-label">Last Serviced</div>
+      <div class="info-value" id="r-last-svc">—</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Next Service Due</div>
+      <div class="info-value" id="r-next-svc">—</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Serviced By</div>
+      <div class="info-value" id="r-svc-by">—</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Condition</div>
+      <div class="info-value" id="r-svc-cond">—</div>
+    </div>
+
+    <div class="section-divider">💧 Hydrostatic Test</div>
+
+    <div class="info-item">
+      <div class="info-label">Last Test</div>
+      <div class="info-value" id="r-hydro-date">—</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Next Test Due</div>
+      <div class="info-value" id="r-hydro-next">—</div>
+    </div>
+
+    <div class="section-divider">ℹ️ Details</div>
+
+    <div class="info-item">
+      <div class="info-label">Type</div>
+      <div class="info-value" id="r-ext-type">—</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Capacity</div>
+      <div class="info-value" id="r-weight">—</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Mfg. Year</div>
+      <div class="info-value" id="r-mfg">—</div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">Extinguisher No.</div>
+      <div class="info-value mono" id="r-extno2">—</div>
+    </div>
+
+  </div><!-- /info-grid -->
+
+  <div class="card-footer">
+    Scanned <span id="r-scan-time"></span>
+    &nbsp;·&nbsp; FireGuard Portal
+  </div>
+</div>
+
+<script>
+// ── CONFIG — same API as the main portal ──────────────────────
+const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
+
+// ── Helpers ───────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d || String(d).trim() === '') return '—';
+  const s = String(d).trim();
+  if (/^\d{4}$/.test(s)) return s;
+  try {
+    const dt = new Date(s);
+    if (isNaN(dt.getTime())) return s;
+    return dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  } catch(_) { return s; }
+}
+
+function dueClass(dateStr) {
+  if (!dateStr) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due   = new Date(dateStr); due.setHours(0,0,0,0);
+  const diff  = Math.round((due - today) / 86400000);
+  if (diff < 0)   return 'due-overdue';
+  if (diff <= 30) return 'due-soon';
+  return 'due-ok';
+}
+
+function dueLabel(dateStr, warnDays) {
+  if (!dateStr) return '—';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due   = new Date(dateStr); due.setHours(0,0,0,0);
+  const diff  = Math.round((due - today) / 86400000);
+  const base  = fmtDate(dateStr);
+  if (diff < 0)   return base + ' ⚠️ Overdue';
+  if (diff === 0) return base + ' (Today!)';
+  if (diff <= warnDays) return base + ' (' + diff + 'd)';
+  return base;
+}
+
+function showError(title, sub) {
+  document.getElementById('state-loading').style.display = 'none';
+  document.getElementById('state-error').style.display   = '';
+  document.getElementById('err-title').textContent       = title;
+  document.getElementById('err-sub').textContent         = sub;
+}
+
+function set(id, html, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = html;
+  if (cls) el.className = (el.className || '') + ' ' + cls;
+}
+
+// ── Status pill ───────────────────────────────────────────────
+function statusPill(status) {
+  const map = {
+    ok:       ['pill-ok',      '✅ Active'],
+    due:      ['pill-due',     '🟡 Due Soon'],
+    overdue:  ['pill-overdue', '🔴 Overdue'],
+    pending:  ['pill-pending', '🚚 With Vendor'],
+    'in-store':['pill-instore','📦 In Storeroom'],
+  };
+  const [cls, label] = map[status] || ['pill-due', status];
+  return { cls, label };
+}
+
+// ── Condition display ─────────────────────────────────────────
+function condDisplay(cond) {
+  const map = {
+    ok:        ['cond-ok',        '✅ Satisfactory'],
+    attention: ['cond-attention', '⚠️ Needs Attention'],
+    condemned: ['cond-condemned', '🚫 Condemned'],
+  };
+  const [cls, label] = map[cond] || ['', cond || '—'];
+  return `<span class="${cls}">${label}</span>`;
+}
+
+// ── Fetch + render ────────────────────────────────────────────
+async function load() {
+  // Read ?ext= from URL
+  const params = new URLSearchParams(window.location.search);
+  const extNo  = params.get('ext');
+
+  if (!extNo) {
+    showError('No Extinguisher Specified',
+      'Scan a FireGuard QR code to view extinguisher details.');
+    return;
+  }
+
+  // Set scan time
+  document.getElementById('r-scan-time').textContent =
+    new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+
+  try {
+    // Fetch all data from the backend
+    const url = `${API_URL}?action=getAll&payload={}`;
+    const res  = await fetch(url, { method:'GET', redirect:'follow' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (text.trim().startsWith('<')) throw new Error('API error — check deployment');
+    const data = JSON.parse(text);
+
+    if (!data.success) throw new Error(data.error || 'API returned failure');
+
+    // Find the extinguisher
+    const ext = (data.extinguishers || []).find(e => e.ExtNo === extNo);
+    if (!ext) {
+      showError('Extinguisher Not Found',
+        '"' + extNo + '" was not found in the system.\n' +
+        'The record may have been removed or the QR is outdated.');
+      return;
+    }
+
+    // Latest service record
+    const services  = (data.quarterlyServices || [])
+      .filter(s => s.ExtNo === extNo)
+      .sort((a,b) => new Date(b.ServiceDate) - new Date(a.ServiceDate));
+    const lastSvc = services[0] || null;
+
+    // Latest hydro test
+    const hydroTests = (data.hydroTests || [])
+      .filter(h => h.ExtNo === extNo)
+      .sort((a,b) => new Date(b.TestDate) - new Date(a.TestDate));
+    const lastHydro = hydroTests[0] || null;
+    let hydroNextDue = lastHydro?.NextDue || '';
+    if (!hydroNextDue && lastHydro?.TestDate) {
+      const d = new Date(lastHydro.TestDate);
+      d.setFullYear(d.getFullYear() + 5);
+      hydroNextDue = d.toISOString().split('T')[0];
+    }
+
+    // ── Populate card ─────────────────────────────────────────
+    const { cls: sCls, label: sLabel } = statusPill(ext.Status);
+    document.getElementById('r-extno').textContent  = ext.ExtNo;
+    document.getElementById('r-extno2').textContent = ext.ExtNo;
+    document.getElementById('r-type').textContent   = (ext.Type || '') + (ext.Weight ? ' · ' + ext.Weight + ' kg' : '');
+    const pillEl = document.getElementById('r-status-pill');
+    pillEl.textContent = sLabel;
+    pillEl.className   = 'status-pill ' + sCls;
+
+    set('r-current-loc', ext.CurrentLocation || ext.Location || '—');
+    set('r-perm-loc',    ext.Location || '—');
+
+    // Refill
+    set('r-last-refill', fmtDate(ext.LastRefillDate));
+    const nrd = ext.NextRefillDue;
+    set('r-next-refill',
+      `<span class="${dueClass(nrd)}">${dueLabel(nrd, 30)}</span>`);
+
+    // Quarterly service
+    if (lastSvc) {
+      set('r-last-svc',  fmtDate(lastSvc.ServiceDate) + ' <small style="color:var(--muted);">(' + (lastSvc.ServiceType||'') + ')</small>');
+      set('r-next-svc',
+        `<span class="${dueClass(lastSvc.NextDue)}">${dueLabel(lastSvc.NextDue, 14)}</span>`);
+      set('r-svc-by',   lastSvc.ServiceBy || '—');
+      set('r-svc-cond', condDisplay(lastSvc.Condition));
+    } else {
+      set('r-last-svc',  '<span style="color:var(--muted);">No record</span>');
+      set('r-next-svc',  '—');
+      set('r-svc-by',    '—');
+      set('r-svc-cond',  '—');
+    }
+
+    // Hydro test
+    if (lastHydro) {
+      const hResult = lastHydro.Result === 'pass'
+        ? '<span class="hydro-pass">✅ Pass</span>'
+        : '<span class="hydro-fail">❌ ' + lastHydro.Result + '</span>';
+      set('r-hydro-date', fmtDate(lastHydro.TestDate) + ' — ' + hResult);
+      set('r-hydro-next',
+        `<span class="${dueClass(hydroNextDue)}">${dueLabel(hydroNextDue, 180)}</span>`);
+    } else {
+      set('r-hydro-date', '<span style="color:var(--muted);">No record</span>');
+      set('r-hydro-next', '—');
+    }
+
+    // Details
+    set('r-ext-type', ext.Type || '—');
+    set('r-weight',   ext.Weight ? ext.Weight + ' kg' : '—');
+    set('r-mfg',      fmtDate(ext.MfgDate));
+
+    // Show card
+    document.getElementById('state-loading').style.display = 'none';
+    document.getElementById('card').style.display           = '';
+
+  } catch(err) {
+    showError('Could Not Load Data', err.message || 'Network error. Check your connection and try again.');
+  }
+}
+
+load();
+</script>
+</body>
+</html>
