@@ -1269,6 +1269,7 @@
     <div class="page" id="page-services">
       <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
         <button class="btn btn-primary" onclick="openServiceModal()">＋ Log Service</button>
+        <button class="btn btn-ghost" onclick="openBulkServiceModal()">📋 Bulk Log Service</button>
         <select class="filter-select" id="svc-filter-type" onchange="renderServicesTable()">
           <option value="">All Types</option>
           <option>Quarterly Inspection</option>
@@ -1955,6 +1956,120 @@
       <button class="btn btn-ghost" onclick="closeScannerModal()">Close</button>
       <button class="btn btn-primary btn-sm" id="scan-again-btn"
               onclick="resumeScanning()" style="display:none;">🔍 Scan Another</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Service Log Modal -->
+<div class="modal-overlay" id="modal-bulk-service">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-head">
+      <div class="modal-title">📋 Bulk Log Quarterly Service</div>
+      <button class="modal-close" onclick="closeModal('modal-bulk-service')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Common fields applied to all selected extinguishers -->
+      <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+                  padding:16px 18px; margin-bottom:16px;">
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+                    color:var(--accent); margin-bottom:12px;">Common Fields — applied to all selected</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Service Date *</label>
+            <input type="date" id="bsvc-date" onchange="autoFillBulkSvcNextDue(this.value)">
+          </div>
+          <div class="form-group">
+            <label>Service Type</label>
+            <select id="bsvc-type">
+              <option>Quarterly Inspection</option>
+              <option>Annual Maintenance</option>
+              <option>Post-incident Check</option>
+              <option>Ad-hoc Service</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Serviced By</label>
+            <input type="text" id="bsvc-by" placeholder="Technician / Agency name">
+          </div>
+          <div class="form-group">
+            <label>Condition</label>
+            <select id="bsvc-condition">
+              <option value="ok">✅ Satisfactory</option>
+              <option value="attention">⚠️ Needs Attention</option>
+              <option value="condemned">🚫 Condemned</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Next Service Due <span style="color:var(--muted);font-weight:400;font-size:10px;">auto +91 days</span></label>
+            <input type="date" id="bsvc-nextdue">
+          </div>
+          <div class="form-group">
+            <label>Remarks <span style="color:var(--muted);font-weight:400;font-size:10px;">optional</span></label>
+            <input type="text" id="bsvc-remarks" placeholder="Common observation for all...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Extinguisher selector -->
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <div style="font-size:13px; font-weight:600; color:var(--body); flex:1;">
+          Select Extinguishers
+          <span style="font-size:11px; font-weight:400; color:var(--muted); margin-left:8px;"
+                id="bsvc-sel-count">0 selected</span>
+        </div>
+        <div class="search-box" style="max-width:200px;">
+          <span>🔍</span>
+          <input type="text" id="bsvc-ext-search" placeholder="Filter..." oninput="filterBulkSvcList()">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="bulkSvcSelectDue()">⚠️ Select Due/Overdue</button>
+        <button class="btn btn-ghost btn-sm" onclick="bulkSvcSelectAll()">☑ All</button>
+        <button class="btn btn-ghost btn-sm" onclick="bulkSvcClearAll()">✕ Clear</button>
+      </div>
+
+      <!-- Extinguisher checklist -->
+      <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden;
+                  max-height:260px; overflow-y:auto;" id="bsvc-ext-list-wrap">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead style="position:sticky; top:0; z-index:1;">
+            <tr>
+              <th style="width:40px; padding:8px 14px; background:var(--surface2);
+                         border-bottom:1px solid var(--border);">
+                <input type="checkbox" id="bsvc-select-all-cb" onchange="bulkSvcToggleAll(this)">
+              </th>
+              <th style="padding:8px 14px; text-align:left; font-size:10px; text-transform:uppercase;
+                         letter-spacing:.08em; color:var(--grey); background:var(--surface2);
+                         border-bottom:1px solid var(--border); white-space:nowrap;">Ext. No.</th>
+              <th style="padding:8px 14px; text-align:left; font-size:10px; text-transform:uppercase;
+                         letter-spacing:.08em; color:var(--grey); background:var(--surface2);
+                         border-bottom:1px solid var(--border); white-space:nowrap;">Type</th>
+              <th style="padding:8px 14px; text-align:left; font-size:10px; text-transform:uppercase;
+                         letter-spacing:.08em; color:var(--grey); background:var(--surface2);
+                         border-bottom:1px solid var(--border); white-space:nowrap;">Location</th>
+              <th style="padding:8px 14px; text-align:left; font-size:10px; text-transform:uppercase;
+                         letter-spacing:.08em; color:var(--grey); background:var(--surface2);
+                         border-bottom:1px solid var(--border); white-space:nowrap;">Last Service</th>
+              <th style="padding:8px 14px; text-align:left; font-size:10px; text-transform:uppercase;
+                         letter-spacing:.08em; color:var(--grey); background:var(--surface2);
+                         border-bottom:1px solid var(--border); white-space:nowrap;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="bsvc-ext-tbody"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:12px; padding:10px 14px; background:var(--blue-bg);
+                  border:1px solid var(--blue-bd); border-radius:8px;
+                  font-size:12px; color:var(--blue);">
+        ℹ️ One service record will be created per selected extinguisher using the same
+        date, type, technician and condition. You can add individual remarks per unit after logging.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-bulk-service')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitBulkService()" id="bsvc-submit-btn">
+        🔧 Log Service for <span id="bsvc-submit-count">0</span> Extinguisher(s)
+      </button>
     </div>
   </div>
 </div>
@@ -5470,8 +5585,9 @@ function openQRModal() {
   if (!exts.length) { showToast('No extinguishers to generate QR codes for', 'error'); return; }
 
   document.getElementById('qr-count').textContent = exts.length;
-  // Base URL for deep-link QR codes — any QR scanner opens portal at this ext
-  const _portalBase = window.location.href.split('?')[0];
+  // Point QR at ext-view.html (public read-only card) — no full portal UI
+  const _dir        = window.location.href.split('?')[0].replace(/[^/]*$/, '');
+  const _portalBase = _dir + 'ext-view.html';
   const grid = document.getElementById('qr-grid');
   grid.innerHTML = '';
 
@@ -5689,6 +5805,8 @@ function openScannerModal() {
   document.getElementById('scanner-result-panel').style.display = 'none';
   document.getElementById('scan-again-btn').style.display       = 'none';
   document.getElementById('scanner-status').textContent         = 'Initialising camera...';
+  document.getElementById('scanner-wrap').style.display         = '';   // show camera
+  document.getElementById('scanner-status').style.display       = '';   // show status
   openModal('modal-scanner');
   startScanner();
 }
@@ -5793,6 +5911,9 @@ function scanLoop() {
 function handleQRResult(rawData) {
   scannerPaused = true;
   stopScanner();  // release camera — light goes off immediately after scan
+  // Collapse camera area so only the result panel is visible
+  document.getElementById('scanner-wrap').style.display   = 'none';
+  document.getElementById('scanner-status').style.display = 'none';
 
   // Flash effect
   const wrap = document.getElementById('scanner-wrap');
@@ -5959,6 +6080,8 @@ function resumeScanning() {
   scannerPaused    = false;
   document.getElementById('scanner-result-panel').style.display = 'none';
   document.getElementById('scan-again-btn').style.display       = 'none';
+  document.getElementById('scanner-wrap').style.display         = '';   // show camera again
+  document.getElementById('scanner-status').style.display       = '';
   document.getElementById('scanner-status').textContent         = 'Starting camera...';
   startScanner();  // restart camera stream fresh
 }
@@ -6169,6 +6292,249 @@ function closeSvcHistoryAndLog() {
   const extNo = currentHistoryExtNo;
   closeModal('modal-history');
   openServiceModal(extNo);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// BULK QUARTERLY SERVICE
+// ═══════════════════════════════════════════════════════════════
+let _bulkSvcExts = [];   // all rows shown in the checklist
+let _bulkSvcSel  = new Set(); // selected ExtNos
+
+function openBulkServiceModal() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('bsvc-date').value       = today;
+  document.getElementById('bsvc-type').value       = 'Quarterly Inspection';
+  document.getElementById('bsvc-by').value         = '';
+  document.getElementById('bsvc-condition').value  = 'ok';
+  document.getElementById('bsvc-remarks').value    = '';
+  document.getElementById('bsvc-ext-search').value = '';
+  autoFillBulkSvcNextDue(today);
+
+  // Pre-select from master list selection if any
+  _bulkSvcSel = selectedExtNos.size > 0 ? new Set(selectedExtNos) : new Set();
+
+  renderBulkSvcList();
+  openModal('modal-bulk-service');
+}
+
+function autoFillBulkSvcNextDue(dateVal) {
+  if (!dateVal) return;
+  const d = new Date(dateVal);
+  d.setDate(d.getDate() + 91);
+  const el = document.getElementById('bsvc-nextdue');
+  if (el) el.value = d.toISOString().split('T')[0];
+}
+
+function renderBulkSvcList() {
+  const q = (document.getElementById('bsvc-ext-search')?.value || '').toLowerCase();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Latest service per extinguisher for "last service" column
+  const latestSvc = {};
+  DATA.services.forEach(s => {
+    if (!latestSvc[s.ExtNo] ||
+        new Date(s.ServiceDate) > new Date(latestSvc[s.ExtNo].ServiceDate))
+      latestSvc[s.ExtNo] = s;
+  });
+
+  // Build list — exclude in-store and pending (physically not at location)
+  _bulkSvcExts = DATA.extinguishers.filter(e => {
+    if (q && !(
+      (e.ExtNo||'').toLowerCase().includes(q) ||
+      (e.Location||'').toLowerCase().includes(q) ||
+      (e.Type||'').toLowerCase().includes(q)
+    )) return false;
+    return true;
+  }).sort((a,b) => a.ExtNo.localeCompare(b.ExtNo));
+
+  const tbody = document.getElementById('bsvc-ext-tbody');
+  if (!tbody) return;
+
+  if (!_bulkSvcExts.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--muted);">No extinguishers found</td></tr>';
+    updateBulkSvcCount();
+    return;
+  }
+
+  tbody.innerHTML = _bulkSvcExts.map((e, i) => {
+    const checked  = _bulkSvcSel.has(e.ExtNo);
+    const lastSvc  = latestSvc[e.ExtNo];
+    const svcDue   = lastSvc?.NextDue ? new Date(lastSvc.NextDue) : null;
+    const svcDiff  = svcDue ? Math.round((svcDue - today) / 86400000) : null;
+
+    let svcLabel = lastSvc
+      ? fmtDate(lastSvc.ServiceDate)
+      : '<span style="color:var(--muted);">No record</span>';
+
+    let svcColor = '';
+    if (svcDiff !== null) {
+      if (svcDiff < 0)        svcColor = 'color:var(--red);';
+      else if (svcDiff <= 14) svcColor = 'color:var(--yellow);';
+    }
+    if (lastSvc?.NextDue && svcDiff !== null)
+      svcLabel += ' <span style="font-size:10px;' + svcColor + '">→ ' +
+        fmtDate(lastSvc.NextDue) + (svcDiff < 0 ? ' ⚠️' : '') + '</span>';
+
+    const bg = i % 2 === 0 ? 'var(--surface)' : 'var(--surface2)';
+    return '<tr style="background:' + bg + ';" id="bsvc-row-' + e.ExtNo + '">' +
+      '<td style="padding:8px 14px;"><input type="checkbox" class="bsvc-cb" value="' + e.ExtNo + '"' +
+        (checked ? ' checked' : '') + ' onchange="toggleBulkSvcRow(this)"></td>' +
+      '<td style="padding:8px 14px;"><span class="ext-num">' + e.ExtNo + '</span></td>' +
+      '<td style="padding:8px 14px;">' + typeTag(e.Type||'—') + '</td>' +
+      '<td style="padding:8px 14px;font-size:12px;color:var(--grey);">' +
+        (e.CurrentLocation||e.Location||'—') + '</td>' +
+      '<td style="padding:8px 14px;font-size:11px;">' + svcLabel + '</td>' +
+      '<td style="padding:8px 14px;">' + statusBadge(e.Status) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  updateBulkSvcCount();
+}
+
+function toggleBulkSvcRow(cb) {
+  if (cb.checked) _bulkSvcSel.add(cb.value);
+  else            _bulkSvcSel.delete(cb.value);
+  updateBulkSvcCount();
+  updateBulkSvcSelectAll();
+}
+
+function bulkSvcToggleAll(masterCb) {
+  _bulkSvcExts.forEach(e => {
+    if (masterCb.checked) _bulkSvcSel.add(e.ExtNo);
+    else                  _bulkSvcSel.delete(e.ExtNo);
+  });
+  // Update all visible checkboxes
+  document.querySelectorAll('.bsvc-cb').forEach(cb => cb.checked = masterCb.checked);
+  updateBulkSvcCount();
+}
+
+function bulkSvcSelectDue() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const latestSvc = {};
+  DATA.services.forEach(s => {
+    if (!latestSvc[s.ExtNo] ||
+        new Date(s.ServiceDate) > new Date(latestSvc[s.ExtNo].ServiceDate))
+      latestSvc[s.ExtNo] = s;
+  });
+  // Select extinguishers with service overdue or due within 14 days, or no service record
+  _bulkSvcExts.forEach(e => {
+    const ls   = latestSvc[e.ExtNo];
+    let select = !ls; // no record — definitely select
+    if (ls?.NextDue) {
+      const due  = new Date(ls.NextDue); due.setHours(0,0,0,0);
+      const diff = Math.round((due - today) / 86400000);
+      if (diff <= 14) select = true;
+    }
+    if (select) _bulkSvcSel.add(e.ExtNo);
+  });
+  document.querySelectorAll('.bsvc-cb').forEach(cb => {
+    cb.checked = _bulkSvcSel.has(cb.value);
+  });
+  updateBulkSvcCount();
+  updateBulkSvcSelectAll();
+  showToast(_bulkSvcSel.size + ' due/overdue extinguisher(s) selected', 'info');
+}
+
+function bulkSvcSelectAll() {
+  _bulkSvcExts.forEach(e => _bulkSvcSel.add(e.ExtNo));
+  document.querySelectorAll('.bsvc-cb').forEach(cb => cb.checked = true);
+  const allCb = document.getElementById('bsvc-select-all-cb');
+  if (allCb) allCb.checked = true;
+  updateBulkSvcCount();
+}
+
+function bulkSvcClearAll() {
+  _bulkSvcSel.clear();
+  document.querySelectorAll('.bsvc-cb').forEach(cb => cb.checked = false);
+  const allCb = document.getElementById('bsvc-select-all-cb');
+  if (allCb) allCb.checked = false;
+  updateBulkSvcCount();
+}
+
+function filterBulkSvcList() { renderBulkSvcList(); }
+
+function updateBulkSvcCount() {
+  const n = _bulkSvcSel.size;
+  const el = document.getElementById('bsvc-sel-count');
+  if (el) el.textContent = n + ' selected';
+  const btn = document.getElementById('bsvc-submit-count');
+  if (btn) btn.textContent = n;
+}
+
+function updateBulkSvcSelectAll() {
+  const allCb   = document.getElementById('bsvc-select-all-cb');
+  if (!allCb) return;
+  const total   = _bulkSvcExts.length;
+  const checked = _bulkSvcExts.filter(e => _bulkSvcSel.has(e.ExtNo)).length;
+  allCb.indeterminate = checked > 0 && checked < total;
+  allCb.checked       = total > 0 && checked === total;
+}
+
+async function submitBulkService() {
+  if (_bulkSvcSel.size === 0) {
+    showToast('Select at least one extinguisher', 'error'); return;
+  }
+  const svcDate   = document.getElementById('bsvc-date').value;
+  const svcType   = document.getElementById('bsvc-type').value;
+  const svcBy     = document.getElementById('bsvc-by').value.trim();
+  const condition = document.getElementById('bsvc-condition').value;
+  const nextDue   = document.getElementById('bsvc-nextdue').value;
+  const remarks   = document.getElementById('bsvc-remarks').value.trim();
+
+  if (!svcDate) { showToast('Service Date is required', 'error'); return; }
+
+  const btn = document.getElementById('bsvc-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving...'; }
+
+  const records = [..._bulkSvcSel].map((extNo, idx) => ({
+    ServiceID:   'SVC-' + String(DATA.services.length + idx + 1).padStart(4, '0'),
+    ExtNo:       extNo,
+    ServiceDate: svcDate,
+    ServiceBy:   svcBy,
+    ServiceType: svcType,
+    Condition:   condition,
+    NextDue:     nextDue,
+    Remarks:     remarks
+  }));
+
+  let savedCount = 0;
+
+  if (CONFIG.apiUrl) {
+    // Try batch endpoint first
+    const res = await apiCall('batchAddService', { records });
+    if (res && res.success) {
+      savedCount = res.count || records.length;
+      // Merge returned NextDues if backend auto-calculated them
+      if (res.results) {
+        res.results.forEach((r, i) => {
+          if (r.NextDue && !records[i].NextDue) records[i].NextDue = r.NextDue;
+        });
+      }
+    } else {
+      // Fallback: individual calls
+      for (const rec of records) {
+        const r = await apiCall('addService', rec, true);
+        if (r?.success) { if (r.NextDue) rec.NextDue = r.NextDue; savedCount++; }
+      }
+    }
+  } else {
+    savedCount = records.length; // offline mode
+  }
+
+  // Add to local DATA.services
+  const now = new Date().toISOString();
+  records.forEach(rec => DATA.services.push({ ...rec, CreatedAt: now }));
+
+  closeModal('modal-bulk-service');
+  renderServicesTable();
+  renderDashboard();
+  showToast(
+    '🔧 Service logged for ' + savedCount + ' extinguisher' + (savedCount !== 1 ? 's' : ''),
+    'success'
+  );
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '🔧 Log Service for <span id="bsvc-submit-count">0</span> Extinguisher(s)'; }
 }
 
 const pageTitles = {
