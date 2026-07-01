@@ -8,6 +8,24 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- ExcelJS — for the formatted Quarterly Inspection Checklist (.xlsx) -->
+<script>
+(function() {
+  function tryLoad(urls, idx) {
+    if (idx >= urls.length) { window._exceljsFailed = true; return; }
+    var s = document.createElement('script');
+    s.src = urls[idx];
+    s.onload  = function() { window._exceljsFailed = false; };
+    s.onerror = function() { tryLoad(urls, idx + 1); };
+    document.head.appendChild(s);
+  }
+  tryLoad([
+    'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
+    'https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'
+  ], 0);
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- jsQR — try jsdelivr first (npm CDN, rarely blocked), then unpkg, then inline stub -->
@@ -1138,7 +1156,7 @@
     <!-- ═══ INSPECTION ═══ -->
     <div class="page" id="page-inspection">
       <div class="insp-filter-row">
-        <button class="btn btn-primary" onclick="downloadInspectionChecklist()">⬇ Download Checklist (Word)</button>
+        <button class="btn btn-primary" onclick="downloadInspectionChecklist()">⬇ Download Checklist (Excel)</button>
         <select id="insp-filter-type" class="filter-select" onchange="renderInspectionTable()">
           <option value="">All Types</option>
           <option>ABC</option><option>CO₂</option><option>CO₂ (Trly)</option>
@@ -2248,7 +2266,15 @@ let CONFIG = {
   signatoryName: 'GOKUL V BABU',
   signatoryDesig: 'SM (Safety & Environment)',
   addressee: 'Security Inspector',
-  orgLogo: ''    // base64 data-URL — stored in localStorage by logo uploader
+  orgLogo: '',   // base64 data-URL — stored in localStorage by logo uploader
+
+  // ── Quarterly Inspection Checklist document fields ──────────
+  checklistRevNo:    '00',
+  checklistIssueNo:  '03',
+  checklistSafRef:   'SAF: 25A/R1-B',
+  checklistEffectiveDate: '15.01.2026',
+  issuedByName:  'Muhammed Azharudeen',
+  issuedByDesig: 'UMR'
 };
 
 // LOCAL DATA STORE (populated from Sheets)
@@ -5232,13 +5258,177 @@ async function downloadInspectionChecklist() {
 
   showToast('Generating checklist...', 'info');
   try {
-    const blob = await buildInspectionDocx(exts, monthLabel);
-    saveAs(blob, 'Inspection-Checklist-' + month + '.docx');
+    const blob = await buildInspectionXlsx(exts, monthLabel);
+    saveAs(blob, 'Inspection-Checklist-' + month + '.xlsx');
     showToast('Inspection checklist downloaded!', 'success');
   } catch(err) {
     showToast('Generation failed: ' + err.message, 'error');
     console.error(err);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUARTERLY INSPECTION CHECKLIST — EXCEL (.xlsx) GENERATION
+// Matches the organisation's standard checklist format:
+// company header block, title, SAF ref, rev/issue info,
+// approved-by / issued-by signatories, 12-column inspection
+// table, and inspection/review sign-off footer.
+// ═══════════════════════════════════════════════════════════════
+async function buildInspectionXlsx(exts, monthLabel) {
+  if (window._exceljsFailed || typeof ExcelJS === 'undefined') {
+    throw new Error('Excel library could not load — check your internet connection or disable ad-blockers, then reload the page.');
+  }
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Inspection Checklist', {
+    pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+  });
+
+  // ── Column layout (12 columns, A–L) ───────────────────────
+  ws.columns = [
+    { width: 6  },  // A  Sl.No
+    { width: 30 },  // B  Location
+    { width: 11 },  // C  Type
+    { width: 9  },  // D  Capacity
+    { width: 9  },  // E  Number
+    { width: 12 },  // F  Physical Condition
+    { width: 13 },  // G  Discharge Hose/Horn
+    { width: 15 },  // H  Cartridge/Pressure gauge/Weight
+    { width: 9  },  // I  Valve
+    { width: 10 },  // J  Brackets
+    { width: 9  },  // K  Label
+    { width: 13 },  // L  Safety Seal & Pin
+  ];
+
+  const THIN = { style: 'thin', color: { argb: 'FF000000' } };
+  const BORDER_ALL = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+  const CENTER = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  const LEFT   = { horizontal: 'left',   vertical: 'middle', wrapText: true };
+  const BOLD   = { bold: true };
+
+  const setCell = (addr, value, opts = {}) => {
+    const c = ws.getCell(addr);
+    c.value = value;
+    c.font = { bold: opts.bold !== false, size: opts.size || 10, name: 'Calibri' };
+    c.alignment = opts.align || CENTER;
+    if (opts.border !== false) c.border = BORDER_ALL;
+    if (opts.fill) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.fill } };
+    return c;
+  };
+
+  // ═══ ROWS 1–3 — Company / Title / SAF header block ═══════
+  ws.mergeCells('A1:B1');
+  setCell('A1', CONFIG.orgName || 'Organisation', { size: 11 });
+
+  ws.mergeCells('A2:B2');
+  setCell('A2', (CONFIG.factoryName || '') + (CONFIG.factoryLocation ? ', ' + CONFIG.factoryLocation : ''), { size: 9 });
+
+  ws.mergeCells('A3:B3');
+  setCell('A3',
+    'Approved by :-sd-\n' + (CONFIG.signatoryName || '') + (CONFIG.signatoryDesig ? ', ' + CONFIG.signatoryDesig : ''),
+    { size: 9 }
+  );
+
+  ws.mergeCells('C1:J1');
+  setCell('C1', 'TITLE: FIRE EXTINGUISHERS QUARTERLY INSPECTION CHECKLIST', { size: 13 });
+
+  ws.mergeCells('C2:F2');
+  setCell('C2', 'Effective Date: ' + (CONFIG.checklistEffectiveDate || '—'), { size: 9 });
+
+  ws.mergeCells('G2:J2');
+  setCell('G2',
+    'Rev. No: ' + (CONFIG.checklistRevNo || '00') + '        Issue No: ' + (CONFIG.checklistIssueNo || '00'),
+    { size: 9 }
+  );
+
+  ws.mergeCells('C3:J3');
+  setCell('C3',
+    'Issued by :-sd-\n' + (CONFIG.issuedByName || '') + (CONFIG.issuedByDesig ? ', ' + CONFIG.issuedByDesig : ''),
+    { size: 9 }
+  );
+
+  ws.mergeCells('K1:L3');
+  setCell('K1', CONFIG.checklistSafRef || '', { size: 11 });
+
+  ws.getRow(1).height = 22;
+  ws.getRow(2).height = 20;
+  ws.getRow(3).height = 30;
+
+  // ═══ ROW 4 — Table header ═════════════════════════════════
+  const headers = [
+    'Sl.No', 'Location', 'Type', 'Capacity', 'Number',
+    'Physical\nCondition', 'Discharge\nHose/ Horn',
+    'Cartridge /\nPressure gauge/\nWeight', 'Valve', 'Brackets',
+    'Label', 'Safety Seal &\nPin'
+  ];
+  headers.forEach((h, i) => {
+    const col = String.fromCharCode(65 + i); // A..L
+    setCell(col + '4', h, { size: 9, fill: 'FFE8EEF5' });
+  });
+  ws.getRow(4).height = 32;
+
+  // ═══ DATA ROWS — one per extinguisher ═════════════════════
+  let r = 5;
+  exts.forEach((e, idx) => {
+    setCell('A' + r, idx + 1,                              { size: 9 });
+    setCell('B' + r, e.CurrentLocation || e.Location || '—', { size: 9, align: LEFT });
+    setCell('C' + r, e.Type || '—',                          { size: 9 });
+    setCell('D' + r, e.Weight ? e.Weight + ' Kg' : '—',      { size: 9 });
+    setCell('E' + r, e.ExtNo,                                { size: 9 });
+    // Blank inspection columns — filled by hand during physical inspection
+    ['F','G','H','I','J','K','L'].forEach(col => setCell(col + r, '', { size: 9 }));
+    r++;
+  });
+
+  const lastDataRow = r - 1;
+
+  // ═══ FOOTER — Inspection by / Reviewed by ═════════════════
+  let fr = r + 1;
+
+  ws.mergeCells('A' + fr + ':F' + fr);
+  setCell('A' + fr, 'Inspection by', { size: 10 });
+  ws.mergeCells('G' + fr + ':L' + fr);
+  setCell('G' + fr, 'Reviewed by', { size: 10 });
+  fr++;
+
+  const footRow = (label) => {
+    ws.mergeCells('A' + fr + ':B' + fr);
+    setCell('A' + fr, label, { size: 9, align: LEFT, bold: true, border: false });
+    ws.mergeCells('C' + fr + ':F' + fr);
+    setCell('C' + fr, '', { size: 9, border: false });
+    ws.mergeCells('G' + fr + ':H' + fr);
+    setCell('G' + fr, label, { size: 9, align: LEFT, bold: true, border: false });
+    ws.mergeCells('I' + fr + ':L' + fr);
+    setCell('I' + fr, '', { size: 9, border: false });
+    // Underline the blank fields
+    ['C','G'].forEach(col => { }); // no-op, borders below handle underline visually
+    ws.getCell('C' + fr).border = { bottom: THIN };
+    ws.getCell('D' + fr).border = { bottom: THIN };
+    ws.getCell('E' + fr).border = { bottom: THIN };
+    ws.getCell('F' + fr).border = { bottom: THIN };
+    ws.getCell('I' + fr).border = { bottom: THIN };
+    ws.getCell('J' + fr).border = { bottom: THIN };
+    ws.getCell('K' + fr).border = { bottom: THIN };
+    ws.getCell('L' + fr).border = { bottom: THIN };
+    fr++;
+  };
+  footRow('Name:');
+  footRow('Designation:');
+  footRow('Sign:');
+
+  fr++; // spacer row
+
+  ws.mergeCells('A' + fr + ':F' + fr);
+  setCell('A' + fr, 'Inspected on : ' + monthLabel, { size: 9 });
+  ws.mergeCells('G' + fr + ':L' + fr);
+  setCell('G' + fr, 'Inspection Due on :', { size: 9 });
+
+  // ═══ Overall sheet polish ═════════════════════════════════
+  ws.views = [{ showGridLines: false }];
+  ws.pageSetup.printArea = 'A1:L' + fr;
+
+  const buf = await wb.xlsx.writeBuffer();
+  return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
 async function buildInspectionDocx(exts, monthLabel) {
