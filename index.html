@@ -1321,11 +1321,10 @@
                 <th>Condition</th>
                 <th>Next Due</th>
                 <th>Remarks</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="services-body">
-              <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔧</div>
+              <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔧</div>
                 <div class="empty-text">No service records found.</div></div></td></tr>
             </tbody>
           </table>
@@ -6419,7 +6418,7 @@ function renderServicesTable() {
   const tbody = document.getElementById('services-body');
   if (!tbody) return;
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🔧</div>' +
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔧</div>' +
                       '<div class="empty-text">No service records. Click ＋ Log Service to add one.</div></div></td></tr>';
     return;
   }
@@ -6442,7 +6441,6 @@ function renderServicesTable() {
       '<td>' + (condIcon[s.Condition]||'—') + ' <span style="font-size:11px;">' + (s.Condition||'—') + '</span></td>' +
       '<td style="font-size:12px;' + dueColor + '">' + (s.NextDue ? fmtDate(s.NextDue) : '—') + '</td>' +
       '<td style="font-size:12px;color:var(--grey);max-width:160px;">' + (s.Remarks||'—') + '</td>' +
-      '<td><button class="btn btn-red btn-sm" onclick="deleteService(\'' + s.ServiceID + '\')">🗑️</button></td>' +
     '</tr>';
   }).join('');
 }
