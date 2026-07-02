@@ -2540,12 +2540,16 @@ async function refreshData(silent = false) {
     DATA.refills       = res.refills       || [];
     DATA.passes        = res.passes        || [];
     DATA.services      = res.quarterlyServices || [];
+    AMC_DATA           = (res.amcContracts || []).map(mapAmcFromBackend);
     renderDashboard();
     renderMasterTable();
     renderHydroTable();
     renderRefills();
     renderPasses();
+    renderServicesTable();  // keeps the sidebar due-count badge in sync on every load/sync
+    renderAmcGrid();
     populateAgencyDropdowns();
+    migrateLocalAmcToBackend(); // one-time: push any pre-existing local-only AMC data up
     const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok', 'Synced ' + now);
     if (!silent) showToast('Synced — ' + DATA.extinguishers.length + ' extinguishers loaded', 'success');
@@ -2581,14 +2585,63 @@ function setSyncStatus(state, label) {
 // ═══════════════════════════════════════════════
 // ─── AMC DATA (stored in localStorage) ───────────────────────
 let AMC_DATA = [];
+let _amcMigrated = false; // ensures the one-time localStorage→backend migration runs only once per session
+
+// Backend uses PascalCase (AmcID, Vendor, StartDate...) to match every other
+// sheet in this app; the AMC UI code (pre-existing) uses lowercase field
+// names (id, vendor, startDate...) — these two helpers translate between them
+// at the API boundary so none of the render/alert code needs touching.
+function mapAmcFromBackend(r) {
+  return {
+    id: r.AmcID, vendor: r.Vendor, scope: r.Scope,
+    startDate: r.StartDate, endDate: r.EndDate, value: r.Value,
+    contact: r.Contact, remarks: r.Remarks
+  };
+}
+function mapAmcToBackend(a) {
+  return {
+    AmcID: a.id, Vendor: a.vendor, Scope: a.scope,
+    StartDate: a.startDate, EndDate: a.endDate, Value: a.value,
+    Contact: a.contact, Remarks: a.remarks
+  };
+}
+
 function loadAmcData() {
+  // Offline-cache loader — populates AMC_DATA immediately on page load
+  // (before the first backend sync completes) so the AMC page isn't empty.
+  // Once refreshData() completes, this local cache is migrated to the
+  // backend (if needed) and then superseded by the synced data.
   try {
     const saved = localStorage.getItem('fireguard_amc');
     if (saved) AMC_DATA = JSON.parse(saved);
   } catch(_){ AMC_DATA=[]; }
 }
 function saveAmcData() {
+  // Kept as a local cache/backup alongside the backend sync — harmless
+  // redundancy that also keeps the AMC page usable if offline.
   localStorage.setItem('fireguard_amc', JSON.stringify(AMC_DATA));
+}
+
+// One-time migration: if the backend has no AMC records yet but this
+// browser has some cached locally (from before AMC was synced to the
+// backend), push them up so they aren't silently lost.
+async function migrateLocalAmcToBackend() {
+  if (_amcMigrated || !CONFIG.apiUrl) return;
+  _amcMigrated = true;
+  const localCache = (() => {
+    try { return JSON.parse(localStorage.getItem('fireguard_amc') || '[]'); }
+    catch(_) { return []; }
+  })();
+  if (!localCache.length) return;
+  for (const entry of localCache) {
+    try { await apiCall('addAmc', mapAmcToBackend(entry), true); } catch(_) {}
+  }
+  showToast('Migrated ' + localCache.length + ' locally-saved AMC contract(s) to Google Sheets', 'info');
+  // Re-fetch so AMC_DATA reflects the backend-assigned IDs
+  const res = await apiCall('getAmc', {}, true);
+  if (res && res.success && res.data) AMC_DATA = res.data.map(mapAmcFromBackend);
+  renderAmcGrid();
+  populateAgencyDropdowns();
 }
 
 let activeCardFilter = null; // tracks which card is currently active
@@ -3274,14 +3327,14 @@ function openAmcModal(id) {
   openModal('modal-amc');
 }
 
-function saveAmc() {
+async function saveAmc() {
   const vendor = document.getElementById('amc-vendor').value.trim();
   const start  = document.getElementById('amc-start').value;
   const end    = document.getElementById('amc-end').value;
   if (!vendor || !start || !end) { showToast('Vendor name, start and end dates are required', 'error'); return; }
 
   const entry = {
-    id:        editingAmcId || 'AMC-' + Date.now(),
+    id:        editingAmcId || null, // null → backend assigns a new AmcID
     vendor, scope: document.getElementById('amc-scope').value.trim(),
     startDate: start, endDate: end,
     value:     document.getElementById('amc-value').value,
@@ -3289,13 +3342,22 @@ function saveAmc() {
     remarks:   document.getElementById('amc-remarks').value.trim()
   };
 
+  if (CONFIG.apiUrl) {
+    const action = editingAmcId ? 'updateAmc' : 'addAmc';
+    const res = await apiCall(action, mapAmcToBackend(entry));
+    if (!res || !res.success) return; // stop — don't update locally if backend save failed
+    if (!editingAmcId && res.AmcID) entry.id = res.AmcID; // adopt backend-assigned ID
+  } else if (!entry.id) {
+    entry.id = 'AMC-' + Date.now(); // offline fallback ID
+  }
+
   if (editingAmcId) {
     const idx = AMC_DATA.findIndex(a => a.id === editingAmcId);
     if (idx !== -1) AMC_DATA[idx] = entry;
   } else {
     AMC_DATA.push(entry);
   }
-  saveAmcData();
+  saveAmcData(); // keep local cache in sync too
   closeModal('modal-amc');
   renderAmcGrid();
   renderAlerts();
@@ -3303,8 +3365,14 @@ function saveAmc() {
   showToast('AMC contract saved!', 'success');
 }
 
-function deleteAmc(id) {
+async function deleteAmc(id) {
   if (!confirm('Delete this AMC contract?')) return;
+
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('deleteAmc', { AmcID: id });
+    if (!res || !res.success) return; // stop — don't remove locally if backend delete failed
+  }
+
   AMC_DATA = AMC_DATA.filter(a => a.id !== id);
   saveAmcData();
   renderAmcGrid();
@@ -3501,6 +3569,8 @@ function renderMasterTable(data) {
             ? `<button class="btn btn-green btn-sm" onclick="openDeployModal('${e.ExtNo}')" title="Deploy to location">📍 Deploy</button>`
             : `<button class="btn btn-blue btn-sm" onclick="quickRefill('${e.ExtNo}')" ${disableCb ? 'disabled style="opacity:.4"' : ''} title="Send for refill">🔄</button>`
           }
+          <button class="btn btn-red btn-sm" onclick="deleteExtinguisherUI('${e.ExtNo}')"
+            ${disableCb ? `disabled style="opacity:.4" title="Can't delete while ${isPending ? 'sent for refill' : 'in storeroom'}"` : 'title="Delete extinguisher"'}>🗑️</button>
         </div>
       </td>
     </tr>`;
@@ -4227,6 +4297,34 @@ async function saveExtinguisher() {
   renderDashboard();
 }
 
+async function deleteExtinguisherUI(extNo) {
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
+  if (!ext) return;
+
+  // Warn if related records exist — deleting the extinguisher does not
+  // delete its hydro test / service / refill history, so surface that.
+  const hasHydro    = DATA.hydroTests.some(h => h.ExtNo === extNo);
+  const hasServices = DATA.services.some(s => s.ExtNo === extNo);
+  const hasRefills  = DATA.refills.some(r => r.ExtNo === extNo);
+  let warning = `Delete ${extNo} (${ext.Type || '—'} · ${ext.CurrentLocation || ext.Location || '—'})?\n\nThis cannot be undone.`;
+  if (hasHydro || hasServices || hasRefills) {
+    warning += '\n\nNote: its hydro test, service, and refill history records will remain but will no longer be linked to a master list entry.';
+  }
+  if (!confirm(warning)) return;
+
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('deleteExtinguisher', { ExtNo: extNo });
+    if (!res || !res.success) return; // stop — don't remove locally if backend delete failed
+  }
+
+  DATA.extinguishers = DATA.extinguishers.filter(e => e.ExtNo !== extNo);
+  selectedExtNos.delete(extNo);
+  renderMasterTable();
+  renderDashboard();
+  updateSelectionToolbar();
+  showToast(`${extNo} deleted`, 'info');
+}
+
 function openHydroModal() { openModal('modal-hydro'); }
 
 function autoFillHydroNextDue(testDateVal) {
@@ -4341,16 +4439,9 @@ async function markSent(refillId) {
   DATA.refills[idx].SentDate = today;
   DATA.refills[idx].Status = 'sent';
 
-  // Apply location action to extinguisher
-  const r = DATA.refills[idx];
-  if (r.SubstituteExtNo) {
-    const subIdx = DATA.extinguishers.findIndex(e => e.ExtNo === r.SubstituteExtNo);
-    if (subIdx !== -1) {
-      DATA.extinguishers[subIdx].CurrentLocation = r.OriginalLocation;
-      DATA.extinguishers[subIdx].SubstituteFor = r.ExtNo;
-      DATA.extinguishers[subIdx].Status = 'ok';
-    }
-  }
+  // Note: substitute placement (if any) is already applied at refill-creation
+  // time by submitBulkRefill()/createRefillRequest(), synced to the backend —
+  // no further extinguisher updates needed here.
 
   if (CONFIG.apiUrl) await apiCall('updateRefill', DATA.refills[idx]);
   renderRefills();
@@ -4560,8 +4651,14 @@ async function confirmDeploy() {
   showToast(`${deployingExtNo} deployed to ${location}!`, 'success');
 }
 
-function deleteHydro(testId) {
+async function deleteHydro(testId) {
   if (!confirm('Delete this hydrostatic test record?')) return;
+
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('deleteHydroTest', { TestID: testId });
+    if (!res || !res.success) return; // stop — don't remove locally if backend delete failed
+  }
+
   DATA.hydroTests = DATA.hydroTests.filter(h => h.TestID !== testId);
   renderHydroTable();
   showToast('Record deleted', 'info');
@@ -4799,6 +4896,19 @@ async function submitBulkRefill() {
       // OriginalLocation in the refill record already stores e.Location
       DATA.extinguishers[idx].CurrentLocation = 'With Vendor';
       DATA.extinguishers[idx].Status = 'pending';
+    }
+  });
+
+  // Apply substitute placement locally (mirrors what the backend now does
+  // in createRefillRequest — fixes substitute placement reverting on sync)
+  refillRecords.forEach(r => {
+    if (r.LocationAction === 'substitute' && r.SubstituteExtNo) {
+      const subIdx = DATA.extinguishers.findIndex(e => e.ExtNo === r.SubstituteExtNo);
+      if (subIdx !== -1) {
+        DATA.extinguishers[subIdx].CurrentLocation = r.OriginalLocation;
+        DATA.extinguishers[subIdx].SubstituteFor   = r.ExtNo;
+        DATA.extinguishers[subIdx].Status           = 'ok';
+      }
     }
   });
 
