@@ -1272,11 +1272,11 @@
             <thead>
               <tr>
                 <th>Ext. No.</th><th>Location</th><th>Test Date</th><th>Test By</th>
-                <th>Pressure (bar)</th><th>Result</th><th>Next Due</th><th>Certificate No.</th><th>Actions</th>
+                <th>Pressure (bar)</th><th>Result</th><th>Next Due</th><th>Certificate No.</th>
               </tr>
             </thead>
             <tbody id="hydro-body">
-              <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💧</div><div class="empty-text">No hydrostatic test records found.</div></div></td></tr>
+              <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💧</div><div class="empty-text">No hydrostatic test records found.</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -2539,7 +2539,15 @@ async function refreshData(silent = false) {
     DATA.hydroTests    = res.hydroTests    || [];
     DATA.refills       = res.refills       || [];
     DATA.passes        = res.passes        || [];
-    DATA.services      = res.quarterlyServices || [];
+    DATA.services      = (res.quarterlyServices || []).map(s => {
+      // Backfill NextDue if missing — ServiceDate + 91 days (≈ 3 months)
+      if (!s.NextDue && s.ServiceDate) {
+        const d = new Date(s.ServiceDate);
+        d.setDate(d.getDate() + 91);
+        s.NextDue = d.toISOString().split('T')[0];
+      }
+      return s;
+    });
     AMC_DATA           = (res.amcContracts || []).map(mapAmcFromBackend);
     renderDashboard();
     renderMasterTable();
@@ -3365,22 +3373,6 @@ async function saveAmc() {
   showToast('AMC contract saved!', 'success');
 }
 
-async function deleteAmc(id) {
-  if (!confirm('Delete this AMC contract?')) return;
-
-  if (CONFIG.apiUrl) {
-    const res = await apiCall('deleteAmc', { AmcID: id });
-    if (!res || !res.success) return; // stop — don't remove locally if backend delete failed
-  }
-
-  AMC_DATA = AMC_DATA.filter(a => a.id !== id);
-  saveAmcData();
-  renderAmcGrid();
-  renderAlerts();
-  populateAgencyDropdowns();
-  showToast('Contract deleted', 'info');
-}
-
 function renderAmcGrid() {
   const grid = document.getElementById('amc-grid');
   const countLbl = document.getElementById('amc-count-label');
@@ -3435,7 +3427,6 @@ function renderAmcGrid() {
         ${a.remarks ? `<div class="amc-contact" style="margin-top:4px;">📝 ${a.remarks}</div>` : ''}
         <div class="amc-actions">
           <button class="btn btn-ghost btn-sm" onclick="openAmcModal('${a.id}')">✏️ Edit</button>
-          <button class="btn btn-red btn-sm" onclick="deleteAmc('${a.id}')">🗑️ Delete</button>
         </div>
       </div>`;
   }).join('');
@@ -3569,8 +3560,6 @@ function renderMasterTable(data) {
             ? `<button class="btn btn-green btn-sm" onclick="openDeployModal('${e.ExtNo}')" title="Deploy to location">📍 Deploy</button>`
             : `<button class="btn btn-blue btn-sm" onclick="quickRefill('${e.ExtNo}')" ${disableCb ? 'disabled style="opacity:.4"' : ''} title="Send for refill">🔄</button>`
           }
-          <button class="btn btn-red btn-sm" onclick="deleteExtinguisherUI('${e.ExtNo}')"
-            ${disableCb ? `disabled style="opacity:.4" title="Can't delete while ${isPending ? 'sent for refill' : 'in storeroom'}"` : 'title="Delete extinguisher"'}>🗑️</button>
         </div>
       </td>
     </tr>`;
@@ -3621,7 +3610,7 @@ function renderHydroTable(data) {
   const rows = data || DATA.hydroTests;
   const tbody = document.getElementById('hydro-body');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💧</div><div class="empty-text">No records found.</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💧</div><div class="empty-text">No records found.</div></div></td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(h => `
@@ -3634,7 +3623,6 @@ function renderHydroTable(data) {
       <td>${h.Result === 'pass' ? '<span class="status-dot"><span class="dot dot-ok"></span>Pass</span>' : h.Result === 'fail' ? '<span class="status-dot"><span class="dot dot-due"></span>Fail</span>' : '<span class="status-dot"><span class="dot dot-due"></span>Condemned</span>'}</td>
       <td>${h.NextDue ? fmtDate(h.NextDue) : (() => { const d=new Date(h.TestDate); d.setFullYear(d.getFullYear()+5); return fmtDate(d.toISOString().split('T')[0]) + ' <span style=\'font-size:10px;color:var(--muted);\'>auto</span>'; })()}</td>
       <td>${h.CertNo || '—'}</td>
-      <td><button class="btn btn-red btn-sm" onclick="deleteHydro('${h.TestID}')">🗑️</button></td>
     </tr>
   `).join('');
 }
@@ -4297,34 +4285,6 @@ async function saveExtinguisher() {
   renderDashboard();
 }
 
-async function deleteExtinguisherUI(extNo) {
-  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
-  if (!ext) return;
-
-  // Warn if related records exist — deleting the extinguisher does not
-  // delete its hydro test / service / refill history, so surface that.
-  const hasHydro    = DATA.hydroTests.some(h => h.ExtNo === extNo);
-  const hasServices = DATA.services.some(s => s.ExtNo === extNo);
-  const hasRefills  = DATA.refills.some(r => r.ExtNo === extNo);
-  let warning = `Delete ${extNo} (${ext.Type || '—'} · ${ext.CurrentLocation || ext.Location || '—'})?\n\nThis cannot be undone.`;
-  if (hasHydro || hasServices || hasRefills) {
-    warning += '\n\nNote: its hydro test, service, and refill history records will remain but will no longer be linked to a master list entry.';
-  }
-  if (!confirm(warning)) return;
-
-  if (CONFIG.apiUrl) {
-    const res = await apiCall('deleteExtinguisher', { ExtNo: extNo });
-    if (!res || !res.success) return; // stop — don't remove locally if backend delete failed
-  }
-
-  DATA.extinguishers = DATA.extinguishers.filter(e => e.ExtNo !== extNo);
-  selectedExtNos.delete(extNo);
-  renderMasterTable();
-  renderDashboard();
-  updateSelectionToolbar();
-  showToast(`${extNo} deleted`, 'info');
-}
-
 function openHydroModal() { openModal('modal-hydro'); }
 
 function autoFillHydroNextDue(testDateVal) {
@@ -4649,19 +4609,6 @@ async function confirmDeploy() {
   renderRefills();
   renderDashboard();
   showToast(`${deployingExtNo} deployed to ${location}!`, 'success');
-}
-
-async function deleteHydro(testId) {
-  if (!confirm('Delete this hydrostatic test record?')) return;
-
-  if (CONFIG.apiUrl) {
-    const res = await apiCall('deleteHydroTest', { TestID: testId });
-    if (!res || !res.success) return; // stop — don't remove locally if backend delete failed
-  }
-
-  DATA.hydroTests = DATA.hydroTests.filter(h => h.TestID !== testId);
-  renderHydroTable();
-  showToast('Record deleted', 'info');
 }
 
 // ═══════════════════════════════════════════════
@@ -6455,7 +6402,13 @@ async function saveService() {
   if (CONFIG.apiUrl) {
     const res = await apiCall('addService', payload);
     if (!res || !res.success) return;
+    // Backend auto-calculates NextDue (+91 days) if form field was empty — adopt it
     if (res.NextDue) payload.NextDue = res.NextDue;
+  }
+  // Defensive fallback: if NextDue still empty, compute it client-side
+  if (!payload.NextDue && payload.ServiceDate) {
+    const d = new Date(payload.ServiceDate); d.setDate(d.getDate() + 91);
+    payload.NextDue = d.toISOString().split('T')[0];
   }
 
   DATA.services.push({ ...payload, CreatedAt: new Date().toISOString() });
@@ -6553,18 +6506,6 @@ function renderServicesTable() {
       '<td style="font-size:12px;color:var(--grey);max-width:160px;">' + (s.Remarks||'—') + '</td>' +
     '</tr>';
   }).join('');
-}
-
-async function deleteService(serviceId) {
-  if (!confirm('Delete this service record?')) return;
-  if (CONFIG.apiUrl) {
-    const res = await apiCall('deleteService', { ServiceID: serviceId });
-    if (!res || !res.success) return;
-  }
-  DATA.services = DATA.services.filter(s => s.ServiceID !== serviceId);
-  renderServicesTable();
-  renderDashboard();
-  showToast('Service record deleted', 'info');
 }
 
 // ── History modal — tab switching ─────────────────────────────
@@ -6803,7 +6744,6 @@ async function submitBulkService() {
     const res = await apiCall('batchAddService', { records });
     if (res && res.success) {
       savedCount = res.count || records.length;
-      // Merge returned NextDues if backend auto-calculated them
       if (res.results) {
         res.results.forEach((r, i) => {
           if (r.NextDue && !records[i].NextDue) records[i].NextDue = r.NextDue;
@@ -6819,6 +6759,14 @@ async function submitBulkService() {
   } else {
     savedCount = records.length; // offline mode
   }
+
+  // Defensive fallback: ensure every record has a NextDue before pushing locally
+  records.forEach(rec => {
+    if (!rec.NextDue && rec.ServiceDate) {
+      const d = new Date(rec.ServiceDate); d.setDate(d.getDate() + 91);
+      rec.NextDue = d.toISOString().split('T')[0];
+    }
+  });
 
   // Add to local DATA.services
   const now = new Date().toISOString();
