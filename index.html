@@ -2771,7 +2771,7 @@ function renderAlerts() {
         if (yearsOld >= 5 && !dismissed.includes(key)) {
           alerts.push({ key, cls:'alert-amber', icon:'💧',
             text: `<strong>${e.ExtNo}</strong> — no hydrostatic test on record`,
-            sub:  (e.CurrentLocation||e.Location) + ' — manufactured ' + fmtDate(e.MfgDate) + ', ${Math.floor(yearsOld)} years old' });
+            sub:  `${e.CurrentLocation||e.Location} — manufactured ${fmtDate(e.MfgDate)}, ${Math.floor(yearsOld)} years old` });
         }
       }
     }
