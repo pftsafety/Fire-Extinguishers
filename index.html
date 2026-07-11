@@ -688,8 +688,8 @@
   .inv-ext-img {
     flex-shrink: 0; width: 30px;
     display: flex; align-items: center; justify-content: center;
+    font-size: 24px; line-height: 1;
   }
-  .inv-ext-img svg { width: 26px; height: auto; }
   .inv-card-body { flex: 1; min-width: 0; }
   .inv-type-name {
     font-size: 12px; font-weight: 700; color: var(--body);
@@ -2913,29 +2913,6 @@ function renderTypeChart() {
     return parseFloat(a.cap) - parseFloat(b.cap);
   });
 
-const EXT_SVG = (color) => `<svg viewBox="0 0 100 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Hose: sweeps from the valve out to the side and down to the nozzle,
-       matching the reference photo's silhouette -->
-  <path d="M 62 22 C 82 24, 90 34, 88 48 C 86 62, 74 66, 66 62"
-        stroke="#161616" stroke-width="9" fill="none" stroke-linecap="round"/>
-  <!-- Discharge nozzle / horn -->
-  <path d="M 60 58 L 78 66 L 76 80 L 58 70 Z" fill="#161616"/>
-  <!-- Nozzle grip -->
-  <rect x="55" y="60" width="10" height="14" rx="3" fill="#161616" transform="rotate(25 60 67)"/>
-  <!-- Top cap / valve body -->
-  <rect x="34" y="10" width="34" height="18" rx="6" fill="#161616"/>
-  <!-- Carrying handle loop -->
-  <path d="M 42 10 Q 51 0 60 10" stroke="#161616" stroke-width="6" fill="none" stroke-linecap="round"/>
-  <!-- Main red cylindrical body -->
-  <rect x="20" y="26" width="60" height="150" rx="28" fill="#EE1B1B"/>
-  <!-- Neck band under the cap -->
-  <rect x="20" y="26" width="60" height="12" rx="4" fill="#C4130F"/>
-  <!-- Flame emblem -->
-  <path d="M 50 78 C 42 88, 40 100, 46 110 C 47 101, 51 98, 52 92 C 56 98, 60 104, 57 113 C 65 108, 68 96, 61 85 C 60 90, 58 92, 57 89 C 58 83, 54 76, 50 78 Z"
-        fill="#FFFFFF"/>
-  <!-- Base ring -->
-  <rect x="24" y="168" width="52" height="10" rx="5" fill="#C4130F"/>
-</svg>`;
 
   grid.innerHTML = sorted.map(g => {
     const total   = g.exts.length;
@@ -2957,7 +2934,7 @@ const EXT_SVG = (color) => `<svg viewBox="0 0 100 200" fill="none" xmlns="http:/
       <div class="inv-type-card" style="border-left-color:${color};"
            onclick="filterByTypeCapacity('${g.type.replace(/'/g,"\'").replace(/\(/g,'\(').replace(/\)/g,'\)')}','${g.cap}')"
            title="Click to filter — ${g.type} ${g.cap}">
-        <div class="inv-ext-img">${EXT_SVG(color)}</div>
+        <div class="inv-ext-img">🧯</div>
         <div class="inv-card-body">
           <div class="inv-type-name" title="${g.type}">${g.type}</div>
           <div class="inv-type-cap">${g.cap}</div>
