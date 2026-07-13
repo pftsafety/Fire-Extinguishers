@@ -2669,13 +2669,31 @@ function saveAmcData() {
 // browser has some cached locally (from before AMC was synced to the
 // backend), push them up so they aren't silently lost.
 async function migrateLocalAmcToBackend() {
+  // Two guards against re-migrating (which was causing duplicate contracts
+  // to be pushed to the sheet on every page refresh):
+  // 1. A PERSISTENT flag in localStorage — survives page reloads, unlike a
+  //    plain JS variable which resets every time the script runs.
+  // 2. Only migrate if the backend genuinely has zero AMC contracts yet —
+  //    the local cache stays populated indefinitely (saveAmcData() keeps
+  //    writing to it as a resilience backup), so its mere presence is not
+  //    a signal that migration is still needed.
   if (_amcMigrated || !CONFIG.apiUrl) return;
   _amcMigrated = true;
+  if (localStorage.getItem('fireguard_amc_migrated')) return;
+  if (AMC_DATA.length > 0) {
+    // Backend already has contracts — migration already happened (or was
+    // never needed). Mark as done so we never check again.
+    localStorage.setItem('fireguard_amc_migrated', '1');
+    return;
+  }
+
   const localCache = (() => {
     try { return JSON.parse(localStorage.getItem('fireguard_amc') || '[]'); }
     catch(_) { return []; }
   })();
+  localStorage.setItem('fireguard_amc_migrated', '1'); // set before pushing — never retry even if this run fails partway
   if (!localCache.length) return;
+
   for (const entry of localCache) {
     try { await apiCall('addAmc', mapAmcToBackend(entry), true); } catch(_) {}
   }
