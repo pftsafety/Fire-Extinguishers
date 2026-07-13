@@ -1425,7 +1425,7 @@
   <div class="modal">
     <div class="modal-head">
       <div class="modal-title" id="modal-ext-title">Add Extinguisher</div>
-      <button class="modal-close" onclick="closeModal('modal-ext')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-ext')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
@@ -1487,7 +1487,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-ext')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-ext')">Cancel</button>
       <button class="btn btn-primary" onclick="saveExtinguisher()">💾 Save</button>
     </div>
   </div>
@@ -1498,7 +1498,7 @@
   <div class="modal">
     <div class="modal-head">
       <div class="modal-title">Record Hydrostatic Test</div>
-      <button class="modal-close" onclick="closeModal('modal-hydro')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-hydro')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
@@ -1537,7 +1537,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-hydro')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-hydro')">Cancel</button>
       <button class="btn btn-primary" onclick="saveHydroTest()">💾 Save Test</button>
     </div>
   </div>
@@ -1637,7 +1637,7 @@
   <div class="modal" style="max-width:520px;">
     <div class="modal-head">
       <div class="modal-title">📍 Deploy Extinguisher</div>
-      <button class="modal-close" onclick="closeModal('modal-deploy')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-deploy')">✕</button>
     </div>
     <div class="modal-body">
       <div id="deploy-ext-summary" style="margin-bottom:16px;"></div>
@@ -1676,7 +1676,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-deploy')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-deploy')">Cancel</button>
       <button class="btn btn-primary" onclick="confirmDeploy()">📍 Deploy</button>
     </div>
   </div>
@@ -1687,7 +1687,7 @@
   <div class="modal" style="max-width:680px;">
     <div class="modal-head">
       <div class="modal-title">🔥 Bulk Refill Request</div>
-      <button class="modal-close" onclick="closeModal('modal-bulk-refill')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-bulk-refill')">✕</button>
     </div>
     <div class="modal-body">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
@@ -1716,7 +1716,7 @@
                 <option value="">— Select Agency —</option>
               </select>
               <button type="button" class="btn btn-ghost btn-sm"
-                onclick="closeModal('modal-bulk-refill'); showPage('amc');"
+                onclick="closeModalChecked('modal-bulk-refill'); showPage('amc');"
                 title="Manage agencies in AMC Tracker" style="white-space:nowrap; flex-shrink:0;">
                 ＋ Manage
               </button>
@@ -1734,7 +1734,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-bulk-refill')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-bulk-refill')">Cancel</button>
       <button class="btn btn-primary" onclick="submitBulkRefill()" id="bulk-submit-btn">
         🔥 Generate <span id="bulk-pass-count">0</span> Pass(es)
       </button>
@@ -1809,7 +1809,7 @@
   <div class="modal" style="max-width:520px;">
     <div class="modal-head">
       <div class="modal-title" id="modal-amc-title">Add AMC Contract</div>
-      <button class="modal-close" onclick="closeModal('modal-amc')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-amc')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
@@ -1844,7 +1844,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-amc')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-amc')">Cancel</button>
       <button class="btn btn-primary" onclick="saveAmc()">💾 Save Contract</button>
     </div>
   </div>
@@ -1855,7 +1855,7 @@
   <div class="modal" style="max-width:520px;">
     <div class="modal-head">
       <div class="modal-title">📍 Place Substitute Extinguisher</div>
-      <button class="modal-close" onclick="closeModal('modal-place-sub')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-place-sub')">✕</button>
     </div>
     <div class="modal-body">
       <!-- Vacant location info -->
@@ -1879,7 +1879,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-place-sub')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-place-sub')">Cancel</button>
       <button class="btn btn-primary" onclick="confirmPlaceSubstitute()" id="btn-confirm-sub" disabled>
         📍 Place Substitute
       </button>
@@ -1912,7 +1912,7 @@
   <div class="modal" style="max-width:780px;">
     <div class="modal-head">
       <div class="modal-title">📥 Bulk Receive Refill</div>
-      <button class="modal-close" onclick="closeModal('modal-bulk-receive')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-bulk-receive')">✕</button>
     </div>
     <div class="modal-body">
       <div id="bulk-recv-pass-info" style="margin-bottom:14px; padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:13px;"></div>
@@ -1949,7 +1949,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-bulk-receive')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-bulk-receive')">Cancel</button>
       <button class="btn btn-green" onclick="confirmBulkReceive()">✅ Confirm Bulk Receive</button>
     </div>
   </div>
@@ -2005,7 +2005,7 @@
   <div class="modal" style="max-width:720px;">
     <div class="modal-head">
       <div class="modal-title">📋 Bulk Log Quarterly Service</div>
-      <button class="modal-close" onclick="closeModal('modal-bulk-service')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-bulk-service')">✕</button>
     </div>
     <div class="modal-body">
 
@@ -2106,7 +2106,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-bulk-service')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-bulk-service')">Cancel</button>
       <button class="btn btn-primary" onclick="submitBulkService()" id="bsvc-submit-btn">
         🔧 Log Service for <span id="bsvc-submit-count">0</span> Extinguisher(s)
       </button>
@@ -2119,7 +2119,7 @@
   <div class="modal" style="max-width:540px;">
     <div class="modal-head">
       <div class="modal-title" id="modal-service-title">🔧 Log Quarterly Service</div>
-      <button class="modal-close" onclick="closeModal('modal-service')">✕</button>
+      <button class="modal-close" onclick="closeModalChecked('modal-service')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
@@ -2164,7 +2164,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-service')">Cancel</button>
+      <button class="btn btn-ghost" onclick="closeModalChecked('modal-service')">Cancel</button>
       <button class="btn btn-primary" onclick="saveService()">💾 Save Service Record</button>
     </div>
   </div>
@@ -3155,6 +3155,8 @@ function openPlaceSubModal(loc, origExtNo) {
         No extinguishers available for substitution.<br>
         <small>Add units to Storeroom first or check the Master List.</small>
       </div>`;
+    openModal('modal-place-sub'); // was previously missing — modal never opened in this branch
+    snapshotModalFields('modal-place-sub');
     return;
   }
 
@@ -3178,6 +3180,7 @@ function openPlaceSubModal(loc, origExtNo) {
   }).join('');
 
   openModal('modal-place-sub');
+  snapshotModalFields('modal-place-sub');
 }
 
 function selectSubExt(extNo) {
@@ -3351,6 +3354,7 @@ function openAmcModal(id) {
     }
   }
   openModal('modal-amc');
+  snapshotModalFields('modal-amc');
 }
 
 async function saveAmc() {
@@ -4222,6 +4226,7 @@ function openAddModal() {
   if (regenBtn) regenBtn.style.display = '';
 
   openModal('modal-ext');
+  snapshotModalFields('modal-ext');
 }
 
 function editExtinguisher(extNo) {
@@ -4250,6 +4255,7 @@ function editExtinguisher(extNo) {
   if (hintEl) hintEl.textContent = '';
 
   openModal('modal-ext');
+  snapshotModalFields('modal-ext');
 }
 
 async function saveExtinguisher() {
@@ -4303,7 +4309,7 @@ async function saveExtinguisher() {
   renderDashboard();
 }
 
-function openHydroModal() { openModal('modal-hydro'); }
+function openHydroModal() { openModal('modal-hydro'); snapshotModalFields('modal-hydro'); }
 
 function autoFillHydroNextDue(testDateVal) {
   if (!testDateVal) return;
@@ -4536,6 +4542,7 @@ function openDeployModal(extNo) {
   });
 
   openModal('modal-deploy');
+  snapshotModalFields('modal-deploy');
 }
 
 function checkSubstituteAlert(location, extNo) {
@@ -4701,6 +4708,7 @@ function openBulkRefillModal() {
   populateAgencyDropdowns();
   renderBulkExtList();
   openModal('modal-bulk-refill');
+  snapshotModalFields('modal-bulk-refill');
 }
 
 function renderBulkExtList() {
@@ -4768,7 +4776,7 @@ function removeBulkItem(extNo) {
 }
 
 function addMoreToSelection() {
-  closeModal('modal-bulk-refill');
+  closeModalChecked('modal-bulk-refill');
   showPage('masterlist');
   showToast('Check more extinguishers, then click "Send for Refill" again', 'info');
 }
@@ -5751,6 +5759,7 @@ function openBulkReceiveForPass(passNo) {
   document.getElementById('bulk-recv-select-all').checked = true;
 
   openModal('modal-bulk-receive');
+  snapshotModalFields('modal-bulk-receive');
 }
 
 function toggleBulkRecvAll(cb) {
@@ -6371,6 +6380,7 @@ function openServiceModal(extNo) {
   autoFillSvcNextDue(today);
   if (extNo) onSvcExtNoInput(extNo);
   openModal('modal-service');
+  snapshotModalFields('modal-service');
 }
 
 function onSvcExtNoInput(val) {
@@ -6573,6 +6583,7 @@ function openBulkServiceModal() {
 
   renderBulkSvcList();
   openModal('modal-bulk-service');
+  snapshotModalFields('modal-bulk-service');
 }
 
 function autoFillBulkSvcNextDue(dateVal) {
@@ -6861,9 +6872,53 @@ function toggleSidebar() {
 // MODAL HELPERS
 // ═══════════════════════════════════════════════
 function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  delete _modalSnapshots[id]; // clear any unsaved-changes tracking for this modal
+}
+
+// ── Unsaved-changes guard ───────────────────────────────────────
+// Call snapshotModalFields(id) at the end of an openXxxModal() function
+// (after all fields/dynamic lists are populated) to "opt in" that modal
+// to the guard. Modals that never call it (read-only viewers like
+// History/QR/Scanner) are unaffected — closeModalChecked() just closes
+// them immediately since there's nothing to compare against.
+let _modalSnapshots = {};
+
+function _snapshotFieldValues(modalEl) {
+  const fields = modalEl.querySelectorAll('input, select, textarea');
+  const snap = [];
+  fields.forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') snap.push(el.checked ? '1' : '0');
+    else snap.push(el.value ?? '');
+  });
+  return snap.join('|');
+}
+
+function snapshotModalFields(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  _modalSnapshots[id] = _snapshotFieldValues(modal);
+}
+
+function isModalDirty(id) {
+  const modal = document.getElementById(id);
+  if (!modal || !(id in _modalSnapshots)) return false;
+  return _snapshotFieldValues(modal) !== _modalSnapshots[id];
+}
+
+// Guarded close — used by every modal's ✕ button, Cancel button, and
+// backdrop click. Only prompts if the modal opted in (via
+// snapshotModalFields) AND its fields have actually changed since opening.
+function closeModalChecked(id) {
+  if (isModalDirty(id)) {
+    if (!confirm('You have unsaved changes. Discard them and close?')) return;
+  }
+  closeModal(id);
+}
+
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+  m.addEventListener('click', e => { if (e.target === m) closeModalChecked(m.id); });
 });
 
 // ═══════════════════════════════════════════════
