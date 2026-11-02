@@ -125,16 +125,6 @@
     font-family: 'JetBrains Mono', monospace;
   }
 
-  .sidebar-footer {
-    padding: 14px 16px; border-top: 1px solid var(--sidebar-border);
-    font-size: 11px; color: var(--sidebar-text);
-  }
-  .config-btn {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px; border-radius: 6px;
-    cursor: pointer; transition: all .15s;
-  }
-  .config-btn:hover { background: var(--sidebar-surface); color: #E2EAF4; }
 
   /* ─── MAIN ─── */
   .main { margin-left: 240px; min-height: 100vh; }
@@ -852,11 +842,6 @@
       <span class="icon">⚙️</span> Configuration
     </div>
   </nav>
-  <div class="sidebar-footer">
-    <div class="config-btn" onclick="showPage('config')">
-      <span>⚙️</span> Settings & API Config
-    </div>
-  </div>
 </aside>
 
 <!-- MAIN -->
@@ -902,7 +887,7 @@
           <div class="stat-card-hint">Click to filter ↗</div>
         </div>
         <div class="stat-card red" onclick="filterByCard('overdue')" id="card-overdue" title="View overdue / sent out">
-          <div class="stat-label">Overdue / Sent Out</div>
+          <div class="stat-label">Overdue</div>
           <div class="stat-value" id="stat-overdue">—</div>
           <div class="stat-sub">Needs attention</div>
           <div class="stat-card-hint">Click to filter ↗</div>
@@ -978,11 +963,9 @@
             <option value="in-store">In Storeroom</option>
           </select>
         </div>
+        <div id="cross-page-banner" style="display:none; padding:8px 16px; background:var(--blue-bg); border-bottom:1px solid var(--blue-bd); font-size:12px; display:none;"></div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th style="width:40px;"><div class="cb-wrap"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" title="Select all on this page"></div></th>
                 <th>Ext. No.</th><th>Type</th><th>Weight</th><th>Current Location</th>
                 <th>Permanent Location</th><th>Mfg Year</th><th>Last Refill</th><th>Next Due</th>
                 <th>Hydro Test</th><th>Status</th><th>Actions</th>
@@ -1154,6 +1137,7 @@
     <div class="page" id="page-refills">
       <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="openRefillRequestModal()">＋ New Refill Request</button>
+        <button class="btn btn-green" id="refill-bulk-recv-btn" onclick="openBulkReceive()">📥 Bulk Receive</button>
         <button class="btn btn-ghost" onclick="filterRefills('all')" id="refill-tab-all">All</button>
         <button class="btn btn-ghost" onclick="filterRefills('pending')" id="refill-tab-pending">Pending</button>
         <button class="btn btn-ghost" onclick="filterRefills('sent')" id="refill-tab-sent">Sent Out</button>
@@ -1174,6 +1158,12 @@
       <div class="table-card">
         <div class="table-header">
           <span class="table-title">Generated Passes</span>
+          <select id="pass-filter-status" class="filter-select" onchange="renderPasses()" style="margin-left:auto;">
+            <option value="">All statuses</option>
+            <option value="pending">Pending (not yet sent)</option>
+            <option value="sent">Sent (awaiting receive)</option>
+            <option value="in-store">Received</option>
+          </select>
         </div>
         <div class="table-wrap">
           <table>
@@ -1194,7 +1184,7 @@
     <!-- ═══ CONFIG ═══ -->
     <div class="page" id="page-config">
       <div class="alert alert-warn">
-        ⚠️ Configure your Google Apps Script Web App URL below. Settings are saved in your browser only.
+        ⚙️ The backend connection is built in. The settings below are saved in your browser only.
       </div>
 
       <!-- Connection error alert — shown after failed test -->
@@ -1203,16 +1193,9 @@
       </div>
 
       <div class="config-section">
-        <div class="config-section-title">🔗 Google Apps Script API</div>
+        <div class="config-section-title">⚙️ Backend & Template Settings</div>
 
         <div class="form-grid">
-          <div class="form-group full">
-            <label>Apps Script Web App URL  <span id="url-status" style="margin-left:8px; font-size:11px;"></span></label>
-            <input type="text" id="cfg-api-url"
-              placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-              oninput="validateApiUrl(this.value)">
-            <div id="url-hint" style="font-size:11px; color:var(--grey); margin-top:5px; line-height:1.5;"></div>
-          </div>
           <div class="form-group">
             <label>Google Sheet ID</label>
             <input type="text" id="cfg-sheet-id"
@@ -1301,10 +1284,6 @@
         <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
           <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
           <button class="btn btn-ghost" onclick="testConnection()">🔌 Test Connection</button>
-          <a id="cfg-open-url" href="#" target="_blank"
-            style="display:none; font-size:12px; color:var(--blue); padding:4px 8px; border-radius:6px; background:var(--blue-bg);">
-            🔗 Open API URL in browser
-          </a>
         </div>
       </div>
 
@@ -1878,7 +1857,10 @@
       <button class="modal-close" onclick="closeModal('modal-bulk-receive')">✕</button>
     </div>
     <div class="modal-body">
-      <div id="bulk-recv-pass-info" style="margin-bottom:14px; padding:12px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:13px;"></div>
+      <div style="display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; align-items:center;">
+        <div id="bulk-recv-pass-info" style="flex:1; min-width:200px; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:13px;"></div>
+        <select id="bulk-recv-pass-filter" class="filter-select" onchange="filterBulkRecvRows()" style="min-width:200px;"></select>
+      </div>
 
       <div style="display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; align-items:center;">
         <div class="form-group" style="flex:1; min-width:160px; gap:4px;">
@@ -1899,7 +1881,7 @@
           <thead>
             <tr>
               <th><input type="checkbox" id="bulk-recv-select-all" onchange="toggleBulkRecvAll(this)" checked></th>
-              <th>Ext. No.</th><th>Type</th><th>Location</th>
+              <th>Ext. No.</th><th>Pass</th><th>Type</th><th>Location</th>
               <th>Received Date</th><th>New Weight</th><th>Next Due</th>
             </tr>
           </thead>
@@ -1908,12 +1890,12 @@
       </div>
 
       <div style="margin-top:12px; padding:10px 14px; background:var(--blue-bg); border:1px solid var(--blue-bd); border-radius:8px; font-size:12px; color:var(--blue);">
-        📦 All selected extinguishers will be moved to <strong>Storeroom</strong>. Use <strong>📍 Deploy</strong> from the Location Map or Master List to place them back.
+        📦 All selected extinguishers will be moved to <strong>Storeroom</strong>. Deploy them from the <strong>📦 Storeroom</strong> page.
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-bulk-receive')">Cancel</button>
-      <button class="btn btn-green" onclick="confirmBulkReceive()">✅ Confirm Bulk Receive</button>
+      <button class="btn btn-green" id="bulk-recv-confirm-btn" onclick="confirmBulkReceive()">✅ Confirm Bulk Receive</button>
     </div>
   </div>
 </div>
@@ -1931,8 +1913,11 @@
 // ═══════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════
+// Backend endpoint is fixed in code (not user-configurable)
+const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
+
 let CONFIG = {
-  apiUrl: '',
+  apiUrl: API_URL,
   sheetId: '',
   orgName: 'HLL Lifecare Limited',
   orgSubtitle: '(A Government of India Enterprise)',
@@ -2028,7 +2013,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadConfig();
   setDefaultDates();
   loadAmcData();
-  loadSampleData(); // Sample data — remove after connecting to Google Sheets
+  if (!CONFIG.apiUrl) loadSampleData(); // demo data only when no backend is configured
   populateAgencyDropdowns(); // Populate agency selects on load
   renderDashboard();
   renderMasterTable();
@@ -2047,7 +2032,6 @@ function loadConfig() {
   if (saved) {
     CONFIG = { ...CONFIG, ...JSON.parse(saved) };
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-    set('cfg-api-url',        CONFIG.apiUrl);
     set('cfg-sheet-id',       CONFIG.sheetId);
     set('cfg-org-name',       CONFIG.orgName);
     set('cfg-org-subtitle',   CONFIG.orgSubtitle);
@@ -2059,8 +2043,9 @@ function loadConfig() {
     set('cfg-addressee',      CONFIG.addressee);
     set('cfg-template-id',    CONFIG.templateId);
     set('cfg-folder-id',      CONFIG.folderId);
-    if (CONFIG.apiUrl) validateApiUrl(CONFIG.apiUrl);
   }
+  // API URL is fixed in code — always overrides anything saved in the browser
+  CONFIG.apiUrl = API_URL;
   // Logo stored separately (can be large)
   const savedLogo = localStorage.getItem('fireguard_logo');
   if (savedLogo) {
@@ -2122,38 +2107,9 @@ function clearLogo() {
   showToast('Logo removed', 'info');
 }
 
-function validateApiUrl(val) {
-  const statusEl = document.getElementById('url-status');
-  const hintEl   = document.getElementById('url-hint');
-  const openEl   = document.getElementById('cfg-open-url');
-  if (!val) {
-    statusEl.textContent = '';
-    hintEl.textContent = '';
-    if (openEl) openEl.style.display = 'none';
-    return;
-  }
-  const isExec  = val.includes('/exec');
-  const isDev   = val.includes('/dev');
-  const isGas   = val.includes('script.google.com/macros/s/');
-  if (isDev) {
-    statusEl.innerHTML = '<span style="color:var(--red);">⚠ /dev URL</span>';
-    hintEl.innerHTML   = '❌ <strong>/dev</strong> URLs block external access. Use the <strong>/exec</strong> URL from Manage Deployments.';
-  } else if (!isGas) {
-    statusEl.innerHTML = '<span style="color:var(--yellow);">⚠ Check URL</span>';
-    hintEl.textContent = 'URL should start with https://script.google.com/macros/s/…/exec';
-  } else if (isExec) {
-    statusEl.innerHTML = '<span style="color:var(--green);">✓ Looks good</span>';
-    hintEl.textContent = '';
-  }
-  if (openEl) {
-    openEl.href = val + '?action=ping';
-    openEl.style.display = 'inline-flex';
-  }
-}
-
 function saveConfig() {
   const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-  CONFIG.apiUrl          = get('cfg-api-url');
+  CONFIG.apiUrl          = API_URL; // fixed in code
   CONFIG.sheetId         = get('cfg-sheet-id');
   CONFIG.orgName         = get('cfg-org-name')        || 'Organisation';
   CONFIG.orgSubtitle     = get('cfg-org-subtitle');
@@ -2169,7 +2125,6 @@ function saveConfig() {
 
   const alertEl = document.getElementById('connection-error-alert');
   if (alertEl) alertEl.style.display = 'none';
-  validateApiUrl(CONFIG.apiUrl);
 
   // Push Template Doc ID and Folder ID to backend Script Properties
   // so generatePassDoc can find the template on Google Drive
@@ -2292,7 +2247,7 @@ async function apiCall(action, payload = {}, silent = false) {
 }
 
 async function refreshData(silent = false) {
-  if (!CONFIG.apiUrl) { showToast('Configure API URL first in ⚙️ Configuration', 'error'); return; }
+  if (!CONFIG.apiUrl) { showToast('Backend URL missing in code', 'error'); return; }
   setSyncStatus('syncing', 'Syncing...');
   if (!silent) showLoading('Syncing data from Google Sheets...');
   const res = await apiCall('getAll', {}, true);
@@ -2327,7 +2282,7 @@ function setSyncStatus(state, label) {
 }
 
 async function testConnection() {
-  if (!CONFIG.apiUrl) { showToast('Enter API URL first', 'error'); return; }
+  if (!CONFIG.apiUrl) { showToast('Backend URL missing in code', 'error'); return; }
 
   const btn = document.querySelector('[onclick="testConnection()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Testing...'; }
@@ -2393,7 +2348,7 @@ function renderDashboard() {
   const total   = DATA.extinguishers.length;
   const ok      = DATA.extinguishers.filter(e => e.Status === 'ok').length;
   const due     = DATA.extinguishers.filter(e => e.Status === 'due').length;
-  const overdue = DATA.extinguishers.filter(e => e.Status === 'overdue' || e.Status === 'pending').length;
+  const overdue = DATA.extinguishers.filter(e => e.Status === 'overdue').length;
   const vacant  = DATA.extinguishers.filter(e => {
     if (e.Status !== 'pending') return false;
     const origLoc = e.OriginalLocation || e.Location;
@@ -2688,6 +2643,16 @@ function renderTimelineChart() {
 }
 
 // ─── LOCATION MAP ──────────────────────────────────────────────
+function storeroomSlotHtml() {
+  const n = DATA.extinguishers.filter(e => e.Status === 'in-store').length;
+  return `<div class="locmap-slot ls-store" style="cursor:pointer;" onclick="showPage('storeroom')">
+    <div class="locmap-badge">📦</div>
+    <div class="locmap-name">Storeroom</div>
+    <div class="locmap-ext">${n} unit${n !== 1 ? 's' : ''}</div>
+    <div class="locmap-type">Click to open storeroom</div>
+  </div>`;
+}
+
 function renderLocationMap() {
   const grid = document.getElementById('locmap-grid');
   if (!grid) return;
@@ -2723,7 +2688,7 @@ function renderLocationMap() {
     return;
   }
 
-  grid.innerHTML = entries.map(([loc, exts]) => {
+  grid.innerHTML = storeroomSlotHtml() + entries.map(([loc, exts]) => {
     const active  = exts.filter(e => e.Status === 'ok');
     const due     = exts.filter(e => e.Status === 'due');
     const overdue = exts.filter(e => e.Status === 'overdue');
@@ -3060,7 +3025,13 @@ function saveAmc() {
 }
 
 function deleteAmc(id) {
-  if (!confirm('Delete this AMC contract?')) return;
+  const amc  = AMC_DATA.find(a => a.id === id);
+  const open = amc ? DATA.refills.filter(r => r.RequestBy === amc.vendor &&
+                                              r.Status !== 'received' && r.Status !== 'in-store').length : 0;
+  const msg  = open
+    ? `Delete this AMC contract?\n\n${open} open refill request(s) reference "${amc.vendor}". They keep the agency name on record.`
+    : 'Delete this AMC contract?';
+  if (!confirm(msg)) return;
   AMC_DATA = AMC_DATA.filter(a => a.id !== id);
   saveAmcData();
   renderAmcGrid();
@@ -3162,7 +3133,7 @@ function filterByCard(filterType) {
     // Custom filter: show overdue + pending together
     statusSelect.value = '';
     const filtered = DATA.extinguishers.filter(e =>
-      e.Status === 'overdue' || e.Status === 'pending'
+      e.Status === 'overdue'
     );
     renderMasterTable(filtered);
     return;
@@ -3335,6 +3306,9 @@ function filterHydro() {
 // ═══════════════════════════════════════════════
 function renderRefills() {
   const all = DATA.refills;
+  const sentCount = all.filter(r => r.Status === 'sent').length;
+  const brBtn = document.getElementById('refill-bulk-recv-btn');
+  if (brBtn) brBtn.textContent = '📥 Bulk Receive' + (sentCount ? ' (' + sentCount + ')' : '');
   const rows = activeRefillFilter === 'all' ? all : all.filter(r => r.Status === activeRefillFilter);
   const container = document.getElementById('refill-list');
 
@@ -3379,7 +3353,7 @@ function renderRefills() {
           ${r.Status === 'pending' ? `<button class="btn btn-blue btn-sm" onclick="openMarkSentModal('${r.RefillID}')">📦 Mark Sent</button>` : ''}
           ${r.Status === 'sent' ? `<button class="btn btn-green btn-sm" onclick="openBulkReceiveForPass('${r.PassNo}')">📥 Receive</button>` : ''}
           ${(r.Status === 'received' || r.Status === 'in-store') && ext.Status === 'in-store'
-            ? `<button class="btn btn-primary btn-sm" onclick="openDeployModal('${r.ExtNo}')">📍 Deploy</button>` : ''}
+            ? `<button class="btn btn-primary btn-sm" onclick="showPage('storeroom')">📦 Go to Storeroom</button>` : ''}
           <button class="btn btn-ghost btn-sm" onclick="viewPass('${r.PassNo}')">📄 Pass</button>
         </div>
       </div>
@@ -3398,13 +3372,35 @@ function filterRefills(type) {
 // ═══════════════════════════════════════════════
 // PASSES
 // ═══════════════════════════════════════════════
+async function markPassSent(passNo) {
+  const today = new Date().toISOString().split('T')[0];
+  const rows  = DATA.refills.filter(r => r.PassNo === passNo && r.Status === 'pending');
+  if (!rows.length) { showToast('Nothing pending on this pass', 'info'); return; }
+  if (!confirm(`Mark ${rows.length} extinguisher(s) on ${passNo} as sent out?`)) return;
+
+  rows.forEach(r => { r.Status = 'sent'; r.SentDate = today; });
+  const p = DATA.passes.find(x => x.PassNo === passNo);
+  if (p) p.Status = 'sent';
+
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('markPassSent', { passNo, sentDate: today });
+    if (!res || !res.success) {
+      showToast('Sheet update failed — re-sync to verify before relying on this status', 'error');
+      return;
+    }
+  }
+  renderRefills(); renderPasses(); renderMasterTable(); renderDashboard();
+  showToast(`${rows.length} extinguisher(s) marked sent`, 'success');
+}
+
 function renderPasses() {
   const tbody = document.getElementById('passes-body');
   if (!DATA.passes.length) {
     tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">No passes generated yet.</div></div></td></tr>';
     return;
   }
-  tbody.innerHTML = DATA.passes.map(p => {
+  const pf = document.getElementById('pass-filter-status')?.value || '';
+  tbody.innerHTML = DATA.passes.filter(p => !pf || p.Status === pf).map(p => {
     // Count extinguishers: ExtList JSON or comma-split ExtNo
     let extCount = 1;
     let extLabel = p.ExtNo;
@@ -3428,6 +3424,7 @@ function renderPasses() {
         <div class="actions-cell">
           <button class="btn btn-ghost btn-sm" onclick="viewPass('${p.PassNo}')">👁️ View</button>
           <button class="btn btn-primary btn-sm" onclick="viewAndDownload('${p.PassNo}')">⬇ Word</button>
+          ${p.Status === 'pending' ? `<button class="btn btn-blue btn-sm" onclick="markPassSent('${p.PassNo}')">📦 Mark All Sent</button>` : ''}
           ${p.Status === 'sent' ? `<button class="btn btn-green btn-sm" onclick="openBulkReceiveForPass('${p.PassNo}')">📥 Receive</button>` : ''}
           ${p.DocUrl ? `<a href="${p.DocUrl}" target="_blank" class="btn btn-ghost btn-sm">☁ Drive</a>` : ''}
         </div>
@@ -3977,6 +3974,16 @@ function requestRefillFor(extNo) {
   openBulkRefillModal();
 }
 
+// ── Collision-safe sequential IDs: max existing suffix + 1 ──
+function nextSeqId(prefix, rows, field, pad) {
+  let max = 0;
+  rows.forEach(r => {
+    const m = String(r[field] || '').match(/(\d+)$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return prefix + String(max + 1).padStart(pad, '0');
+}
+
 async function createRefillRequest() {
   const extNo   = document.getElementById('r-extno').value.trim();
   const reqDate = document.getElementById('r-reqdate').value;
@@ -3986,22 +3993,24 @@ async function createRefillRequest() {
   if (!extNo)  { showToast('Ext. Number is required', 'error'); return; }
   if (!reqBy)  { showToast('Please select an agency', 'error'); return; }
 
-  const passNo = 'PASS-' + String(DATA.passes.length + 1).padStart(4, '0');
-  const refillId = 'RF-' + String(DATA.refills.length + 1).padStart(3, '0');
+  const passNo = nextSeqId('PASS-', DATA.passes, 'PassNo', 4);
+  const refillId = nextSeqId('RF-', DATA.refills, 'RefillID', 3);
   const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
 
   const extDetails = [{ slNo: 1, extNo, type: ext.Type || '—', weight: ext.Weight || '—',
                         location: ext.Location || '—', mfgDate: ext.MfgDate || '' }];
 
   const refill = { RefillID: refillId, ExtNo: extNo, RequestDate: reqDate, RequestBy: reqBy,
-                   SentDate: '', ReceivedDate: '', PassNo: passNo, Status: 'pending', Remarks: remarks };
+                   SentDate: '', ReceivedDate: '', PassNo: passNo, Status: 'pending', Remarks: remarks,
+                   OriginalLocation: ext.Location || '', LocationAction: 'vacant', SubstituteExtNo: '' };
   const pass = { PassNo: passNo, ExtNo: extNo, ExtList: JSON.stringify(extDetails),
                  Location: ext.Location || '—', Type: ext.Type || '—', Weight: ext.Weight || '—',
                  GeneratedOn: reqDate, GeneratedBy: reqBy, Remarks: remarks, Status: 'pending', DocUrl: '' };
 
   if (CONFIG.apiUrl) {
     const res = await apiCall('createRefillRequest', { refill, pass, ext });
-    if (res && res.docUrl) pass.DocUrl = res.docUrl;
+    if (!res || !res.success) { showToast('Sheet save failed — nothing was recorded. Try again.', 'error'); return; }
+    if (res.docUrl) pass.DocUrl = res.docUrl;
   }
 
   DATA.refills.push(refill);
@@ -4009,7 +4018,11 @@ async function createRefillRequest() {
 
   // Update extinguisher status
   const extIdx = DATA.extinguishers.findIndex(e => e.ExtNo === extNo);
-  if (extIdx !== -1) DATA.extinguishers[extIdx].Status = 'pending';
+  if (extIdx !== -1) {
+    DATA.extinguishers[extIdx].Status          = 'pending';
+    DATA.extinguishers[extIdx].CurrentLocation = 'With Vendor';
+    DATA.extinguishers[extIdx].OriginalLocation= DATA.extinguishers[extIdx].Location || '';
+  }
 
   closeModal('modal-refill');
   renderRefills();
@@ -4168,9 +4181,9 @@ function openDeployModal(extNo) {
 
   checkSubstituteAlert(origLoc, extNo);
 
-  document.getElementById('deploy-location').addEventListener('input', function() {
+  document.getElementById('deploy-location').oninput = function() {
     checkSubstituteAlert(this.value, extNo);
-  });
+  };
 
   openModal('modal-deploy');
 }
@@ -4478,7 +4491,7 @@ async function submitBulkRefill() {
   btn.textContent = '⏳ Generating...';
 
   // ONE pass for the whole batch
-  const passNo = 'PASS-' + String(DATA.passes.length + 1).padStart(4, '0');
+  const passNo = nextSeqId('PASS-', DATA.passes, 'PassNo', 4);
   const extNosArray = [...selectedExtNos];
   const extDetails = extNosArray.map((extNo, idx) => {
     const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
@@ -4501,7 +4514,7 @@ async function submitBulkRefill() {
     ExtList: JSON.stringify(extDetails),    // full detail for rendering
     Location: extDetails.map(e => e.location).join(' | '),
     Type: [...new Set(extDetails.map(e => e.type))].join(', '),
-    Weight: extDetails.map(e => e.weight + ' kg').join(', '),
+    Weight: extDetails.map(e => weightLabel(e.type, e.weight)).join(', '),
     GeneratedOn: reqDate,
     GeneratedBy: reqBy,
     Remarks: remarks,
@@ -4512,7 +4525,7 @@ async function submitBulkRefill() {
   // Individual refill records per extinguisher (for receive tracking)
   const refillRecords = [];
   for (const extNo of extNosArray) {
-    const refillId = 'RF-' + String(DATA.refills.length + refillRecords.length + 1).padStart(3, '0');
+    const refillId = nextSeqId('RF-', [...DATA.refills, ...refillRecords], 'RefillID', 3);
     const ext = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
     const la = locActions[extNo] || { action: 'vacant', subExtNo: '' };
     // e.Location is the permanent assigned location — store as OriginalLocation in refill record
@@ -4533,12 +4546,19 @@ async function submitBulkRefill() {
       const res = await apiCall('createBatchRefillRequest', {
         pass: combinedPass, refills: refillRecords, extDetails
       });
-      if (res && res.docUrl) {
-        combinedPass.DocUrl = res.docUrl;
-        btn.textContent = '⏳ Finalising...';
+      if (!res || !res.success) {
+        btn.disabled = false;
+        btn.innerHTML = `🔥 Generate <span id="bulk-pass-count">0</span> Pass(es)`;
+        showToast('Sheet save failed — nothing was recorded. Try again.', 'error');
+        return;
       }
+      if (res.docUrl) combinedPass.DocUrl = res.docUrl;
+      btn.textContent = '⏳ Finalising...';
     } catch (_) {
-      showToast('Backend sync failed — pass saved locally only', 'info');
+      btn.disabled = false;
+      btn.innerHTML = `🔥 Generate <span id="bulk-pass-count">0</span> Pass(es)`;
+      showToast('Sheet save failed — nothing was recorded. Try again.', 'error');
+      return;
     }
   }
 
@@ -4853,9 +4873,9 @@ function fmtDate(d) {
   if (/^\d{2}-[A-Za-z]{3}-\d{4}$/.test(s)) return s;
   try {
     const dt = new Date(s);
-    if (isNaN(dt.getTime())) return s; // unparseable — return raw
+    if (isNaN(dt.getTime())) return '—';
     return dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
-  } catch(_) { return s; }
+  } catch(_) { return '—'; }
 }
 
 // ═══════════════════════════════════════════════
@@ -5233,135 +5253,187 @@ async function buildInspectionDocx(exts, monthLabel) {
 // ═══════════════════════════════════════════════
 // BULK RECEIVE
 // ═══════════════════════════════════════════════
-let bulkReceivePassNo = '';
+// ═══════════════════════════════════════════════
+// BULK RECEIVE  (one pass, or units from several passes at once)
+// ═══════════════════════════════════════════════
+function openBulkReceiveForPass(passNo) { openBulkReceive(passNo); }
 
-function openBulkReceiveForPass(passNo) {
-  bulkReceivePassNo = passNo;
-  const pass    = DATA.passes.find(p => p.PassNo === passNo) || {};
-  const refills = DATA.refills.filter(r => r.PassNo === passNo && r.Status === 'sent');
+function openBulkReceive(preselectPass) {
+  const sent = DATA.refills.filter(r => r.Status === 'sent');
+  if (!sent.length) { showToast('No sent-out extinguishers to receive', 'info'); return; }
 
-  if (!refills.length) {
-    showToast('No sent extinguishers found for this pass', 'error');
-    return;
-  }
+  // Pass filter dropdown
+  const passNos = [...new Set(sent.map(r => r.PassNo))];
+  const sel = document.getElementById('bulk-recv-pass-filter');
+  sel.innerHTML = '<option value="">All passes (' + sent.length + ' units)</option>' +
+    passNos.map(pn => {
+      const n = sent.filter(r => r.PassNo === pn).length;
+      return '<option value="' + pn + '">' + pn + ' — ' + n + ' unit' + (n !== 1 ? 's' : '') + '</option>';
+    }).join('');
+  sel.value = passNos.includes(preselectPass) ? preselectPass : '';
 
-  // Pass info banner
-  document.getElementById('bulk-recv-pass-info').innerHTML =
-    '<span class="ext-num">' + passNo + '</span>' +
-    ' &nbsp;·&nbsp; ' + refills.length + ' extinguisher' + (refills.length!==1?'s':'') + ' to receive' +
-    (pass.GeneratedBy ? ' &nbsp;·&nbsp; Agency: <strong>' + pass.GeneratedBy + '</strong>' : '');
-
-  // Set default date to today, nextDue to +1 year
+  // Defaults: received today, next refill due in 1 year
   const today = new Date().toISOString().split('T')[0];
-  const nextYr = new Date(); nextYr.setFullYear(nextYr.getFullYear()+1);
+  const nextYr = new Date(); nextYr.setFullYear(nextYr.getFullYear() + 1);
   const nextYrStr = nextYr.toISOString().split('T')[0];
   document.getElementById('bulk-recv-date').value    = today;
   document.getElementById('bulk-recv-nextdue').value = nextYrStr;
 
-  // Build table rows
-  const tbody = document.getElementById('bulk-recv-body');
-  tbody.innerHTML = refills.map(r => {
-    const ext = DATA.extinguishers.find(e => e.ExtNo === r.ExtNo) || {};
-    const origLoc = r.OriginalLocation || ext.OriginalLocation || ext.Location || '—';
-    return `<tr id="brecv-row-${r.RefillID}">
-      <td><input type="checkbox" class="brecv-cb" value="${r.RefillID}" checked></td>
+  document.getElementById('bulk-recv-body').innerHTML = sent.map(r => {
+    const ext  = DATA.extinguishers.find(e => e.ExtNo === r.ExtNo) || {};
+    const home = r.OriginalLocation || ext.OriginalLocation || ext.Location || '—';
+    return `<tr data-refill="${r.RefillID}" data-pass="${r.PassNo}">
+      <td><input type="checkbox" class="brecv-cb" checked onchange="syncBulkRecvSelectAll()"></td>
       <td><span class="ext-num">${r.ExtNo}</span></td>
+      <td style="font-size:11px; color:var(--grey);">${r.PassNo}</td>
       <td>${typeTag(ext.Type || '—')}</td>
-      <td style="font-size:12px;">${origLoc}</td>
-      <td><input type="date" id="brecv-date-${r.RefillID}" value="${today}" style="width:130px;"></td>
-      <td><input type="number" id="brecv-wt-${r.RefillID}" step="0.5" value="${ext.Weight||''}" placeholder="${ext.Weight||'kg'}" style="width:80px;"></td>
-      <td><input type="date" id="brecv-next-${r.RefillID}" value="${nextYrStr}" style="width:130px;"></td>
+      <td style="font-size:12px;">${home}</td>
+      <td><input type="date" class="brecv-date" value="${today}" style="width:130px;"></td>
+      <td><input type="number" class="brecv-wt" step="0.5" value="${ext.Weight || ''}" placeholder="${weightUnit(ext.Type)}" style="width:80px;"></td>
+      <td><input type="date" class="brecv-next" value="${nextYrStr}" style="width:130px;"></td>
     </tr>`;
   }).join('');
 
-  // Select all checkbox
-  document.getElementById('bulk-recv-select-all').checked = true;
+  const btn = document.getElementById('bulk-recv-confirm-btn');
+  btn.disabled = false;
+  btn.textContent = '✅ Confirm Bulk Receive';
 
+  filterBulkRecvRows();
   openModal('modal-bulk-receive');
 }
 
+// Rows currently shown (the pass filter hides the others; hidden rows are never received)
+function bulkRecvVisibleRows() {
+  return [...document.querySelectorAll('#bulk-recv-body tr')].filter(tr => tr.style.display !== 'none');
+}
+
+function filterBulkRecvRows() {
+  const pn = document.getElementById('bulk-recv-pass-filter').value;
+  document.querySelectorAll('#bulk-recv-body tr').forEach(tr => {
+    tr.style.display = (!pn || tr.dataset.pass === pn) ? '' : 'none';
+  });
+
+  const sent = DATA.refills.filter(r => r.Status === 'sent' && (!pn || r.PassNo === pn));
+  const info = document.getElementById('bulk-recv-pass-info');
+  const units = sent.length + ' unit' + (sent.length !== 1 ? 's' : '');
+  if (pn) {
+    const pass = DATA.passes.find(p => p.PassNo === pn) || {};
+    info.innerHTML = '<span class="ext-num">' + pn + '</span> &nbsp;·&nbsp; ' + units +
+      (pass.GeneratedBy ? ' &nbsp;·&nbsp; Agency: <strong>' + pass.GeneratedBy + '</strong>' : '');
+  } else {
+    const passCount = new Set(sent.map(r => r.PassNo)).size;
+    info.innerHTML = '<strong>' + units + '</strong> across <strong>' + passCount + '</strong> pass' + (passCount !== 1 ? 'es' : '');
+  }
+  syncBulkRecvSelectAll();
+}
+
+function syncBulkRecvSelectAll() {
+  const rows    = bulkRecvVisibleRows();
+  const checked = rows.filter(tr => tr.querySelector('.brecv-cb').checked).length;
+  const master  = document.getElementById('bulk-recv-select-all');
+  master.checked       = rows.length > 0 && checked === rows.length;
+  master.indeterminate = checked > 0 && checked < rows.length;
+}
+
 function toggleBulkRecvAll(cb) {
-  document.querySelectorAll('.brecv-cb').forEach(c => c.checked = cb.checked);
+  bulkRecvVisibleRows().forEach(tr => { tr.querySelector('.brecv-cb').checked = cb.checked; });
+  syncBulkRecvSelectAll();
 }
 
-function fillAllRecvDates(val) {
-  document.querySelectorAll('[id^="brecv-date-"]').forEach(el => el.value = val);
-}
-
-function fillAllNextDue(val) {
-  document.querySelectorAll('[id^="brecv-next-"]').forEach(el => el.value = val);
-}
+function fillAllRecvDates(val) { bulkRecvVisibleRows().forEach(tr => { tr.querySelector('.brecv-date').value = val; }); }
+function fillAllNextDue(val)   { bulkRecvVisibleRows().forEach(tr => { tr.querySelector('.brecv-next').value = val; }); }
 
 function applyBulkRecvDefaults() {
-  const date   = document.getElementById('bulk-recv-date').value;
-  const nextDue= document.getElementById('bulk-recv-nextdue').value;
+  const date    = document.getElementById('bulk-recv-date').value;
+  const nextDue = document.getElementById('bulk-recv-nextdue').value;
   if (date)    fillAllRecvDates(date);
   if (nextDue) fillAllNextDue(nextDue);
-  showToast('Applied to all rows', 'info');
+  showToast('Applied to the rows shown', 'info');
+}
+
+// Apply a saved batch to local data. A pass becomes "received" only when ALL its units are back.
+function applyBulkReceiveLocally(chunk) {
+  const passes = new Set();
+  chunk.forEach(it => {
+    it.refill.ReceivedDate = it.date;
+    it.refill.Status       = 'received';
+    passes.add(it.refill.PassNo);
+    const e = DATA.extinguishers.find(x => x.ExtNo === it.extNo);
+    if (e) {
+      e.Status          = 'in-store';
+      e.CurrentLocation = 'Storeroom';
+      e.OriginalLocation= it.loc;
+      e.LastRefillDate  = it.date;
+      if (it.wt)  e.Weight        = it.wt;
+      if (it.due) e.NextRefillDue = it.due;
+    }
+  });
+  passes.forEach(pn => {
+    const allBack = DATA.refills.filter(r => r.PassNo === pn)
+      .every(r => r.Status === 'received' || r.Status === 'in-store' || r.Status === 'deployed');
+    const p = DATA.passes.find(x => x.PassNo === pn);
+    if (p && allBack) p.Status = 'in-store';
+  });
 }
 
 async function confirmBulkReceive() {
-  const selected = [...document.querySelectorAll('.brecv-cb:checked')].map(cb => cb.value);
-  if (!selected.length) { showToast('Select at least one extinguisher', 'error'); return; }
+  const rows = bulkRecvVisibleRows().filter(tr => tr.querySelector('.brecv-cb').checked);
+  if (!rows.length) { showToast('Select at least one extinguisher', 'error'); return; }
 
-  const refills  = DATA.refills.filter(r => r.PassNo === bulkReceivePassNo && r.Status === 'sent');
-  let receivedCount = 0;
-
-  for (const refillId of selected) {
-    const refill = refills.find(r => r.RefillID === refillId);
+  const items = [];
+  for (const tr of rows) {
+    const refill = DATA.refills.find(r => r.RefillID === tr.dataset.refill && r.Status === 'sent');
     if (!refill) continue;
+    const date = tr.querySelector('.brecv-date').value;
+    if (!date) { showToast('Received date is missing for ' + refill.ExtNo, 'error'); return; }
+    const ext = DATA.extinguishers.find(e => e.ExtNo === refill.ExtNo) || {};
+    items.push({
+      refill, id: refill.RefillID, extNo: refill.ExtNo, date,
+      loc: refill.OriginalLocation || ext.Location || '',
+      wt:  tr.querySelector('.brecv-wt').value   || '',
+      due: tr.querySelector('.brecv-next').value || ''
+    });
+  }
+  if (!items.length) return;
 
-    const recDate  = document.getElementById('brecv-date-' + refillId)?.value || new Date().toISOString().split('T')[0];
-    const newWt    = document.getElementById('brecv-wt-'   + refillId)?.value || '';
-    const nextDue  = document.getElementById('brecv-next-' + refillId)?.value || '';
+  const btn = document.getElementById('bulk-recv-confirm-btn');
+  btn.disabled = true;
 
-    // Update refill record
-    refill.ReceivedDate = recDate;
-    refill.Status       = 'received';
-
-    // Update extinguisher → Storeroom
-    const extIdx = DATA.extinguishers.findIndex(e => e.ExtNo === refill.ExtNo);
-    if (extIdx !== -1) {
-      DATA.extinguishers[extIdx].Status          = 'in-store';
-      DATA.extinguishers[extIdx].CurrentLocation = 'Storeroom';
-      DATA.extinguishers[extIdx].OriginalLocation= refill.OriginalLocation || DATA.extinguishers[extIdx].Location || '';
-      DATA.extinguishers[extIdx].LastRefillDate  = recDate;
-      if (newWt)   DATA.extinguishers[extIdx].Weight        = newWt;
-      if (nextDue) DATA.extinguishers[extIdx].NextRefillDue = nextDue;
-    }
-
-    // Sync to backend
+  // Save in batches of 15 (keeps each request URL short). Local data changes only after a batch is saved.
+  const CHUNK = 15;
+  let done = 0, failed = false;
+  for (let i = 0; i < items.length; i += CHUNK) {
+    const chunk = items.slice(i, i + CHUNK);
+    btn.textContent = '⏳ Saving ' + Math.min(i + CHUNK, items.length) + ' / ' + items.length + '...';
     if (CONFIG.apiUrl) {
-      try {
-        await apiCall('markRefillReceived', {
-          refill,
-          extUpdate: DATA.extinguishers[extIdx]
-        }, true);
-      } catch(_) {}
+      const res = await apiCall('markRefillsReceived', {
+        items: chunk.map(it => ({ id: it.id, ext: it.extNo, date: it.date, loc: it.loc, wt: it.wt, due: it.due }))
+      }, true);
+      if (!res || !res.success) { failed = true; break; }
     }
-
-    receivedCount++;
+    applyBulkReceiveLocally(chunk);
+    done += chunk.length;
   }
 
-  // Update pass status if all refills received
-  const allReceived = DATA.refills
-    .filter(r => r.PassNo === bulkReceivePassNo)
-    .every(r => r.Status === 'received' || r.Status === 'deployed');
-  const passIdx = DATA.passes.findIndex(p => p.PassNo === bulkReceivePassNo);
-  if (passIdx !== -1 && allReceived) DATA.passes[passIdx].Status = 'in-store';
+  btn.disabled = false;
+  btn.textContent = '✅ Confirm Bulk Receive';
+  if (done) { renderRefills(); renderDashboard(); renderMasterTable(); renderPasses(); }
+
+  if (failed) {
+    if (done) {
+      showToast(done + ' of ' + items.length + ' received. The rest were NOT saved — review the list and confirm again.', 'error');
+      openBulkReceive(document.getElementById('bulk-recv-pass-filter').value);  // refresh with what is left
+    } else {
+      showToast('Sheet save failed — nothing was received. Try again.', 'error');
+    }
+    return;
+  }
 
   closeModal('modal-bulk-receive');
-  renderRefills();
-  renderDashboard();
-  renderMasterTable();
-  renderPasses();
-
-  showToast(receivedCount + ' extinguisher' + (receivedCount!==1?'s':'') + ' received → Storeroom.', 'success');
-  // Offer to go to storeroom to deploy
-  setTimeout(() => {
-    showToast('Go to 📦 Storeroom to deploy units back to their locations.', 'info');
-  }, 1800);
+  showToast(done + ' extinguisher' + (done !== 1 ? 's' : '') + ' received → Storeroom.', 'success');
+  setTimeout(() => showToast('Go to 📦 Storeroom to deploy units back to their locations.', 'info'), 1800);
 }
+
 
 
 // ═══════════════════════════════════════════════════════════════
