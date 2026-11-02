@@ -966,6 +966,9 @@
         <div id="cross-page-banner" style="display:none; padding:8px 16px; background:var(--blue-bg); border-bottom:1px solid var(--blue-bd); font-size:12px; display:none;"></div>
         <div class="table-wrap">
           <table>
+            <thead>
+              <tr>
+                <th style="width:40px;"><div class="cb-wrap"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" title="Select all on this page"></div></th>
                 <th>Ext. No.</th><th>Type</th><th>Weight</th><th>Current Location</th>
                 <th>Permanent Location</th><th>Mfg Year</th><th>Last Refill</th><th>Next Due</th>
                 <th>Hydro Test</th><th>Status</th><th>Actions</th>
@@ -1916,6 +1919,9 @@
 // Backend endpoint is fixed in code (not user-configurable)
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
+// Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
+const EXPECTED_BACKEND = 'v2026.10.17';
+
 let CONFIG = {
   apiUrl: API_URL,
   sheetId: '',
@@ -2021,6 +2027,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-sync if API URL is configured
   if (CONFIG.apiUrl) {
     setSyncStatus('syncing', 'Syncing...');
+    checkBackendVersion();
     refreshData(true);
   } else {
     setSyncStatus('idle', 'Not connected');
@@ -2243,6 +2250,19 @@ async function apiCall(action, payload = {}, silent = false) {
     if (!silent) showToast('API Error: ' + msg, 'error');
     console.error('[FireGuard API]', action, e);
     return null;
+  }
+}
+
+async function checkBackendVersion() {
+  try {
+    const res = await apiCall('ping', {}, true);
+    const deployed = res && res.version;
+    if (deployed !== EXPECTED_BACKEND) {
+      showToast('Backend is out of date (deployed: ' + (deployed || 'unknown') +
+                ', needs: ' + EXPECTED_BACKEND + '). Paste Code.gs into Apps Script and create a NEW deployment version.', 'error');
+    }
+  } catch (_) {
+    showToast('Could not reach the backend. Check the deployment is set to "Anyone".', 'error');
   }
 }
 
@@ -3216,7 +3236,7 @@ function renderMasterTable(data) {
       <td>${e.Weight || '—'} kg</td>
       <td>${locDisplay}</td>
       <td>${origDisplay}</td>
-      <td>${fmtDate(e.MfgDate)}</td>
+      <td>${e._misaligned ? '<span style="color:var(--red);font-size:11px;" title="Sheet column mismatch — run diagnoseExtSheet() in Apps Script">⚠ check sheet</span>' : fmtDate(e.MfgDate)}</td>
       <td>${fmtDate(e.LastRefillDate)}</td>
       <td>${fmtDate(e.NextRefillDue)}</td>
       <td>${hydroStatus(e.ExtNo)}</td>
