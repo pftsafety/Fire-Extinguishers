@@ -843,8 +843,8 @@
     <div class="nav-item" onclick="openMonthlyInspection()">
       <span class="icon">✅</span> Inspection
     </div>
-    <div class="nav-item" onclick="openQuarterlyInspection()">
-      <span class="icon">🗓️</span> Quarterly Inspection
+    <div class="nav-item" onclick="showPage('service')">
+      <span class="icon">🛠️</span> Quarterly Service
     </div>
     <div class="nav-item" onclick="showPage('storeroom')">
       <span class="icon">📦</span> Storeroom
@@ -1024,14 +1024,7 @@
           <span class="table-title">Extinguishers for Inspection</span>
           <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
             <span id="insp-period-label" style="font-size:12px; color:var(--grey);">Inspection Month:</span>
-            <span id="insp-quarter-wrap" style="display:none; gap:6px; align-items:center;">
-            <select id="insp-quarter" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--body); font-size:13px;">
-              <option value="1">Q1 (Jan–Mar)</option><option value="2">Q2 (Apr–Jun)</option>
-              <option value="3">Q3 (Jul–Sep)</option><option value="4">Q4 (Oct–Dec)</option>
-            </select>
-            <input type="number" id="insp-year" min="2020" max="2100" style="width:90px; padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--body); font-size:13px;">
-          </span>
-          <input type="month" id="insp-month" onchange="renderInspectionTable()" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; background:var(--surface2); color:var(--body); outline:none;">
+            <input type="month" id="insp-month" onchange="renderInspectionTable()" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; background:var(--surface2); color:var(--body); outline:none;">
           </div>
         </div>
         <div class="table-wrap">
@@ -1064,6 +1057,36 @@
             <div class="insp-section-title">Operational Check</div>
             <div class="insp-check-grid" id="preview-operational"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ QUARTERLY SERVICE ═══ -->
+    <div class="page" id="page-service">
+      <div class="insp-filter-row">
+        <button class="btn btn-primary" onclick="openServiceModal()">＋ Record Quarterly Service</button>
+        <input type="search" id="svc-search" class="filter-select" placeholder="Search ext no, type, location…" oninput="renderServicePage()" style="min-width:240px;">
+        <select id="svc-filter-status" class="filter-select" onchange="renderServicePage()">
+          <option value="">All units</option>
+          <option value="overdue">Overdue</option>
+          <option value="soon">Due within 14 days</option>
+          <option value="never">Never serviced</option>
+          <option value="remove">Remove from service</option>
+          <option value="ok">Up to date</option>
+        </select>
+        <span id="svc-count" style="font-size:12px; color:var(--muted);"></span>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ext. No.</th><th>Type</th><th>Weight</th><th>Location</th>
+                <th>Last Service</th><th>Serviced By</th><th>Condition</th><th>Next Due</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="svc-body"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1928,6 +1951,55 @@
   </div>
 </div>
 
+<!-- Quarterly Service Modal -->
+<div class="modal-overlay" id="modal-service">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-head">
+      <div class="modal-title">🛠 Record Quarterly Service</div>
+      <button class="modal-close" onclick="closeModal('modal-service')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Service Date *</label>
+          <input type="date" id="svc-date" onchange="svcFillNext()">
+        </div>
+        <div class="form-group">
+          <label>Serviced By *</label>
+          <input type="text" id="svc-by" placeholder="Name / agency">
+        </div>
+        <div class="form-group">
+          <label>Condition *</label>
+          <select id="svc-condition">
+            <option value="ok">OK</option>
+            <option value="needs attention">Needs attention</option>
+            <option value="remove from service">Remove from service</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Next Due <span style="font-weight:400;color:var(--muted);">auto +3 months</span></label>
+          <input type="date" id="svc-next">
+        </div>
+        <div class="form-group full">
+          <label>Remarks</label>
+          <input type="text" id="svc-remarks">
+        </div>
+      </div>
+      <div style="margin-top:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input type="search" id="svc-pick-search" class="filter-select" placeholder="Filter extinguishers…" oninput="renderServicePicker()" style="flex:1; min-width:180px;">
+        <button class="btn btn-ghost btn-sm" onclick="svcPickAll(true)">Select shown</button>
+        <button class="btn btn-ghost btn-sm" onclick="svcPickAll(false)">Clear</button>
+        <span id="svc-pick-count" style="font-size:12px; color:var(--grey);"></span>
+      </div>
+      <div id="svc-picker" style="margin-top:8px; max-height:280px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-service')">Cancel</button>
+      <button class="btn btn-green" id="svc-save-btn" onclick="saveServices()">💾 Save Service Records</button>
+    </div>
+  </div>
+</div>
+
 <!-- Condemn Modal -->
 <div class="modal-overlay" id="modal-condemn">
   <div class="modal" style="max-width:460px;">
@@ -1986,7 +2058,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.18';
+const EXPECTED_BACKEND = 'v2026.10.19';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2008,6 +2080,7 @@ let CONFIG = {
 let DATA = {
   extinguishers: [],
   condemnedExts: [],
+  services: [],
   hydroTests: [],
   refills: [],
   passes: []
@@ -2346,6 +2419,7 @@ async function refreshData(silent = false) {
     DATA.hydroTests    = res.hydroTests    || [];
     DATA.refills       = res.refills       || [];
     DATA.passes        = res.passes        || [];
+    DATA.services      = res.services      || [];
     renderDashboard();
     renderMasterTable();
     renderHydroTable();
@@ -2488,6 +2562,157 @@ function renderDashboard() {
       <td>${fmtDate(e.LastRefillDate)}</td>
       <td>${statusBadge(e.Status)}</td>
     </tr>`).join('');
+}
+
+// ─── QUARTERLY SERVICE (QuarterlyServices sheet) ───
+const SERVICE_INTERVAL_MONTHS = 3;
+const normExt = s => String(s || '').replace(/\s+/g, '').toUpperCase();   // sheet has "FE- 202" and "FE-202"
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function addMonths(iso, m) {
+  const [y, mo, d] = String(iso).split('-').map(Number);
+  const dt = new Date(y, mo - 1 + m, d);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+function latestServiceMap() {
+  const map = {};
+  (DATA.services || []).forEach(s => {
+    const k = normExt(s.ExtNo);
+    const d = String(s.ServiceDate || '');
+    if (!k || !d) return;
+    if (!map[k] || d > String(map[k].ServiceDate)) map[k] = s;
+  });
+  return map;
+}
+function serviceStatus(last) {
+  if (!last) return { key: 'never', label: 'Never serviced', cls: 'dot-due', rank: 2 };
+  if (String(last.Condition).toLowerCase() === 'remove from service')
+    return { key: 'remove', label: 'Remove from service', cls: 'dot-due', rank: 1 };
+  const next = last.NextDue || addMonths(last.ServiceDate, SERVICE_INTERVAL_MONTHS);
+  const days = Math.round((new Date(next + 'T00:00') - new Date(todayISO() + 'T00:00')) / 86400000);
+  if (days < 0)   return { key: 'overdue', label: 'Overdue ' + (-days) + 'd', cls: 'dot-due', rank: 0 };
+  if (days <= 14) return { key: 'soon', label: 'Due in ' + days + 'd', cls: 'dot-warn', rank: 3 };
+  return { key: 'ok', label: 'Up to date', cls: 'dot-ok', rank: 4 };
+}
+
+function renderServicePage() {
+  const body = document.getElementById('svc-body');
+  if (!body) return;
+  const map = latestServiceMap();
+  const q  = (document.getElementById('svc-search').value || '').toLowerCase();
+  const sf = document.getElementById('svc-filter-status').value;
+  const rows = DATA.extinguishers
+    .map(e => { const last = map[normExt(e.ExtNo)]; return { e, last, st: serviceStatus(last) }; })
+    .filter(r => !q || ((r.e.ExtNo + ' ' + (r.e.CurrentLocation || r.e.Location || '') + ' ' + (r.e.Type || '')).toLowerCase().includes(q)))
+    .filter(r => !sf || r.st.key === sf)
+    .sort((a, b) => a.st.rank - b.st.rank || String(a.e.ExtNo).localeCompare(String(b.e.ExtNo), undefined, { numeric: true }));
+
+  document.getElementById('svc-count').textContent = rows.length + ' unit' + (rows.length !== 1 ? 's' : '');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🛠</div><div class="empty-text">No units match.</div></div></td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map(({ e, last, st }) => {
+    const next = last ? (last.NextDue || addMonths(last.ServiceDate, SERVICE_INTERVAL_MONTHS)) : '';
+    return `<tr>
+      <td><span class="ext-num">${e.ExtNo}</span></td>
+      <td>${typeTag(e.Type)}</td>
+      <td>${weightLabel(e.Type, e.Weight)}</td>
+      <td style="font-size:12px;">${e.CurrentLocation || e.Location || '—'}</td>
+      <td>${last ? fmtDate(last.ServiceDate) : '—'}</td>
+      <td style="font-size:12px;">${last && last.ServiceBy ? last.ServiceBy : '—'}</td>
+      <td style="font-size:12px;">${last && last.Condition ? last.Condition : '—'}</td>
+      <td>${next ? fmtDate(next) : '—'}</td>
+      <td><span class="status-dot"><span class="dot ${st.cls}"></span>${st.label}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Record service: pick units, one date / person / condition for all ──
+let svcPicked = new Set();
+function svcShown() {
+  const q = (document.getElementById('svc-pick-search').value || '').toLowerCase();
+  return DATA.extinguishers
+    .filter(e => e.Status !== 'pending')
+    .filter(e => !q || ((e.ExtNo + ' ' + (e.Type || '') + ' ' + (e.CurrentLocation || e.Location || '')).toLowerCase().includes(q)))
+    .sort((a, b) => String(a.ExtNo).localeCompare(String(b.ExtNo), undefined, { numeric: true }));
+}
+function renderServicePicker() {
+  document.getElementById('svc-picker').innerHTML = svcShown().map(e => `
+    <label style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--border); cursor:pointer; font-size:13px; flex-wrap:wrap;">
+      <input type="checkbox" data-ext="${e.ExtNo}" ${svcPicked.has(e.ExtNo) ? 'checked' : ''} onchange="svcToggle(this.dataset.ext, this.checked)" style="width:18px; height:18px;">
+      <span class="ext-num">${e.ExtNo}</span> ${typeTag(e.Type)}
+      <span style="margin-left:auto; font-size:12px; color:var(--grey);">${weightLabel(e.Type, e.Weight)} · ${e.CurrentLocation || e.Location || ''}</span>
+    </label>`).join('') || '<div style="padding:12px; color:var(--muted); font-size:13px;">No extinguishers match.</div>';
+  document.getElementById('svc-pick-count').textContent = svcPicked.size + ' selected';
+}
+function svcToggle(extNo, on) {
+  if (on) svcPicked.add(extNo); else svcPicked.delete(extNo);
+  document.getElementById('svc-pick-count').textContent = svcPicked.size + ' selected';
+}
+function svcPickAll(on) {
+  svcShown().forEach(e => { if (on) svcPicked.add(e.ExtNo); else svcPicked.delete(e.ExtNo); });
+  renderServicePicker();
+}
+function svcFillNext() {
+  const d = document.getElementById('svc-date').value;
+  if (d) document.getElementById('svc-next').value = addMonths(d, SERVICE_INTERVAL_MONTHS);
+}
+function openServiceModal() {
+  svcPicked = new Set();
+  document.getElementById('svc-date').value = todayISO();
+  document.getElementById('svc-by').value = '';
+  document.getElementById('svc-condition').value = 'ok';
+  document.getElementById('svc-remarks').value = '';
+  document.getElementById('svc-pick-search').value = '';
+  svcFillNext();
+  renderServicePicker();
+  openModal('modal-service');
+}
+async function saveServices() {
+  const date    = document.getElementById('svc-date').value;
+  const by      = document.getElementById('svc-by').value.trim();
+  const cond    = document.getElementById('svc-condition').value;
+  const remarks = document.getElementById('svc-remarks').value.trim();
+  const next    = document.getElementById('svc-next').value || addMonths(date, SERVICE_INTERVAL_MONTHS);
+  if (!svcPicked.size) { showToast('Select at least one extinguisher', 'error'); return; }
+  if (!date) { showToast('Service date is required', 'error'); return; }
+  if (!by)   { showToast('Enter who serviced the units', 'error'); return; }
+
+  const rows = [...svcPicked].map(extNo => ({
+    ExtNo: extNo, ServiceDate: date, ServiceBy: by, ServiceType: 'Quarterly Inspection',
+    Condition: cond, NextDue: next, Remarks: remarks
+  }));
+  const btn = document.getElementById('svc-save-btn');
+  btn.disabled = true;
+  const CHUNK = 15;
+  let saved = 0, failed = false;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK);
+    if (CONFIG.apiUrl) {
+      btn.textContent = '⏳ Saving ' + (i + chunk.length) + ' / ' + rows.length + '...';
+      const res = await apiCall('addServices', { services: chunk }, true);
+      if (!res || !res.success) { failed = true; break; }
+    }
+    // Only saved chunks leave the selection, so a retry never writes a unit twice
+    DATA.services = [...(DATA.services || []), ...chunk];
+    chunk.forEach(r => svcPicked.delete(r.ExtNo));
+    saved += chunk.length;
+  }
+  btn.disabled = false;
+  btn.textContent = '💾 Save Service Records';
+  renderServicePage();
+  if (failed) {
+    showToast(saved + ' saved. The rest failed — remaining units are still selected. Save again.', 'error');
+    renderServicePicker();
+    return;
+  }
+  closeModal('modal-service');
+  showToast(saved + ' service record(s) saved', 'success');
+  if (cond === 'remove from service')
+    showToast('Marked "remove from service". Condemn retired units from the Master List.', 'info');
 }
 
 // ─── END OF SERVICE LIFE (from manufacture year) ───
@@ -5192,48 +5417,17 @@ function updateInspSelCount() {
   if (el) el.textContent = inspSelectedExtNos.size + ' selected';
 }
 
-let inspMode = 'monthly';
-function setInspMode(mode) {
-  inspMode = mode;
-  const q = mode === 'quarterly';
-  const now = new Date();
-  document.getElementById('insp-month').style.display = q ? 'none' : '';
-  document.getElementById('insp-quarter-wrap').style.display = q ? 'inline-flex' : 'none';
-  document.getElementById('insp-period-label').textContent = q ? 'Quarter:' : 'Inspection Month:';
-  if (q) {
-    if (!document.getElementById('insp-year').value)
-      document.getElementById('insp-year').value = now.getFullYear();
-    document.getElementById('insp-quarter').value = Math.floor(now.getMonth() / 3) + 1;
-  }
-  renderInspectionTable();
-}
 function openMonthlyInspection() {
   showPage('inspection');
-  setInspMode('monthly');
   document.getElementById('page-title').textContent = 'Inspection';
   document.getElementById('page-sub').textContent = 'Monthly Inspection Checklist';
 }
-function openQuarterlyInspection() {
-  showPage('inspection');
-  setInspMode('quarterly');
-  document.getElementById('page-title').textContent = 'Quarterly Inspection';
-  document.getElementById('page-sub').textContent = 'Quarterly Inspection Checklist';
-}
 
 async function downloadInspectionChecklist() {
-  let period, monthLabel;
-  if (inspMode === 'quarterly') {
-    const q = document.getElementById('insp-quarter').value;
-    const y = document.getElementById('insp-year').value || new Date().getFullYear();
-    const span = {1:'Jan–Mar', 2:'Apr–Jun', 3:'Jul–Sep', 4:'Oct–Dec'}[q];
-    period = 'Q' + q + '-' + y;
-    monthLabel = 'Quarter ' + q + ' ' + y + ' (' + span + ')';
-  } else {
-    const month = document.getElementById('insp-month')?.value || new Date().toISOString().slice(0,7);
-    const [yr, mo] = month.split('-');
-    period = month;
-    monthLabel = new Date(yr, mo-1, 1).toLocaleString('en-IN',{month:'long',year:'numeric'});
-  }
+  const month    = document.getElementById('insp-month')?.value || new Date().toISOString().slice(0,7);
+  const [yr, mo] = month.split('-');
+  const period   = month;
+  const monthLabel = new Date(yr, mo-1, 1).toLocaleString('en-IN',{month:'long',year:'numeric'});
 
   // Determine which extinguishers to include
   let exts = [];
@@ -5714,6 +5908,7 @@ function renderStoreroomPage() {
 }
 
 const pageTitles = {
+  service:     ['Quarterly Service', 'Quarterly service records per extinguisher'],
   dashboard:   ['Dashboard',        'Overview'],
   masterlist:  ['Master List',      'All Extinguishers'],
   hydro:       ['Hydrostatic Tests','Pressure Test Records'],
@@ -5741,6 +5936,7 @@ function showPage(id) {
   if (id === 'masterlist') renderMasterTable();
   if (id === 'locationmap') renderLocationMap();
   if (id === 'storeroom')   renderStoreroomPage();
+  if (id === 'service')     renderServicePage();
   if (id === 'inspection')  renderInspectionPage();
   if (id === 'amc') renderAmcGrid();
 
