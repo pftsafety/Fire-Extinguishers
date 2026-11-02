@@ -791,6 +791,20 @@
   .store-card-body   { font-size:12px; color:var(--grey); margin-bottom:10px; line-height:1.7; }
   .store-card-body strong { color:var(--body); }
   .store-card-actions { display:flex; gap:8px; }
+  /* ─── PHONE LAYOUT ─── */
+  @media (max-width: 600px) {
+    .topbar { padding: 0 10px; gap: 8px; }
+    .topbar-actions .sync-status { display: none; }
+    .topbar-actions .btn { padding: 7px 10px; font-size: 12px; }
+    .modal { max-width: 100%; border-radius: 12px; }
+    .modal-footer .btn { min-height: 44px; }
+    #page-storeroom .search-box { max-width: 100% !important; flex: 1 1 100%; }
+    #page-storeroom select.filter-select { flex: 1 1 100%; }
+    #store-grid { grid-template-columns: 1fr !important; }
+    .store-card { padding: 14px; }
+    .store-card-header { flex-wrap: wrap; }
+    .store-card-actions .btn { min-height: 44px; font-size: 14px; flex: 1; justify-content: center; }
+  }
 </style>
 </head>
 <body>
@@ -826,8 +840,11 @@
     <div class="nav-item" onclick="showPage('passes')">
       <span class="icon">📄</span> Passes / Requests
     </div>
-    <div class="nav-item" onclick="showPage('inspection')">
+    <div class="nav-item" onclick="openMonthlyInspection()">
       <span class="icon">✅</span> Inspection
+    </div>
+    <div class="nav-item" onclick="openQuarterlyInspection()">
+      <span class="icon">🗓️</span> Quarterly Inspection
     </div>
     <div class="nav-item" onclick="showPage('storeroom')">
       <span class="icon">📦</span> Storeroom
@@ -961,6 +978,7 @@
             <option value="overdue">Overdue</option>
             <option value="pending">With Vendor</option>
             <option value="in-store">In Storeroom</option>
+            <option value="condemned">Condemned</option>
           </select>
         </div>
         <div id="cross-page-banner" style="display:none; padding:8px 16px; background:var(--blue-bg); border-bottom:1px solid var(--blue-bd); font-size:12px; display:none;"></div>
@@ -1005,8 +1023,15 @@
         <div class="table-header">
           <span class="table-title">Extinguishers for Inspection</span>
           <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
-            <span style="font-size:12px; color:var(--grey);">Inspection Month:</span>
-            <input type="month" id="insp-month" onchange="renderInspectionTable()" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; background:var(--surface2); color:var(--body); outline:none;">
+            <span id="insp-period-label" style="font-size:12px; color:var(--grey);">Inspection Month:</span>
+            <span id="insp-quarter-wrap" style="display:none; gap:6px; align-items:center;">
+            <select id="insp-quarter" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--body); font-size:13px;">
+              <option value="1">Q1 (Jan–Mar)</option><option value="2">Q2 (Apr–Jun)</option>
+              <option value="3">Q3 (Jul–Sep)</option><option value="4">Q4 (Oct–Dec)</option>
+            </select>
+            <input type="number" id="insp-year" min="2020" max="2100" style="width:90px; padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--body); font-size:13px;">
+          </span>
+          <input type="month" id="insp-month" onchange="renderInspectionTable()" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; background:var(--surface2); color:var(--body); outline:none;">
           </div>
         </div>
         <div class="table-wrap">
@@ -1903,6 +1928,47 @@
   </div>
 </div>
 
+<!-- Condemn Modal -->
+<div class="modal-overlay" id="modal-condemn">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <div class="modal-title">⛔ Condemn Extinguisher</div>
+      <button class="modal-close" onclick="closeModal('modal-condemn')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="condemn-ext-info" style="margin-bottom:12px;"></div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Reason *</label>
+          <select id="condemn-reason" onchange="syncCondemnReason()">
+            <option value="">— Select —</option>
+            <option>Failed hydrostatic test</option>
+            <option>Physical damage</option>
+            <option>Past end of service life</option>
+            <option>Corrosion / leakage</option>
+            <option value="__other">Other (describe below)</option>
+          </select>
+        </div>
+        <div class="form-group full" id="condemn-other-wrap" style="display:none;">
+          <label>Describe</label>
+          <input type="text" id="condemn-other" placeholder="What was found?">
+        </div>
+        <div class="form-group">
+          <label>Date Condemned *</label>
+          <input type="date" id="condemn-date">
+        </div>
+      </div>
+      <div style="margin-top:12px; padding:10px 14px; background:var(--yellow-bg); border:1px solid var(--yellow-bd); border-radius:8px; font-size:12px; color:var(--yellow); line-height:1.5;">
+        Condemned units leave the active counts, Location Map, refill and inspection lists. They stay in the sheet with the reason and date.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-condemn')">Cancel</button>
+      <button class="btn btn-red" onclick="confirmCondemn()">⛔ Condemn</button>
+    </div>
+  </div>
+</div>
+
 <!-- LOADING -->
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
@@ -1920,7 +1986,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.17';
+const EXPECTED_BACKEND = 'v2026.10.18';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -1941,6 +2007,7 @@ let CONFIG = {
 // LOCAL DATA STORE (populated from Sheets)
 let DATA = {
   extinguishers: [],
+  condemnedExts: [],
   hydroTests: [],
   refills: [],
   passes: []
@@ -2273,7 +2340,9 @@ async function refreshData(silent = false) {
   const res = await apiCall('getAll', {}, true);
   if (!silent) hideLoading();
   if (res && res.success) {
-    DATA.extinguishers = (res.extinguishers || []).map(cleanExtData);
+    const allExt = (res.extinguishers || []).map(cleanExtData);
+    DATA.extinguishers = allExt.filter(e => e.Status !== 'condemned');
+    DATA.condemnedExts = allExt.filter(e => e.Status === 'condemned');
     DATA.hydroTests    = res.hydroTests    || [];
     DATA.refills       = res.refills       || [];
     DATA.passes        = res.passes        || [];
@@ -2421,6 +2490,73 @@ function renderDashboard() {
     </tr>`).join('');
 }
 
+// ─── END OF SERVICE LIFE (from manufacture year) ───
+const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
+function eolInfo(e) {
+  if (e.Status === 'condemned') return null;
+  const y = parseInt(String(e.MfgDate || '').substring(0, 4), 10);
+  if (!y || y < 1950) return null;
+  const eol = y + SERVICE_LIFE_YEARS;
+  const now = new Date().getFullYear();
+  if (now > eol)       return { state: 'past', year: eol };
+  if (now === eol)     return { state: 'due',  year: eol };
+  if (now === eol - 1) return { state: 'soon', year: eol };
+  return null;
+}
+function eolTag(e) {
+  const i = eolInfo(e);
+  if (!i) return '';
+  const cls = i.state === 'soon' ? 'loc-substitute' : 'loc-vacant';
+  const txt = i.state === 'past' ? 'Past life' : 'EOL ' + i.year;
+  return ` <span class="${cls}" style="font-size:10px;" title="End of service life">${txt}</span>`;
+}
+
+// ─── CONDEMN ───
+let condemningExtNo = '';
+function openCondemnModal(extNo, prefillReason) {
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
+  if (!ext) { showToast('Extinguisher not found in active list', 'error'); return; }
+  if (ext.Status === 'pending') { showToast(extNo + ' is with the vendor. Receive it before condemning.', 'error'); return; }
+  condemningExtNo = extNo;
+  document.getElementById('condemn-ext-info').innerHTML =
+    `<span class="ext-num">${extNo}</span> &nbsp;${typeTag(ext.Type)} &nbsp;` +
+    `<span style="font-size:12px;color:var(--grey);">${weightLabel(ext.Type, ext.Weight)} · ${ext.CurrentLocation || ext.Location || ''}</span>`;
+  document.getElementById('condemn-reason').value = prefillReason || '';
+  document.getElementById('condemn-other').value  = '';
+  document.getElementById('condemn-date').value   = new Date().toISOString().split('T')[0];
+  syncCondemnReason();
+  openModal('modal-condemn');
+}
+function syncCondemnReason() {
+  const other = document.getElementById('condemn-reason').value === '__other';
+  document.getElementById('condemn-other-wrap').style.display = other ? '' : 'none';
+}
+function condemnReasonText() {
+  const v = document.getElementById('condemn-reason').value;
+  return v === '__other' ? document.getElementById('condemn-other').value.trim() : v;
+}
+async function confirmCondemn() {
+  const reason = condemnReasonText();
+  const date   = document.getElementById('condemn-date').value;
+  if (!reason) { showToast('Select or describe a reason', 'error'); return; }
+  if (!date)   { showToast('Date is required', 'error'); return; }
+  const ext = DATA.extinguishers.find(e => e.ExtNo === condemningExtNo);
+  if (!ext) { closeModal('modal-condemn'); return; }
+
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('condemnExtinguisher', { ExtNo: ext.ExtNo, reason, date }, true);
+    if (!res || !res.success) { showToast('Sheet save failed — nothing was condemned. Try again.', 'error'); return; }
+  }
+  ext.Status = 'condemned'; ext.CondemnedReason = reason; ext.CondemnedDate = date;
+  DATA.extinguishers = DATA.extinguishers.filter(e => e.ExtNo !== ext.ExtNo);
+  DATA.condemnedExts = [...(DATA.condemnedExts || []), ext];
+  selectedExtNos.delete(ext.ExtNo);
+  updateSelectionToolbar();
+  closeModal('modal-condemn');
+  renderMasterTable(); renderDashboard(); renderLocationMap(); renderRefills(); renderStoreroomPage();
+  showToast(ext.ExtNo + ' condemned', 'info');
+}
+
 // ─── ALERTS ───────────────────────────────────────────────────
 function renderAlerts() {
   const today = new Date(); today.setHours(0,0,0,0);
@@ -2484,6 +2620,22 @@ function renderAlerts() {
         }
       }
     }
+  });
+
+  // End-of-life alerts (separate from refill and hydro)
+  DATA.extinguishers.forEach(e => {
+    const info = eolInfo(e);
+    if (!info) return;
+    const key = 'eol_' + e.ExtNo;
+    if (dismissed.includes(key)) return;
+    const loc = (e.CurrentLocation || e.Location || '') + ' — manufactured ' + String(e.MfgDate).substring(0, 4) +
+                ', end of life ' + info.year;
+    if (info.state === 'past')
+      alerts.push({ key, cls:'alert-red', icon:'🧪', text:`<strong>${e.ExtNo}</strong> is past its ${SERVICE_LIFE_YEARS}-year service life`, sub: loc });
+    else if (info.state === 'due')
+      alerts.push({ key, cls:'alert-red', icon:'🧪', text:`<strong>${e.ExtNo}</strong> reaches end of service life this year`, sub: loc });
+    else
+      alerts.push({ key, cls:'alert-amber', icon:'🧪', text:`<strong>${e.ExtNo}</strong> reaches end of service life next year`, sub: loc });
   });
 
   // AMC expiry alerts
@@ -3236,7 +3388,7 @@ function renderMasterTable(data) {
       <td>${e.Weight || '—'} kg</td>
       <td>${locDisplay}</td>
       <td>${origDisplay}</td>
-      <td>${e._misaligned ? '<span style="color:var(--red);font-size:11px;" title="Sheet column mismatch — run diagnoseExtSheet() in Apps Script">⚠ check sheet</span>' : fmtDate(e.MfgDate)}</td>
+      <td>${e._misaligned ? '<span style="color:var(--red);font-size:11px;" title="Sheet column mismatch — run diagnoseExtSheet() in Apps Script">⚠ check sheet</span>' : fmtDate(e.MfgDate)}${eolTag(e)}</td>
       <td>${fmtDate(e.LastRefillDate)}</td>
       <td>${fmtDate(e.NextRefillDue)}</td>
       <td>${hydroStatus(e.ExtNo)}</td>
@@ -3248,6 +3400,7 @@ function renderMasterTable(data) {
             ? '' /* Deploy from Storeroom page only */
             : `<button class="btn btn-blue btn-sm" onclick="quickRefill('${e.ExtNo}')" ${disableCb ? 'disabled style="opacity:.4"' : ''} title="Send for refill">🔄</button>`
           }
+          ${isPending ? '' : `<button class="btn btn-red btn-sm" onclick="openCondemnModal('${e.ExtNo}')" title="Condemn">⛔</button>`}
         </div>
       </td>
     </tr>`;
@@ -3275,7 +3428,8 @@ function filterTable() {
   const q      = document.getElementById('search-input').value.toLowerCase();
   const type   = document.getElementById('filter-type').value;
   const status = document.getElementById('filter-status').value;
-  const filtered = DATA.extinguishers.filter(e => {
+  const pool = status === 'condemned' ? [...DATA.extinguishers, ...(DATA.condemnedExts || [])] : DATA.extinguishers;
+  const filtered = pool.filter(e => {
     const matchQ = !q ||
       (e.ExtNo       || '').toLowerCase().includes(q) ||
       (e.Location    || '').toLowerCase().includes(q) ||
@@ -3975,6 +4129,7 @@ async function saveHydroTest() {
   closeModal('modal-hydro');
   renderHydroTable();
   showToast('Hydrostatic test recorded!', 'success');
+  if (data.Result === 'fail' || data.Result === 'condemned') openCondemnModal(data.ExtNo, 'Failed hydrostatic test');
 }
 
 function openRefillRequestModal() {
@@ -4878,7 +5033,8 @@ function statusBadge(status) {
     received:  ['dot-ok',      'Received'],
     sent:      ['dot-pending', 'Sent Out'],
     'in-store':['dot-pending', 'In Storeroom'],
-    deployed:  ['dot-ok',      'Deployed']
+    deployed:  ['dot-ok',      'Deployed'],
+    condemned: ['dot-due',     'Condemned']
   };
   const [dot, label] = map[status] || ['dot-warn', status];
   return `<span class="status-dot"><span class="dot ${dot}"></span>${label}</span>`;
@@ -5036,11 +5192,48 @@ function updateInspSelCount() {
   if (el) el.textContent = inspSelectedExtNos.size + ' selected';
 }
 
+let inspMode = 'monthly';
+function setInspMode(mode) {
+  inspMode = mode;
+  const q = mode === 'quarterly';
+  const now = new Date();
+  document.getElementById('insp-month').style.display = q ? 'none' : '';
+  document.getElementById('insp-quarter-wrap').style.display = q ? 'inline-flex' : 'none';
+  document.getElementById('insp-period-label').textContent = q ? 'Quarter:' : 'Inspection Month:';
+  if (q) {
+    if (!document.getElementById('insp-year').value)
+      document.getElementById('insp-year').value = now.getFullYear();
+    document.getElementById('insp-quarter').value = Math.floor(now.getMonth() / 3) + 1;
+  }
+  renderInspectionTable();
+}
+function openMonthlyInspection() {
+  showPage('inspection');
+  setInspMode('monthly');
+  document.getElementById('page-title').textContent = 'Inspection';
+  document.getElementById('page-sub').textContent = 'Monthly Inspection Checklist';
+}
+function openQuarterlyInspection() {
+  showPage('inspection');
+  setInspMode('quarterly');
+  document.getElementById('page-title').textContent = 'Quarterly Inspection';
+  document.getElementById('page-sub').textContent = 'Quarterly Inspection Checklist';
+}
+
 async function downloadInspectionChecklist() {
-  const monthInput = document.getElementById('insp-month');
-  const month      = monthInput?.value || new Date().toISOString().slice(0,7);
-  const [yr, mo]   = month.split('-');
-  const monthLabel = new Date(yr, mo-1, 1).toLocaleString('en-IN',{month:'long',year:'numeric'});
+  let period, monthLabel;
+  if (inspMode === 'quarterly') {
+    const q = document.getElementById('insp-quarter').value;
+    const y = document.getElementById('insp-year').value || new Date().getFullYear();
+    const span = {1:'Jan–Mar', 2:'Apr–Jun', 3:'Jul–Sep', 4:'Oct–Dec'}[q];
+    period = 'Q' + q + '-' + y;
+    monthLabel = 'Quarter ' + q + ' ' + y + ' (' + span + ')';
+  } else {
+    const month = document.getElementById('insp-month')?.value || new Date().toISOString().slice(0,7);
+    const [yr, mo] = month.split('-');
+    period = month;
+    monthLabel = new Date(yr, mo-1, 1).toLocaleString('en-IN',{month:'long',year:'numeric'});
+  }
 
   // Determine which extinguishers to include
   let exts = [];
@@ -5064,7 +5257,7 @@ async function downloadInspectionChecklist() {
   showToast('Generating checklist...', 'info');
   try {
     const blob = await buildInspectionDocx(exts, monthLabel);
-    saveAs(blob, 'Inspection-Checklist-' + month + '.docx');
+    saveAs(blob, 'Inspection-Checklist-' + period + '.docx');
     showToast('Inspection checklist downloaded!', 'success');
   } catch(err) {
     showToast('Generation failed: ' + err.message, 'error');
@@ -5142,7 +5335,7 @@ async function buildInspectionDocx(exts, monthLabel) {
   if (orgSubtitle) body += para(run(orgSubtitle, { sz:18, color:'444444' }), { align:'center', after:40 });
   if (factoryLoc)  body += para(run(factoryLoc, { bold:true, sz:20, underline:true }), { align:'center', after:200 });
   body += para(run('FIRE EXTINGUISHER MONTHLY INSPECTION CHECKLIST', { bold:true, sz:24, underline:true }), { align:'center', after:80 });
-  body += para(run('Inspection Month: ' + monthLabel, { bold:true, sz:22 }), { align:'center', after:240 });
+  body += para(run('Inspection Period: ' + monthLabel, { bold:true, sz:22 }), { align:'center', after:240 });
 
   // Summary table header
   body += para(run('Extinguisher Details', { bold:true, sz:20, color:'1D4ED8' }), { after:60 });
