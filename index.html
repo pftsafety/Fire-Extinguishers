@@ -2058,7 +2058,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.19';
+const EXPECTED_BACKEND = 'v2026.10.20';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2734,6 +2734,16 @@ function eolTag(e) {
   const cls = i.state === 'soon' ? 'loc-substitute' : 'loc-vacant';
   const txt = i.state === 'past' ? 'Past life' : 'EOL ' + i.year;
   return ` <span class="${cls}" style="font-size:10px;" title="End of service life">${txt}</span>`;
+}
+
+// Move a unit to the condemned list locally (after the sheet has been updated)
+function applyCondemnedLocally(extNo, reason, date) {
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
+  if (!ext) return;
+  ext.Status = 'condemned'; ext.CondemnedReason = reason; ext.CondemnedDate = date;
+  DATA.extinguishers = DATA.extinguishers.filter(e => e.ExtNo !== extNo);
+  DATA.condemnedExts = [...(DATA.condemnedExts || []), ext];
+  selectedExtNos.delete(extNo);
 }
 
 // ─── CONDEMN ───
@@ -3554,7 +3564,7 @@ function filterByCard(filterType) {
 // MASTER TABLE
 // ═══════════════════════════════════════════════
 function renderMasterTable(data) {
-  filteredRows = data || DATA.extinguishers;
+  filteredRows = data || [...DATA.extinguishers, ...(DATA.condemnedExts || [])];
   _lastFilteredRows = filteredRows; // cache for cross-page select all
   const tbody = document.getElementById('master-body');
   const start = (currentPage - 1) * rowsPerPage;
@@ -3572,7 +3582,8 @@ function renderMasterTable(data) {
     const isChecked = selectedExtNos.has(e.ExtNo);
     const isPending = e.Status === 'pending';
     const isInStore = e.Status === 'in-store';
-    const disableCb = isPending || isInStore;
+    const isCondemned = e.Status === 'condemned';
+    const disableCb = isPending || isInStore || isCondemned;
 
     // Location display
     const currLoc = e.CurrentLocation || e.Location;
@@ -3580,6 +3591,7 @@ function renderMasterTable(data) {
     let locDisplay = `<span class="loc-deployed">${currLoc}</span>`;
     if (isPending) locDisplay = `<span style="color:var(--grey);font-size:12px;">With Vendor</span>`;
     if (isInStore) locDisplay = `<span class="loc-store">📦 Storeroom</span>`;
+    if (isCondemned) locDisplay = '<span style="color:var(--red);font-size:12px;">Condemned</span>';
 
     // Substitute indicator
     let subDisplay = '';
@@ -3620,12 +3632,11 @@ function renderMasterTable(data) {
       <td>${statusBadge(e.Status)}</td>
       <td>
         <div class="actions-cell">
-          <button class="btn btn-ghost btn-sm" onclick="editExtinguisher('${e.ExtNo}')">✏️</button>
-          ${isInStore
+          ${isCondemned ? '' : `<button class="btn btn-ghost btn-sm" onclick="editExtinguisher('${e.ExtNo}')">✏️</button>`}
+          ${isInStore || isCondemned
             ? '' /* Deploy from Storeroom page only */
             : `<button class="btn btn-blue btn-sm" onclick="quickRefill('${e.ExtNo}')" ${disableCb ? 'disabled style="opacity:.4"' : ''} title="Send for refill">🔄</button>`
           }
-          ${isPending ? '' : `<button class="btn btn-red btn-sm" onclick="openCondemnModal('${e.ExtNo}')" title="Condemn">⛔</button>`}
         </div>
       </td>
     </tr>`;
@@ -3653,7 +3664,7 @@ function filterTable() {
   const q      = document.getElementById('search-input').value.toLowerCase();
   const type   = document.getElementById('filter-type').value;
   const status = document.getElementById('filter-status').value;
-  const pool = status === 'condemned' ? [...DATA.extinguishers, ...(DATA.condemnedExts || [])] : DATA.extinguishers;
+  const pool = [...DATA.extinguishers, ...(DATA.condemnedExts || [])];
   const filtered = pool.filter(e => {
     const matchQ = !q ||
       (e.ExtNo       || '').toLowerCase().includes(q) ||
@@ -4344,6 +4355,11 @@ async function saveHydroTest() {
     CertNo: document.getElementById('h-certno').value.trim()
   };
   if (!data.ExtNo) { showToast('Ext. Number is required', 'error'); return; }
+  if (data.Result === 'condemned') {
+    const ext = DATA.extinguishers.find(e => e.ExtNo === data.ExtNo);
+    if (!ext) { showToast('Extinguisher not found in the active list', 'error'); return; }
+    if (ext.Status === 'pending') { showToast(data.ExtNo + ' is with the vendor. Receive it before condemning.', 'error'); return; }
+  }
 
   if (CONFIG.apiUrl) {
     const res = await apiCall('addHydroTest', data);
@@ -4354,7 +4370,13 @@ async function saveHydroTest() {
   closeModal('modal-hydro');
   renderHydroTable();
   showToast('Hydrostatic test recorded!', 'success');
-  if (data.Result === 'fail' || data.Result === 'condemned') openCondemnModal(data.ExtNo, 'Failed hydrostatic test');
+  if (data.Result === 'condemned') {
+    applyCondemnedLocally(data.ExtNo, 'Condemned at hydrostatic test ' + data.TestID + (data.CertNo ? ' (cert ' + data.CertNo + ')' : ''), data.TestDate);
+    renderMasterTable(); renderDashboard(); renderLocationMap(); renderRefills(); renderStoreroomPage(); renderServicePage();
+    showToast(data.ExtNo + ' condemned — shown as Condemned in the Master List', 'info');
+  } else if (data.Result === 'fail') {
+    openCondemnModal(data.ExtNo, 'Failed hydrostatic test');
+  }
 }
 
 function openRefillRequestModal() {
