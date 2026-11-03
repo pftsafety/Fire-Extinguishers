@@ -392,6 +392,14 @@ function wLabel(ext) {
   const unit = String(ext.Type || '').toUpperCase() === 'FOAM' ? 'L' : 'kg';
   return ext.Weight + ' ' + unit;
 }
+// Next service date: the sheet's NextDue, or service date + 3 months when it is blank
+function svcNext(s) {
+  if (s.NextDue) return s.NextDue;
+  const [y, mo, d] = String(s.ServiceDate || '').split('-').map(Number);
+  if (!y) return '';
+  const dt = new Date(y, mo - 1 + 3, d);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
 // The sheet has "FE- 202" and "FE-202" for the same unit
 const normX = s => String(s || '').replace(/\s+/g, '').toUpperCase();
 
@@ -478,8 +486,9 @@ async function load() {
     // Quarterly service
     if (lastSvc) {
       set('r-last-svc',  fmtDate(lastSvc.ServiceDate) + ' <small style="color:var(--muted);">(' + (lastSvc.ServiceType||'') + ')</small>');
+      const _nx = svcNext(lastSvc);
       set('r-next-svc',
-        `<span class="${dueClass(lastSvc.NextDue)}">${dueLabel(lastSvc.NextDue, 14)}</span>`);
+        `<span class="${dueClass(_nx)}">${dueLabel(_nx, 14)}</span>`);
       set('r-svc-by',   lastSvc.ServiceBy || '—');
       set('r-svc-cond', condDisplay(lastSvc.Condition));
     } else {
