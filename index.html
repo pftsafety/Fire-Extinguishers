@@ -9,6 +9,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function() {
+  function tryLoad(urls, idx) {
+    if (idx >= urls.length) { window._jsQRFailed = true; return; }
+    var s = document.createElement('script');
+    s.src = urls[idx];
+    s.onload = function() { window._jsQRFailed = false; };
+    s.onerror = function() { tryLoad(urls, idx + 1); };
+    document.head.appendChild(s);
+  }
+  tryLoad([
+    'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js',
+    'https://unpkg.com/jsqr@1.4.0/dist/jsQR.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js'
+  ], 0);
+})();
+</script>
 <style>
   :root {
     /* ── Brand / Accent ── */
@@ -517,6 +535,137 @@
   .deploy-orig-loc { font-size: 12px; color: var(--grey); }
   .deploy-orig-loc strong { color: var(--blue); }
 
+  /* ─── QR SCANNER ─── */
+  .scanner-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+    aspect-ratio: 1/1;
+  }
+  .scanner-video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .scanner-canvas { display: none; }
+  .scanner-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .scanner-viewfinder {
+    width: 65%; height: 65%;
+    position: relative;
+  }
+  /* Corner brackets */
+  .scanner-viewfinder::before,
+  .scanner-viewfinder::after,
+  .scanner-corner-bl,
+  .scanner-corner-br {
+    content: ''; position: absolute;
+    width: 24px; height: 24px;
+    border-color: #fff; border-style: solid;
+    border-radius: 3px;
+  }
+  .scanner-viewfinder::before { top:0; left:0;  border-width:3px 0 0 3px; }
+  .scanner-viewfinder::after  { top:0; right:0; border-width:3px 3px 0 0; }
+  .scanner-corner-bl { bottom:0; left:0;  border-width:0 0 3px 3px; }
+  .scanner-corner-br { bottom:0; right:0; border-width:0 3px 3px 0; }
+
+  /* Scanning line */
+  .scanner-line {
+    position: absolute; left: 10%; right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    border-radius: 2px;
+    animation: scan-sweep 2s ease-in-out infinite;
+    box-shadow: 0 0 8px rgba(15,111,191,0.8);
+  }
+  @keyframes scan-sweep {
+    0%   { top: 10%; opacity: 1; }
+    48%  { top: 88%; opacity: 1; }
+    50%  { top: 88%; opacity: 0; }
+    52%  { top: 10%; opacity: 0; }
+    54%  { top: 10%; opacity: 1; }
+    100% { top: 88%; opacity: 1; }
+  }
+
+  /* Detected flash */
+  .scanner-flash {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.4);
+    border-radius: 16px;
+    animation: scanner-flash 0.3s ease forwards;
+    pointer-events: none;
+  }
+  @keyframes scanner-flash {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* Result panel */
+  .scanner-result-panel {
+    margin-top: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all .3s ease;
+  }
+  .scanner-result-ext {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .scanner-result-details {
+    padding: 12px 18px;
+    font-size: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .scanner-detail-item { display: flex; flex-direction: column; gap: 2px; }
+  .scanner-detail-lbl  { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .scanner-detail-val  { font-size: 13px; color: var(--body); font-weight: 500; }
+  .scanner-result-actions {
+    padding: 10px 18px;
+    background: var(--surface);
+    display: flex; gap: 8px; flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+  }
+  .scanner-hint {
+    text-align: center; font-size: 12px;
+    color: var(--muted); margin-top: 12px;
+  }
+  .scanner-status {
+    text-align: center; padding: 10px;
+    font-size: 12px; color: var(--grey);
+  }
+  .camera-switch-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(0,0,0,0.5); border: none;
+    color: #fff; border-radius: 8px;
+    padding: 6px 10px; cursor: pointer;
+    font-size: 13px; z-index: 10;
+    transition: background .15s;
+  }
+  .camera-switch-btn:hover { background: rgba(0,0,0,0.75); }
+
+  /* ─── QR CODES ─── */
+  .qr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:14px; padding:4px; }
+  .qr-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:14px; text-align:center;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .qr-card-num  { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--accent); margin-top:10px; }
+  .qr-card-loc  { font-size:10px; color:var(--grey); margin-top:3px; line-height:1.4; }
+  .qr-card-type { font-size:10px; color:var(--muted); margin-top:2px; }
+
   /* ─── HAMBURGER ─── */
   .hamburger { display: none; background: none; border: none; color: var(--body); font-size: 20px; cursor: pointer; padding: 4px; }
   @media (max-width: 900px) { .hamburger { display: block; } }
@@ -840,6 +989,9 @@
     <div class="nav-item" onclick="showPage('passes')">
       <span class="icon">📄</span> Passes / Requests
     </div>
+    <div class="nav-item" onclick="openQRModal()">
+      <span class="icon">🏷️</span> QR Codes
+    </div>
     <div class="nav-item" onclick="openMonthlyInspection()">
       <span class="icon">✅</span> Inspection
     </div>
@@ -875,6 +1027,7 @@
         <span class="sync-dot" id="sync-dot"></span>
         <span id="sync-label">Not synced</span>
       </div>
+      <button class="btn btn-ghost btn-sm" onclick="openScannerModal()" title="Scan QR code">📷 Scan</button>
       <button class="btn btn-ghost btn-sm" onclick="refreshData()">↻ Sync</button>
       <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add Extinguisher</button>
     </div>
@@ -2000,6 +2153,105 @@
   </div>
 </div>
 
+<!-- QR Scanner Modal -->
+<div class="modal-overlay" id="modal-scanner">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <div class="modal-title">📷 Scan Extinguisher QR</div>
+      <button class="modal-close" onclick="closeScannerModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+
+      <!-- Camera view -->
+      <div class="scanner-wrap" id="scanner-wrap">
+        <video id="scanner-video" class="scanner-video" autoplay playsinline muted></video>
+        <canvas id="scanner-canvas" class="scanner-canvas"></canvas>
+        <div class="scanner-overlay">
+          <div class="scanner-viewfinder">
+            <span class="scanner-corner-bl"></span>
+            <span class="scanner-corner-br"></span>
+            <div class="scanner-line"></div>
+          </div>
+        </div>
+        <button class="camera-switch-btn" onclick="switchCamera()" id="camera-switch-btn"
+                title="Switch camera" style="display:none;">🔄</button>
+      </div>
+
+      <div class="scanner-status" id="scanner-status">Initialising camera...</div>
+
+      <!-- Result panel (hidden until a QR is detected) -->
+      <div id="scanner-result-panel" style="display:none;">
+        <div class="scanner-result-panel">
+          <div class="scanner-result-ext" id="scanner-result-ext"></div>
+          <div class="scanner-result-details" id="scanner-result-details"></div>
+          <div class="scanner-result-actions" id="scanner-result-actions"></div>
+        </div>
+        <div class="scanner-hint">Point camera at another QR to scan again</div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeScannerModal()">Close</button>
+      <button class="btn btn-primary btn-sm" id="scan-again-btn"
+              onclick="resumeScanning()" style="display:none;">🔍 Scan Another</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Code Print Modal -->
+<div class="modal-overlay" id="modal-qr">
+  <div class="modal" style="max-width:820px;">
+    <div class="modal-head">
+      <div class="modal-title">⬛ QR Codes</div>
+      <button class="modal-close" onclick="closeModal('modal-qr')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+        <span style="font-size:13px; color:var(--grey);">
+          Showing QR codes for <strong id="qr-count">0</strong> extinguisher(s).
+          Each QR opens that extinguisher's details page.
+        </span>
+        <button class="btn btn-primary btn-sm" onclick="printQRCodes()" style="margin-left:auto;">🖨️ Print</button>
+      </div>
+      <div class="qr-grid" id="qr-grid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-qr')">Close</button>
+      <button class="btn btn-primary" onclick="printQRCodes()">🖨️ Print All</button>
+    </div>
+  </div>
+</div>
+
+<!-- Refill History Modal -->
+<div class="modal-overlay" id="modal-history">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-head">
+      <div class="modal-title" id="history-modal-title">Refill History</div>
+      <button class="modal-close" onclick="closeModal('modal-history')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div id="history-ext-banner" style="padding:14px 24px 12px; border-bottom:1px solid var(--border); background:var(--surface2);"></div>
+      <!-- Refill tab -->
+      <div id="history-tab-refill" style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead><tr>
+            <th style="padding:9px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);background:var(--surface2);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;">Pass No.</th>
+            <th style="padding:9px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);background:var(--surface2);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;">Request Date</th>
+            <th style="padding:9px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);background:var(--surface2);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;">Agency</th>
+            <th style="padding:9px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);background:var(--surface2);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;">Sent</th>
+            <th style="padding:9px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);background:var(--surface2);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;">Received</th>
+            <th style="padding:9px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--grey);background:var(--surface2);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;">Status</th>
+          </tr></thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-history')">Close</button>
+      </div>
+  </div>
+</div>
+
 <!-- Condemn Modal -->
 <div class="modal-overlay" id="modal-condemn">
   <div class="modal" style="max-width:460px;">
@@ -2055,6 +2307,12 @@
 // CONFIGURATION
 // ═══════════════════════════════════════════════
 // Backend endpoint is fixed in code (not user-configurable)
+// Deep-link: ?ext=FE-1 opens the portal directly to that extinguisher
+let _deepLinkExtNo = null;
+try {
+  const _params = new URLSearchParams(window.location.search);
+  if (_params.has('ext')) _deepLinkExtNo = decodeURIComponent(_params.get('ext'));
+} catch(_) {}
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
@@ -2428,6 +2686,12 @@ async function refreshData(silent = false) {
     populateAgencyDropdowns();
     const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok', 'Synced ' + now);
+    if (_deepLinkExtNo) {
+      const _dlExt = DATA.extinguishers.find(e => e.ExtNo === _deepLinkExtNo);
+      if (_dlExt) { showToast('Opening ' + _deepLinkExtNo + ' from QR', 'info'); setTimeout(() => openHistoryModal(_deepLinkExtNo), 700); }
+      else showToast(_deepLinkExtNo + ' not found — data may still be loading', 'error');
+      _deepLinkExtNo = null;
+    }
     if (!silent) showToast('Synced — ' + DATA.extinguishers.length + ' extinguishers loaded', 'success');
   } else {
     const errMsg = res?.error || 'No response from server';
@@ -2722,6 +2986,465 @@ function syncWeightUnit() {
   const inp = document.getElementById('f-weight');
   if (lbl) lbl.textContent = 'Weight (' + unit + ')';
   if (inp) inp.placeholder = unit === 'L' ? '9' : '6';
+}
+
+// ═══════════════════════════════════════════════
+// FEATURE 9 — QR CODE GENERATOR
+// ═══════════════════════════════════════════════
+function openQRModal() {
+  // Use selected extinguishers if any, else use all filtered/visible rows
+  let exts = [];
+  if (selectedExtNos.size > 0) {
+    exts = [...selectedExtNos]
+      .map(no => DATA.extinguishers.find(e => e.ExtNo === no))
+      .filter(Boolean);
+  } else {
+    exts = (filteredRows.length ? filteredRows : DATA.extinguishers).filter(e => e.Status !== 'condemned');
+  }
+
+  if (!exts.length) { showToast('No extinguishers to generate QR codes for', 'error'); return; }
+
+  document.getElementById('qr-count').textContent = exts.length;
+  // Point QR at ext-view.html (public read-only card) — no full portal UI
+  const _portalBase = window.location.href.split('?')[0].split('#')[0].replace(/[^/]*$/, '') + 'ext-view.html';
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = '';
+
+  exts.forEach(ext => {
+    const card = document.createElement('div');
+    card.className = 'qr-card';
+
+    const qrDiv = document.createElement('div');
+    qrDiv.id = 'qr-' + ext.ExtNo.replace(/[^a-zA-Z0-9]/g, '_');
+    qrDiv.style.cssText = 'display:flex; justify-content:center;';
+    card.appendChild(qrDiv);
+
+    const num = document.createElement('div');
+    num.className = 'qr-card-num';
+    num.textContent = ext.ExtNo;
+    card.appendChild(num);
+
+    const loc = document.createElement('div');
+    loc.className = 'qr-card-loc';
+    loc.textContent = ext.Location || ext.CurrentLocation || '—';
+    card.appendChild(loc);
+
+    const type = document.createElement('div');
+    type.className = 'qr-card-type';
+    type.textContent = (ext.Type || '') + (ext.Weight ? ' · ' + ext.Weight + ' kg' : '');
+    card.appendChild(type);
+
+    grid.appendChild(card);
+
+    // Generate QR after DOM insertion
+    setTimeout(() => {
+      try {
+        new QRCode(qrDiv, {
+          text:           _portalBase + '?ext=' + encodeURIComponent(ext.ExtNo),
+          width:          110,
+          height:         110,
+          colorDark:      '#1A2332',
+          colorLight:     '#FFFFFF',
+          correctLevel:   QRCode.CorrectLevel.M
+        });
+      } catch(err) {
+        qrDiv.innerHTML = '<div style="width:110px;height:110px;background:var(--surface3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);">QR unavailable</div>';
+      }
+    }, 0);
+  });
+
+  openModal('modal-qr');
+}
+
+function printQRCodes() {
+  const grid = document.getElementById('qr-grid');
+  if (!grid || !grid.children.length) { showToast('No QR codes to print', 'error'); return; }
+
+  const orgName  = CONFIG.orgName || 'Fire Extinguisher Management';
+  const dateStr  = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  const cardsHtml = [...grid.children].map(card => card.outerHTML).join('');
+  // Note: QR images in print are already rendered as <img> or <canvas>
+  // (qrcode.js renders inline) — portal URL is baked into the QR image itself
+
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html>
+<html><head><title>QR Codes — ${orgName}</title>
+<style>
+  @page { size:A4; margin:15mm; }
+  * { box-sizing:border-box; }
+  body { font-family:Arial,sans-serif; background:#fff; }
+  h2   { font-size:14pt; margin-bottom:4px; }
+  .sub { font-size:9pt; color:#666; margin-bottom:16px; }
+  .qr-grid {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+  }
+  .qr-card {
+    border:1px solid #DDE3EC;
+    border-radius:8px;
+    padding:12px;
+    text-align:center;
+    break-inside:avoid;
+  }
+  .qr-card img, .qr-card canvas { max-width:100px; height:auto; }
+  .qr-card-num  { font-family:monospace; font-size:11pt; font-weight:700; color:#0F6FBF; margin-top:8px; }
+  .qr-card-loc  { font-size:8pt; color:#5A6880; margin-top:3px; }
+  .qr-card-type { font-size:8pt; color:#8FA0B4; margin-top:2px; }
+  .qr-card-url  { font-size:6pt; color:#AAA; margin-top:4px; word-break:break-all; }
+  @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style></head>
+<body>
+  <h2>🧯 ${orgName} — Extinguisher QR Codes</h2>
+  <div class="sub">Generated: ${dateStr} &nbsp;·&nbsp; ${grid.children.length} extinguisher(s)</div>
+  <div class="qr-grid">${cardsHtml}</div>
+</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 600);
+}
+
+
+// ═══════════════════════════════════════════════
+// FEATURE 4 — REFILL HISTORY PER EXTINGUISHER
+// ═══════════════════════════════════════════════
+function openHistoryModal(extNo) {
+  const ext      = DATA.extinguishers.find(e => e.ExtNo === extNo) || {};
+  const refills  = DATA.refills.filter(r => r.ExtNo === extNo)
+    .sort((a, b) => new Date(b.RequestDate) - new Date(a.RequestDate));
+
+  document.getElementById('history-modal-title').textContent = extNo + ' — Refill History';
+
+  // Banner with ext details
+  document.getElementById('history-ext-banner').innerHTML = `
+    <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+      <span class="ext-num">${extNo}</span>
+      ${typeTag(ext.Type || '—')}
+      <span style="font-size:12px; color:var(--grey);">${weightLabel(ext.Type, ext.Weight)}</span>
+      <span style="font-size:12px; color:var(--grey);">📍 ${ext.Location || '—'}</span>
+      <span style="margin-left:auto; font-size:12px; color:var(--muted);">${refills.length} refill record${refills.length !== 1 ? 's' : ''}</span>
+    </div>`;
+
+  const tbody = document.getElementById('history-body');
+  if (!refills.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state" style="padding:32px 20px;"><div class="empty-icon">📋</div><div class="empty-text">No refill history for this extinguisher.</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = refills.map((r, i) => `
+      <tr style="background:${i % 2 === 0 ? 'var(--surface)' : 'var(--surface2)'};">
+        <td style="padding:10px 16px;"><span class="ext-num">${r.PassNo || '—'}</span></td>
+        <td style="padding:10px 16px; font-size:12px; white-space:nowrap;">${fmtDate(r.RequestDate)}</td>
+        <td style="padding:10px 16px; font-size:12px; color:var(--grey);">${r.RequestBy || '—'}</td>
+        <td style="padding:10px 16px; font-size:12px; white-space:nowrap;">${r.SentDate ? fmtDate(r.SentDate) : '<span style="color:var(--muted);">—</span>'}</td>
+        <td style="padding:10px 16px; font-size:12px; white-space:nowrap;">${r.ReceivedDate ? fmtDate(r.ReceivedDate) : '<span style="color:var(--muted);">—</span>'}</td>
+        <td style="padding:10px 16px;">${statusBadge(r.Status)}</td>
+      </tr>`).join('');
+  }
+  openModal('modal-history');
+
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// QR SCANNER
+// ═══════════════════════════════════════════════════════════════
+let scannerStream       = null;   // active MediaStream
+let scannerRafId        = null;   // requestAnimationFrame id
+let scannerPaused       = false;  // true after a QR is detected
+let scannerCameras      = [];     // list of available video devices
+let scannerCamIdx       = 0;      // current camera index
+let lastScannedExtNo    = '';     // debounce — avoid re-triggering same QR
+
+function openScannerModal() {
+  lastScannedExtNo = '';
+  scannerPaused    = false;
+  document.getElementById('scanner-result-panel').style.display = 'none';
+  document.getElementById('scan-again-btn').style.display       = 'none';
+  document.getElementById('scanner-status').textContent         = 'Initialising camera...';
+  document.getElementById('scanner-wrap').style.display         = '';   // show camera
+  document.getElementById('scanner-status').style.display       = '';   // show status
+  openModal('modal-scanner');
+  startScanner();
+}
+
+function closeScannerModal() {
+  stopScanner();
+  closeModal('modal-scanner');
+}
+
+async function startScanner() {
+  // Guard — jsQR may have failed to load (blocked by ad-blocker etc.)
+  if (window._jsQRFailed || typeof jsQR === 'undefined') {
+    document.getElementById('scanner-status').innerHTML =
+      '⚠️ QR scanner library could not load.<br>' +
+      '<span style="font-size:11px;color:var(--muted);">This is usually caused by an ad-blocker blocking jsQR.js. ' +
+      'Try disabling your browser extension for this page, then reload.</span>';
+    return;
+  }
+  stopScanner(); // clean up any existing stream
+
+  // Enumerate cameras — show switch button if more than one
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    scannerCameras = devices.filter(d => d.kind === 'videoinput');
+    const switchBtn = document.getElementById('camera-switch-btn');
+    if (switchBtn) switchBtn.style.display = scannerCameras.length > 1 ? 'block' : 'none';
+  } catch(_) {}
+
+  // Prefer rear camera (environment), fall back to any
+  const camConstraint = scannerCameras.length > 0 && scannerCamIdx < scannerCameras.length
+    ? { deviceId: { exact: scannerCameras[scannerCamIdx].deviceId } }
+    : { facingMode: 'environment' };
+
+  try {
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { ...camConstraint, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('scanner-video');
+    video.srcObject = scannerStream;
+    await video.play();
+
+    document.getElementById('scanner-status').textContent = 'Scanning... point camera at a QR code';
+    scannerPaused = false;
+    scanLoop();
+  } catch(err) {
+    let msg = 'Camera access denied.';
+    if (err.name === 'NotAllowedError')  msg = '⚠️ Camera permission denied — allow camera access in browser settings.';
+    if (err.name === 'NotFoundError')    msg = '⚠️ No camera found on this device.';
+    if (err.name === 'NotReadableError') msg = '⚠️ Camera is in use by another app.';
+    document.getElementById('scanner-status').textContent = msg;
+  }
+}
+
+function stopScanner() {
+  if (scannerRafId) { cancelAnimationFrame(scannerRafId); scannerRafId = null; }
+  if (scannerStream) {
+    scannerStream.getTracks().forEach(t => t.stop());
+    scannerStream = null;
+  }
+  const video = document.getElementById('scanner-video');
+  if (video) { video.srcObject = null; }
+}
+
+function switchCamera() {
+  if (!scannerCameras.length) return;
+  scannerCamIdx = (scannerCamIdx + 1) % scannerCameras.length;
+  lastScannedExtNo = '';
+  startScanner();
+}
+
+function scanLoop() {
+  if (scannerPaused) return;
+
+  const video  = document.getElementById('scanner-video');
+  const canvas = document.getElementById('scanner-canvas');
+  if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    scannerRafId = requestAnimationFrame(scanLoop);
+    return;
+  }
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  try {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code      = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'dontInvert'
+    });
+
+    if (code && code.data && code.data !== lastScannedExtNo) {
+      lastScannedExtNo = code.data;
+      handleQRResult(code.data);
+      return; // stop loop — resumed by resumeScanning()
+    }
+  } catch(_) {}
+
+  scannerRafId = requestAnimationFrame(scanLoop);
+}
+
+function handleQRResult(rawData) {
+  scannerPaused = true;
+  stopScanner();  // release camera — light goes off immediately after scan
+  // Collapse camera area so only the result panel is visible
+  document.getElementById('scanner-wrap').style.display   = 'none';
+  document.getElementById('scanner-status').style.display = 'none';
+
+  // Flash effect
+  const wrap = document.getElementById('scanner-wrap');
+  const flash = document.createElement('div');
+  flash.className = 'scanner-flash';
+  wrap.appendChild(flash);
+  setTimeout(() => flash.remove(), 400);
+
+  // Vibrate if supported
+  if (navigator.vibrate) navigator.vibrate(80);
+
+  // Extract ExtNo — handle both plain ExtNo and full portal URL format
+  let extNo = rawData.trim();
+  try {
+    const u = new URL(rawData.trim());
+    const p = u.searchParams.get('ext');
+    if (p) extNo = decodeURIComponent(p);
+  } catch(_) {}  // not a URL — use rawData as-is (bare ExtNo)
+  const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
+
+  // Status bar
+  document.getElementById('scanner-status').textContent =
+    ext ? '✅ Extinguisher found' : '⚠️ QR scanned — ' + extNo + ' not in local data (sync first)';
+
+  // Build result panel
+  if (ext) {
+    // Banner
+    document.getElementById('scanner-result-ext').innerHTML = `
+      <span class="ext-num" style="font-size:16px;">${ext.ExtNo}</span>
+      ${typeTag(ext.Type || '—')}
+      <span style="font-size:12px;color:var(--grey);">${weightLabel(ext.Type, ext.Weight)}</span>
+      <span style="margin-left:auto;">${statusBadge(ext.Status)}</span>`;
+
+    // Details grid
+    document.getElementById('scanner-result-details').innerHTML = `
+      <div class="scanner-detail-item">
+        <span class="scanner-detail-lbl">Location</span>
+        <span class="scanner-detail-val">${ext.CurrentLocation || ext.Location || '—'}</span>
+      </div>
+      <div class="scanner-detail-item">
+        <span class="scanner-detail-lbl">Permanent Slot</span>
+        <span class="scanner-detail-val">${ext.Location || '—'}</span>
+      </div>
+      <div class="scanner-detail-item">
+        <span class="scanner-detail-lbl">Last Refill</span>
+        <span class="scanner-detail-val">${fmtDate(ext.LastRefillDate)}</span>
+      </div>
+      <div class="scanner-detail-item">
+        <span class="scanner-detail-lbl">Next Due</span>
+        <span class="scanner-detail-val" style="color:${
+          ext.Status === 'overdue' ? 'var(--red)' :
+          ext.Status === 'due'     ? 'var(--yellow)' : 'var(--green)'};">
+          ${fmtDate(ext.NextRefillDue)}
+        </span>
+      </div>
+      <div class="scanner-detail-item">
+        <span class="scanner-detail-lbl">Mfg Year</span>
+        <span class="scanner-detail-val">${fmtDate(ext.MfgDate)}</span>
+      </div>
+      <div class="scanner-detail-item">
+        <span class="scanner-detail-lbl">Hydro Test</span>
+        <span class="scanner-detail-val">${hydroStatus(ext.ExtNo)}</span>
+      </div>`;
+
+    // Action buttons
+    const canRefill = ext.Status !== 'pending' && ext.Status !== 'in-store';
+    document.getElementById('scanner-result-actions').innerHTML = `
+      <button class="btn btn-primary btn-sm"
+              onclick="closeScannerModal(); showPage('masterlist');
+                       document.getElementById('search-input').value='${ext.ExtNo}';
+                       filterTable();">
+        🔍 View in List
+      </button>
+      <button class="btn btn-ghost btn-sm"
+              onclick="closeScannerModal(); openHistoryModal('${ext.ExtNo}');">
+        📋 History
+      </button>
+      ${canRefill ? `<button class="btn btn-blue btn-sm"
+              onclick="closeScannerModal(); quickRefill('${ext.ExtNo}');">
+        🔄 Send for Refill
+      </button>` : ''}
+      ${ext.Status === 'in-store' ? `<button class="btn btn-green btn-sm"
+              onclick="closeScannerModal(); openDeployModal('${ext.ExtNo}');">
+        📍 Deploy
+      </button>` : ''}`;
+
+  } else {
+    // Unknown QR — show raw data
+    document.getElementById('scanner-result-ext').innerHTML = `
+      <span class="ext-num" style="font-size:14px;">${extNo}</span>
+      <span style="font-size:12px; color:var(--red); margin-left:8px;">Not found in current data</span>`;
+    document.getElementById('scanner-result-details').innerHTML = `
+      <div class="scanner-detail-item" style="grid-column:1/-1;">
+        <span class="scanner-detail-lbl">Raw QR content</span>
+        <span class="scanner-detail-val" style="font-family:'JetBrains Mono',monospace;">${extNo}</span>
+      </div>
+      <div class="scanner-detail-item" style="grid-column:1/-1;">
+        <span class="scanner-detail-val" style="color:var(--muted);font-size:11px;">
+          Try ↻ Sync to refresh data, then scan again.
+        </span>
+      </div>`;
+    document.getElementById('scanner-result-actions').innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="refreshData(false); resumeScanning();">↻ Sync &amp; Scan Again</button>`;
+  }
+
+  document.getElementById('scanner-result-panel').style.display = 'block';
+  document.getElementById('scan-again-btn').style.display       = 'inline-flex';
+
+  // ── Inject service info after base result renders ──
+  {
+    // extNo here correctly falls through to the outer, already-parsed
+    // value (handles both a bare ExtNo and a full ext-view.html?ext=... URL)
+    const svcRecords = DATA.services.filter(s => s.ExtNo === extNo)
+      .sort((a,b) => new Date(b.ServiceDate) - new Date(a.ServiceDate));
+    const lastSvc = svcRecords[0] || null;
+
+    const today   = new Date(); today.setHours(0,0,0,0);
+    const details = document.getElementById('scanner-result-details');
+    const condIcon = { ok:'✅', attention:'⚠️', condemned:'🚫' };
+
+    if (details) {
+      if (lastSvc) {
+        const due      = lastSvc.NextDue ? new Date(lastSvc.NextDue) : null;
+        const diff     = due ? Math.round((due - today) / 86400000) : null;
+        const dueColor = diff === null ? 'var(--body)' : diff < 0 ? 'var(--red)' : diff <= 14 ? 'var(--yellow)' : 'var(--green)';
+        const dueLabel = diff === null ? '—' : diff < 0
+          ? 'Overdue (' + Math.abs(diff) + 'd ago)'
+          : diff === 0 ? 'Due Today'
+          : 'In ' + diff + ' day' + (diff !== 1 ? 's' : '');
+
+        details.insertAdjacentHTML('beforeend',
+          '<div class="scanner-detail-item" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">' +
+            '<span class="scanner-detail-lbl">Last Service</span>' +
+            '<span class="scanner-detail-val">' + fmtDate(lastSvc.ServiceDate) + ' — ' +
+              (condIcon[lastSvc.Condition] || '') + ' ' + (lastSvc.ServiceType||'') + '</span>' +
+          '</div>' +
+          '<div class="scanner-detail-item">' +
+            '<span class="scanner-detail-lbl">Serviced By</span>' +
+            '<span class="scanner-detail-val">' + (lastSvc.ServiceBy||'—') + '</span>' +
+          '</div>' +
+          '<div class="scanner-detail-item">' +
+            '<span class="scanner-detail-lbl">Next Service Due</span>' +
+            '<span class="scanner-detail-val" style="color:' + dueColor + ';">' + dueLabel + '</span>' +
+          '</div>'
+        );
+      } else {
+        details.insertAdjacentHTML('beforeend',
+          '<div class="scanner-detail-item" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">' +
+            '<span class="scanner-detail-lbl">Quarterly Service</span>' +
+            '<span class="scanner-detail-val" style="color:var(--muted);">No service record yet</span>' +
+          '</div>'
+        );
+      }
+    }
+
+    // Always offer "Log Service" — especially useful for extinguishers
+    // that have no service history yet.
+    const actions = document.getElementById('scanner-result-actions');
+    if (actions) {
+      actions.insertAdjacentHTML('beforeend',
+        '<button class="btn btn-ghost btn-sm" ' +
+          'onclick="closeScannerModal(); openServiceModal(' + "'" + extNo + "'" + ');">🔧 Log Service</button>'
+      );
+    }
+  }
+}
+
+function resumeScanning() {
+  lastScannedExtNo = '';
+  scannerPaused    = false;
+  document.getElementById('scanner-result-panel').style.display = 'none';
+  document.getElementById('scan-again-btn').style.display       = 'none';
+  document.getElementById('scanner-wrap').style.display         = '';   // show camera again
+  document.getElementById('scanner-status').style.display       = '';
+  document.getElementById('scanner-status').textContent         = 'Starting camera...';
+  startScanner();  // restart camera stream fresh
 }
 
 // ─── END OF SERVICE LIFE (from manufacture year) ───
@@ -4481,7 +5204,7 @@ function openReceiveModal(refillId) {
   document.getElementById('rec-date').value = today;
   document.getElementById('rec-weight').value = '';
   document.getElementById('rec-nextdue').value = '';
-  document.getElementById('rec-by').value = '';
+  const _recBy = document.getElementById('rec-by'); if (_recBy) _recBy.value = '';
   document.getElementById('rec-remarks').value = '';
 
   // Show extinguisher info in modal
