@@ -2924,8 +2924,8 @@ function svcFillNext() {
   const d = document.getElementById('svc-date').value;
   if (d) document.getElementById('svc-next').value = addMonths(d, SERVICE_INTERVAL_MONTHS);
 }
-function openServiceModal() {
-  svcPicked = new Set();
+function openServiceModal(preselectExtNo) {
+  svcPicked = new Set(preselectExtNo ? [preselectExtNo] : []);
   document.getElementById('svc-date').value = todayISO();
   document.getElementById('svc-by').value = '';
   document.getElementById('svc-condition').value = 'ok';
@@ -3381,17 +3381,19 @@ function handleQRResult(rawData) {
   {
     // extNo here correctly falls through to the outer, already-parsed
     // value (handles both a bare ExtNo and a full ext-view.html?ext=... URL)
-    const svcRecords = DATA.services.filter(s => s.ExtNo === extNo)
+    const svcRecords = DATA.services.filter(s => normExt(s.ExtNo) === normExt(extNo))
       .sort((a,b) => new Date(b.ServiceDate) - new Date(a.ServiceDate));
     const lastSvc = svcRecords[0] || null;
 
     const today   = new Date(); today.setHours(0,0,0,0);
     const details = document.getElementById('scanner-result-details');
-    const condIcon = { ok:'✅', attention:'⚠️', condemned:'🚫' };
+    const condIcon = { ok:'✅', 'needs attention':'⚠️', 'remove from service':'🚫', attention:'⚠️', condemned:'🚫' };
+    const condKey  = String(lastSvc && lastSvc.Condition || '').toLowerCase();
 
     if (details) {
       if (lastSvc) {
-        const due      = lastSvc.NextDue ? new Date(lastSvc.NextDue) : null;
+        const nextDue  = lastSvc.NextDue || addMonths(lastSvc.ServiceDate, SERVICE_INTERVAL_MONTHS);
+        const due      = nextDue ? new Date(nextDue + 'T00:00') : null;
         const diff     = due ? Math.round((due - today) / 86400000) : null;
         const dueColor = diff === null ? 'var(--body)' : diff < 0 ? 'var(--red)' : diff <= 14 ? 'var(--yellow)' : 'var(--green)';
         const dueLabel = diff === null ? '—' : diff < 0
@@ -3403,7 +3405,7 @@ function handleQRResult(rawData) {
           '<div class="scanner-detail-item" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:8px;margin-top:4px;">' +
             '<span class="scanner-detail-lbl">Last Service</span>' +
             '<span class="scanner-detail-val">' + fmtDate(lastSvc.ServiceDate) + ' — ' +
-              (condIcon[lastSvc.Condition] || '') + ' ' + (lastSvc.ServiceType||'') + '</span>' +
+              (condIcon[condKey] || '') + ' ' + (lastSvc.ServiceType||'') + '</span>' +
           '</div>' +
           '<div class="scanner-detail-item">' +
             '<span class="scanner-detail-lbl">Serviced By</span>' +
@@ -3411,7 +3413,7 @@ function handleQRResult(rawData) {
           '</div>' +
           '<div class="scanner-detail-item">' +
             '<span class="scanner-detail-lbl">Next Service Due</span>' +
-            '<span class="scanner-detail-val" style="color:' + dueColor + ';">' + dueLabel + '</span>' +
+            '<span class="scanner-detail-val" style="color:' + dueColor + ';">' + dueLabel + ' (' + fmtDate(nextDue) + ')</span>' +
           '</div>'
         );
       } else {
