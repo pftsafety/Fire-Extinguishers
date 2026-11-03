@@ -2840,6 +2840,13 @@ function addMonths(iso, m) {
   const dt = new Date(y, mo - 1 + m, d);
   return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
 }
+// Next service due: three months after the service date, less one day
+// (06 Aug 2026 -> 05 Nov 2026)
+function serviceDueFrom(iso) {
+  const [y, mo, d] = addMonths(iso, SERVICE_INTERVAL_MONTHS).split('-').map(Number);
+  const dt = new Date(y, mo - 1, d - 1);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
 function latestServiceMap() {
   const map = {};
   (DATA.services || []).forEach(s => {
@@ -2854,7 +2861,7 @@ function serviceStatus(last) {
   if (!last) return { key: 'never', label: 'Never serviced', cls: 'dot-due', rank: 2 };
   if (String(last.Condition).toLowerCase() === 'remove from service')
     return { key: 'remove', label: 'Remove from service', cls: 'dot-due', rank: 1 };
-  const next = last.NextDue || addMonths(last.ServiceDate, SERVICE_INTERVAL_MONTHS);
+  const next = last.NextDue || serviceDueFrom(last.ServiceDate);
   const days = Math.round((new Date(next + 'T00:00') - new Date(todayISO() + 'T00:00')) / 86400000);
   if (days < 0)   return { key: 'overdue', label: 'Overdue ' + (-days) + 'd', cls: 'dot-due', rank: 0 };
   if (days <= 14) return { key: 'soon', label: 'Due in ' + days + 'd', cls: 'dot-warn', rank: 3 };
@@ -2879,7 +2886,7 @@ function renderServicePage() {
     return;
   }
   body.innerHTML = rows.map(({ e, last, st }) => {
-    const next = last ? (last.NextDue || addMonths(last.ServiceDate, SERVICE_INTERVAL_MONTHS)) : '';
+    const next = last ? (last.NextDue || serviceDueFrom(last.ServiceDate)) : '';
     return `<tr>
       <td><span class="ext-num">${e.ExtNo}</span></td>
       <td>${typeTag(e.Type)}</td>
@@ -2922,7 +2929,7 @@ function svcPickAll(on) {
 }
 function svcFillNext() {
   const d = document.getElementById('svc-date').value;
-  if (d) document.getElementById('svc-next').value = addMonths(d, SERVICE_INTERVAL_MONTHS);
+  if (d) document.getElementById('svc-next').value = serviceDueFrom(d);
 }
 function openServiceModal(preselectExtNo) {
   svcPicked = new Set(preselectExtNo ? [preselectExtNo] : []);
@@ -2940,7 +2947,7 @@ async function saveServices() {
   const by      = document.getElementById('svc-by').value.trim();
   const cond    = document.getElementById('svc-condition').value;
   const remarks = document.getElementById('svc-remarks').value.trim();
-  const next    = document.getElementById('svc-next').value || addMonths(date, SERVICE_INTERVAL_MONTHS);
+  const next    = document.getElementById('svc-next').value || serviceDueFrom(date);
   if (!svcPicked.size) { showToast('Select at least one extinguisher', 'error'); return; }
   if (!date) { showToast('Service date is required', 'error'); return; }
   if (!by)   { showToast('Enter who serviced the units', 'error'); return; }
@@ -3392,7 +3399,7 @@ function handleQRResult(rawData) {
 
     if (details) {
       if (lastSvc) {
-        const nextDue  = lastSvc.NextDue || addMonths(lastSvc.ServiceDate, SERVICE_INTERVAL_MONTHS);
+        const nextDue  = lastSvc.NextDue || serviceDueFrom(lastSvc.ServiceDate);
         const due      = nextDue ? new Date(nextDue + 'T00:00') : null;
         const diff     = due ? Math.round((due - today) / 86400000) : null;
         const dueColor = diff === null ? 'var(--body)' : diff < 0 ? 'var(--red)' : diff <= 14 ? 'var(--yellow)' : 'var(--green)';
