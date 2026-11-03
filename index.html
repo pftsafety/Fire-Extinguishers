@@ -2316,7 +2316,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.20';
+const EXPECTED_BACKEND = 'v2026.10.21';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -4566,6 +4566,26 @@ function viewAndDownload(passNo) {
 // ═══════════════════════════════════════════════
 // WORD (.docx) DOWNLOAD — Browser-side generation
 // ═══════════════════════════════════════════════
+// Word file built from the Google Doc template (same template as the Drive PDF).
+// Returns null when it can't be produced, so the caller falls back to the built-in layout.
+async function templatePassDocx(passNo) {
+  if (!CONFIG.apiUrl) return null;
+  const pass = DATA.passes.find(p => p.PassNo === passNo);
+  if (!pass) return null;
+  const extDetails = DATA.refills.filter(r => r.PassNo === passNo).map(r => {
+    const ext = DATA.extinguishers.find(e => e.ExtNo === r.ExtNo) || {};
+    return { extNo: r.ExtNo, type: ext.Type || '', weight: ext.Weight || '' };
+  });
+  if (!extDetails.length) return null;
+  const res = await apiCall('passDocx', { pass, extDetails }, true);
+  if (!res || !res.docx) {
+    showToast('Template Word failed — using built-in layout' + (res && res.error ? ': ' + res.error : ''), 'info');
+    return null;
+  }
+  const bytes = Uint8Array.from(atob(res.docx), ch => ch.charCodeAt(0));
+  return new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+
 async function downloadPassAsDocx() {
   const passNo  = document.getElementById('cp-passno').textContent.trim();
   const org     = CONFIG.orgName || document.getElementById('cp-org').textContent.trim();
@@ -4591,7 +4611,7 @@ async function downloadPassAsDocx() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating...'; }
 
   try {
-    const blob = await buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows });
+    const blob = (await templatePassDocx(passNo)) || await buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows });
     saveAs(blob, 'Refill-Pass-' + passNo + '.docx');
     showToast(passNo + '.docx downloaded!', 'success');
   } catch (err) {
@@ -5689,6 +5709,7 @@ async function submitBulkRefill() {
         return;
       }
       if (res.docUrl) combinedPass.DocUrl = res.docUrl;
+      if (res.docError) showToast('Pass saved, but the template PDF failed: ' + res.docError, 'error');
       btn.textContent = '⏳ Finalising...';
     } catch (_) {
       btn.disabled = false;
