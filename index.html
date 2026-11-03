@@ -3334,55 +3334,27 @@ async function confirmRemoveSubstitute() {
 
 // ─── POPULATE AGENCY DROPDOWNS ────────────────────────────────
 function populateAgencyDropdowns() {
-  // Build agency list: AMC vendors first, then CONFIG.vendorName as fallback
-  const agencies = [];
-
-  // Active/upcoming AMC contracts first
+  // Only agencies with an active AMC contract (end date not yet passed), one entry per vendor
   const today = new Date();
-  const active = AMC_DATA.filter(a => new Date(a.endDate) >= today)
-    .sort((a,b) => a.vendor.localeCompare(b.vendor));
-  const expired = AMC_DATA.filter(a => new Date(a.endDate) < today)
-    .sort((a,b) => a.vendor.localeCompare(b.vendor));
+  today.setHours(0, 0, 0, 0);
+  const vendors = [...new Set(
+    AMC_DATA.filter(a => a.vendor && new Date(a.endDate) >= today).map(a => a.vendor)
+  )].sort((a, b) => a.localeCompare(b));
 
-  active.forEach(a  => agencies.push({ value: a.vendor, label: a.vendor, group: 'Active AMC' }));
-  expired.forEach(a => agencies.push({ value: a.vendor, label: a.vendor + ' (expired)', group: 'Expired AMC' }));
-
-  // CONFIG vendor as fallback if not already in list
-  if (CONFIG.vendorName && !agencies.find(a => a.value === CONFIG.vendorName)) {
-    agencies.push({ value: CONFIG.vendorName, label: CONFIG.vendorName, group: 'Default' });
-  }
-
-  // Render to all agency selects
   ['bulk-reqby', 'r-reqby'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const currentVal = sel.value;
-    sel.innerHTML = '<option value="">— Select Agency —</option>';
-
-    // Group by category
-    const groups = {};
-    agencies.forEach(a => {
-      if (!groups[a.group]) groups[a.group] = [];
-      groups[a.group].push(a);
+    sel.innerHTML = vendors.length
+      ? '<option value="">— Select Agency —</option>'
+      : '<option value="">No active AMC — add one in AMC Tracker</option>';
+    vendors.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
     });
-
-    Object.entries(groups).forEach(([grpName, items]) => {
-      const grp = document.createElement('optgroup');
-      grp.label = grpName;
-      items.forEach(a => {
-        const opt = document.createElement('option');
-        opt.value = a.value;
-        opt.textContent = a.label;
-        if (a.value === currentVal) opt.selected = true;
-        grp.appendChild(opt);
-      });
-      sel.appendChild(grp);
-    });
-
-    // Restore previous value if still valid
-    if (currentVal && [...sel.options].find(o => o.value === currentVal)) {
-      sel.value = currentVal;
-    }
+    if (currentVal && vendors.includes(currentVal)) sel.value = currentVal;
   });
 }
 
@@ -3906,7 +3878,7 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
   const orgSubtitle = CONFIG.orgSubtitle    || '';
   const factoryName = CONFIG.factoryName    || '';
   const factoryLoc  = CONFIG.factoryLocation|| '';
-  const vendorName  = CONFIG.vendorName     || 'the AMC agency';
+  const vendorName  = reqBy || 'the AMC agency';
   const sigName     = CONFIG.signatoryName  || '';
   const sigDesig    = CONFIG.signatoryDesig || '';
   const addressee   = CONFIG.addressee      || 'Security Inspector';
@@ -5143,7 +5115,7 @@ function printCombinedPass() {
   const orgSubtitle = CONFIG.orgSubtitle    || '';
   const factoryName = CONFIG.factoryName    || '';
   const factoryLoc  = CONFIG.factoryLocation|| '';
-  const vendorName  = CONFIG.vendorName     || 'the AMC agency';
+  const vendorName  = reqBy || 'the AMC agency';
   const sigName     = CONFIG.signatoryName  || '';
   const sigDesig    = CONFIG.signatoryDesig || '';
   const addressee   = CONFIG.addressee      || 'Security Inspector';
