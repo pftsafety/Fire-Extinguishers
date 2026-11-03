@@ -1434,7 +1434,7 @@
         </div>
         <div class="form-group">
           <label>Type *</label>
-          <select id="f-type">
+          <select id="f-type" onchange="syncWeightUnit()">
             <option>ABC</option>
             <option>CO₂</option>
             <option>CO₂ (Trly)</option>
@@ -1445,7 +1445,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Weight (kg)</label>
+          <label id="f-weight-label">Weight (kg)</label>
           <input type="number" id="f-weight" placeholder="6" step="0.5">
         </div>
         <div class="form-group">
@@ -1602,7 +1602,7 @@
           <input type="date" id="rec-date">
         </div>
         <div class="form-group">
-          <label>New Weight (kg)</label>
+          <label id="deploy-weight-label">New Weight (kg)</label>
           <input type="number" id="rec-weight" step="0.5">
         </div>
         <div class="form-group">
@@ -2715,6 +2715,15 @@ async function saveServices() {
     showToast('Marked "remove from service". Condemn retired units from the Master List.', 'info');
 }
 
+// Weight unit follows the extinguisher type: FOAM is litres, everything else kg
+function syncWeightUnit() {
+  const unit = weightUnit(document.getElementById('f-type').value);
+  const lbl = document.getElementById('f-weight-label');
+  const inp = document.getElementById('f-weight');
+  if (lbl) lbl.textContent = 'Weight (' + unit + ')';
+  if (inp) inp.placeholder = unit === 'L' ? '9' : '6';
+}
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -2998,7 +3007,7 @@ function filterByTypeCapacity(type, cap) {
   // Clear status filter
   if (statusSel) statusSel.value = '';
   // Search by weight number (strip " kg") so it matches the Weight column
-  const weightNum = cap.replace(/\s*kg\s*/i, '').trim();
+  const weightNum = cap.replace(/\s*(kg|L)\s*$/i, '').trim();
   if (searchInput) searchInput.value = weightNum !== '—' ? weightNum : '';
   filterTable();
   showToast(type + ' · ' + cap + ' filtered', 'info');
@@ -3183,7 +3192,7 @@ function openPlaceSubModal(loc, origExtNo) {
   // Describe original ext if known
   const origExt = DATA.extinguishers.find(e => e.ExtNo === origExtNo);
   const subInfo = origExt
-    ? `${origExt.ExtNo} (${origExt.Type} ${origExt.Weight}kg) is currently with vendor`
+    ? `${origExt.ExtNo} (${origExt.Type} ${weightLabel(origExt.Type, origExt.Weight)}) is currently with vendor`
     : 'Original extinguisher is with vendor';
   document.getElementById('sub-target-sub').textContent = subInfo;
 
@@ -3222,7 +3231,7 @@ function openPlaceSubModal(loc, origExtNo) {
                onchange="selectSubExt('${e.ExtNo}')">
         <div class="sub-opt-info">
           <div class="sub-opt-num">${e.ExtNo}</div>
-          <div class="sub-opt-desc">${e.Type} · ${e.Weight} kg</div>
+          <div class="sub-opt-desc">${e.Type} · ${weightLabel(e.Type, e.Weight)}</div>
           <div class="sub-opt-loc">Currently: ${currLoc}</div>
         </div>
         ${statusLabel}
@@ -3290,7 +3299,7 @@ function openRemoveSubModal(extNo) {
       <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
         <span class="ext-num">${extNo}</span>
         ${typeTag(ext.Type || '—')}
-        <span style="font-size:12px; color:var(--grey);">${ext.Weight || '—'} kg</span>
+        <span style="font-size:12px; color:var(--grey);">${weightLabel(ext.Type, ext.Weight)}</span>
       </div>
       <div style="font-size:12px; color:var(--grey);">
         Currently at: <strong style="color:var(--body);">${loc}</strong><br>
@@ -3622,7 +3631,7 @@ function renderMasterTable(data) {
       </div></td>
       <td><span class="ext-num">${e.ExtNo}</span>${subDisplay}</td>
       <td>${typeTag(e.Type)}</td>
-      <td>${e.Weight || '—'} kg</td>
+      <td>${weightLabel(e.Type, e.Weight)}</td>
       <td>${locDisplay}</td>
       <td>${origDisplay}</td>
       <td>${e._misaligned ? '<span style="color:var(--red);font-size:11px;" title="Sheet column mismatch — run diagnoseExtSheet() in Apps Script">⚠ check sheet</span>' : fmtDate(e.MfgDate)}${eolTag(e)}</td>
@@ -4513,7 +4522,7 @@ function openReceiveModal(refillId) {
       <div style="display:flex;gap:12px;align-items:center;">
         <span class="ext-num">${r.ExtNo}</span>
         ${typeTag(ext.Type || '—')}
-        <span style="font-size:12px;color:var(--grey);">${ext.Weight || '—'} kg</span>
+        <span style="font-size:12px;color:var(--grey);">${weightLabel(ext.Type, ext.Weight)}</span>
       </div>
       <div style="margin-top:8px;font-size:12px;color:var(--grey);">
         Original Location: <strong style="color:var(--body)">${origLoc}</strong>
@@ -4597,6 +4606,7 @@ function openDeployModal(extNo) {
       </div>
     </div>`;
 
+  document.getElementById('deploy-weight-label').textContent = 'New Weight (' + weightUnit(ext.Type) + ')';
   document.getElementById('deploy-orig-btn').textContent = origLoc
     ? `↩ Deploy to: ${origLoc}` : '(No home location recorded)';
   document.getElementById('deploy-orig-btn').disabled = !origLoc;
@@ -4835,7 +4845,7 @@ function renderBulkExtList() {
         <span class="ext-num">${extNo}</span>
         <div class="ext-info">
           <strong>${ext.Location || '—'}</strong>
-          ${typeTag(ext.Type || '—')} &nbsp; ${ext.Weight || '—'} kg
+          ${typeTag(ext.Type || '—')} &nbsp; ${weightLabel(ext.Type, ext.Weight)}
         </div>
         <div style="font-size:11px; color:var(--grey); white-space:nowrap;">${statusBadge(ext.Status || 'ok')}</div>
         <button class="bulk-remove" onclick="removeBulkItem('${extNo}')" title="Remove">✕</button>
@@ -5400,7 +5410,7 @@ function renderInspectionTable() {
             onchange="toggleInspRow(this)"></td>
       <td><span class="ext-num">${e.ExtNo}</span></td>
       <td>${typeTag(e.Type)}</td>
-      <td>${e.Weight || '—'} kg</td>
+      <td>${weightLabel(e.Type, e.Weight)}</td>
       <td style="font-size:12px;">${e.CurrentLocation || e.Location || '—'}</td>
       <td>${fmtDate(e.LastRefillDate)}</td>
       <td>${fmtDate(e.NextRefillDue)}</td>
@@ -5582,7 +5592,7 @@ async function buildInspectionDocx(exts, monthLabel) {
       tc(String(i+1), 700) +
       tc(e.ExtNo, 1200) +
       tc(e.Type || '', 1200) +
-      tc((e.Weight||'')+'kg', 800) +
+      tc(weightLabel(e.Type, e.Weight), 800) +
       tc(e.CurrentLocation || e.Location || '', 2926) +
       tc(fmtDate(e.LastRefillDate), 1200) +
       tc(fmtDate(e.NextRefillDue), 1000) +
@@ -5603,7 +5613,7 @@ async function buildInspectionDocx(exts, monthLabel) {
     body += para(run('Inspection Record — ' + e.ExtNo, { bold:true, sz:24 }), { after:40 });
     body += para(
       run('Type: ', { bold:true, sz:20 }) + run((e.Type||'—') + '   ', { sz:20 }) +
-      run('Capacity: ', { bold:true, sz:20 }) + run((e.Weight||'—') + ' kg   ', { sz:20 }) +
+      run('Capacity: ', { bold:true, sz:20 }) + run(weightLabel(e.Type, e.Weight) + '   ', { sz:20 }) +
       run('Location: ', { bold:true, sz:20 }) + run(e.CurrentLocation || e.Location || '—', { sz:20 }),
       { after:40 }
     );
@@ -5987,7 +5997,8 @@ function toggleSidebar() {
 // ═══════════════════════════════════════════════
 // MODAL HELPERS
 // ═══════════════════════════════════════════════
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+function openModal(id) {
+  if (id === 'modal-ext') syncWeightUnit(); document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
