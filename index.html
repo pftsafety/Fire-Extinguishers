@@ -2324,7 +2324,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.25';
+const EXPECTED_BACKEND = 'v2026.10.26';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2338,8 +2338,8 @@ let CONFIG = {
   signatoryDesig: 'SM (Safety & Environment)',
   addressee: 'Security Inspector',
   orgLogo: '',   // base64 data-URL of org logo
-  passLayout: 'builtin',   // 'builtin' = table as in print preview; 'template' = Google Doc template
-  templateId: '',
+  passLayout: 'template',   // 'template' = Google Doc template (default); 'builtin' = built-in layout
+  templateId: '17X-eCLtyQ_Yn9W_P46Z7gS4djhzQft0Xush7n9qMLfw',
   folderId: ''
 };
 
@@ -2456,7 +2456,7 @@ function loadConfig() {
     set('cfg-signatory-desig',CONFIG.signatoryDesig);
     set('cfg-addressee',      CONFIG.addressee);
     set('cfg-template-id',    CONFIG.templateId);
-    set('cfg-folder-id',      CONFIG.folderId);    set('cfg-pass-layout', CONFIG.passLayout || 'builtin');
+    set('cfg-folder-id',      CONFIG.folderId);    set('cfg-pass-layout', CONFIG.passLayout || 'template');
   }
   // API URL is fixed in code — always overrides anything saved in the browser
   CONFIG.apiUrl = API_URL;
@@ -2534,7 +2534,7 @@ function saveConfig() {
   CONFIG.signatoryDesig  = get('cfg-signatory-desig');
   CONFIG.addressee       = get('cfg-addressee');
   CONFIG.templateId      = get('cfg-template-id');
-  CONFIG.folderId        = get('cfg-folder-id');  CONFIG.passLayout = get('cfg-pass-layout') || 'builtin';
+  CONFIG.folderId        = get('cfg-folder-id');  CONFIG.passLayout = get('cfg-pass-layout') || 'template';
   localStorage.setItem('fireguard_config', JSON.stringify(CONFIG));
 
   const alertEl = document.getElementById('connection-error-alert');
