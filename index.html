@@ -1450,6 +1450,14 @@
           </div>
 
           <div class="form-grid">
+            <div class="form-group full">
+              <label>Pass Layout (Word &amp; Print)</label>
+              <select id="cfg-pass-layout">
+                <option value="builtin">Built-in (table as in print preview)</option>
+                <option value="template">Google Doc template</option>
+              </select>
+              <div style="font-size:11px; color:var(--muted); margin-top:4px;">The Drive PDF created on submit always uses the Google Doc template.</div>
+            </div>
             <div class="form-group">
               <label>Organisation Name</label>
               <input type="text" id="cfg-org-name" placeholder="HLL Lifecare Limited">
@@ -2316,7 +2324,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.23';
+const EXPECTED_BACKEND = 'v2026.10.24';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2330,6 +2338,7 @@ let CONFIG = {
   signatoryDesig: 'SM (Safety & Environment)',
   addressee: 'Security Inspector',
   orgLogo: '',   // base64 data-URL of org logo
+  passLayout: 'builtin',   // 'builtin' = table as in print preview; 'template' = Google Doc template
   templateId: '',
   folderId: ''
 };
@@ -2447,7 +2456,7 @@ function loadConfig() {
     set('cfg-signatory-desig',CONFIG.signatoryDesig);
     set('cfg-addressee',      CONFIG.addressee);
     set('cfg-template-id',    CONFIG.templateId);
-    set('cfg-folder-id',      CONFIG.folderId);
+    set('cfg-folder-id',      CONFIG.folderId);    set('cfg-pass-layout', CONFIG.passLayout || 'builtin');
   }
   // API URL is fixed in code — always overrides anything saved in the browser
   CONFIG.apiUrl = API_URL;
@@ -2525,7 +2534,7 @@ function saveConfig() {
   CONFIG.signatoryDesig  = get('cfg-signatory-desig');
   CONFIG.addressee       = get('cfg-addressee');
   CONFIG.templateId      = get('cfg-template-id');
-  CONFIG.folderId        = get('cfg-folder-id');
+  CONFIG.folderId        = get('cfg-folder-id');  CONFIG.passLayout = get('cfg-pass-layout') || 'builtin';
   localStorage.setItem('fireguard_config', JSON.stringify(CONFIG));
 
   const alertEl = document.getElementById('connection-error-alert');
@@ -4611,7 +4620,8 @@ async function downloadPassAsDocx() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating...'; }
 
   try {
-    const blob = (await templatePassDocx(passNo)) || await buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows });
+    const builtIn = () => buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows });
+    const blob = CONFIG.passLayout === 'template' ? ((await templatePassDocx(passNo)) || await builtIn()) : await builtIn();
     saveAs(blob, 'Refill-Pass-' + passNo + '.docx');
     showToast(passNo + '.docx downloaded!', 'success');
   } catch (err) {
@@ -5859,7 +5869,52 @@ function viewPass(passNo) {
   showCombinedPassPreview(pass, extDetails);
 }
 
-function printCombinedPass() {
+// Pass PDF from the Google Doc template, for printing. Null when the template isn't available.
+function templatePayload(passNo) {
+  const pass = DATA.passes.find(p => p.PassNo === passNo);
+  if (!pass) return null;
+  const extDetails = DATA.refills.filter(r => r.PassNo === passNo).map(r => {
+    const ext = DATA.extinguishers.find(e => e.ExtNo === r.ExtNo) || {};
+    return { extNo: r.ExtNo, type: ext.Type || '', weight: ext.Weight || '' };
+  });
+  return extDetails.length ? { pass, extDetails } : null;
+}
+
+async function templatePassPdf(passNo) {
+  if (!CONFIG.apiUrl) return null;
+  const payload = templatePayload(passNo);
+  if (!payload) return null;
+  const res = await apiCall('passPdf', payload, true);
+  if (!res || !res.pdf) {
+    showToast('Template PDF failed — printing built-in layout', 'info');
+    return null;
+  }
+  const bytes = Uint8Array.from(atob(res.pdf), ch => ch.charCodeAt(0));
+  return new Blob([bytes], { type: 'application/pdf' });
+}
+
+// Print a PDF blob through a hidden frame (no popup to block)
+function printPdfBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  const frame = document.createElement('iframe');
+  frame.style.display = 'none';
+  frame.src = url;
+  frame.onload = () => {
+    try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+    catch (_) { window.open(url, '_blank'); }
+  };
+  document.body.appendChild(frame);
+}
+
+// Print button: template PDF when the backend is connected, otherwise the built-in layout
+async function printCombinedPass() {
+  const passNo = document.getElementById('cp-passno').textContent.trim();
+  const blob = CONFIG.passLayout === 'template' ? await templatePassPdf(passNo) : null;
+  if (blob) printPdfBlob(blob);
+  else printCombinedPassLocal();
+}
+
+function printCombinedPassLocal() {
   const passNo  = document.getElementById('cp-passno').textContent.trim();
   const reqDate = document.getElementById('cp-reqdate').textContent.trim();
   const reqBy   = document.getElementById('cp-reqby').textContent.trim();
