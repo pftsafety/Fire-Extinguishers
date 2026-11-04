@@ -954,6 +954,17 @@
     .store-card-header { flex-wrap: wrap; }
     .store-card-actions .btn { min-height: 44px; font-size: 14px; flex: 1; justify-content: center; }
   }
+  @media (max-width: 600px) {
+    .sel-toolbar { left: 12px; right: 12px; min-width: 0; bottom: 12px; transform: translateY(140%); flex-wrap: wrap; }
+    .sel-toolbar.visible { transform: translateY(0); }
+    .sel-toolbar .sel-divider { display: none; }
+    .sel-actions { flex-wrap: wrap; }
+    .content { padding: 12px; }
+    .table-header { padding: 12px; }
+    .search-box { max-width: 100%; flex: 1 1 100%; }
+    .stat-value { font-size: 26px; }
+    .main { margin-left: 0; }
+  }
 </style>
 </head>
 <body>
@@ -1952,7 +1963,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-bulk-result')">Close</button>
-      <button class="btn btn-blue" onclick="printCombinedPass()">🖨️ Print</button>
+      <button class="btn btn-blue" id="btn-print-pass" onclick="printCombinedPass()">🖨️ Print</button>
       <button class="btn btn-primary" onclick="downloadPassAsDocx()" id="btn-download-docx">⬇ Download Word</button>
     </div>
   </div>
@@ -2324,7 +2335,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.28';
+const EXPECTED_BACKEND = 'v2026.10.29';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2435,7 +2446,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (CONFIG.apiUrl) {
     setSyncStatus('syncing', 'Syncing...');
     checkBackendVersion();
-    refreshData(true);
+    showLoading('Loading data…');
+    refreshData(true).finally(hideLoading);
   } else {
     setSyncStatus('idle', 'Not connected');
   }
@@ -2562,7 +2574,7 @@ function saveConfig() {
 }
 
 function setDefaultDates() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   ['r-reqdate', 'h-testdate', 'rec-date'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = today;
@@ -2673,7 +2685,15 @@ async function checkBackendVersion() {
   }
 }
 
+let _syncInFlight = false;
+let _lastSyncAt   = 0;
 async function refreshData(silent = false) {
+  if (_syncInFlight) return;            // never run two syncs at once
+  _syncInFlight = true;
+  try { return await refreshDataInner(silent); }
+  finally { _syncInFlight = false; }
+}
+async function refreshDataInner(silent = false) {
   if (!CONFIG.apiUrl) { showToast('Backend URL missing in code', 'error'); return; }
   setSyncStatus('syncing', 'Syncing...');
   if (!silent) showLoading('Syncing data from Google Sheets...');
@@ -2695,6 +2715,7 @@ async function refreshData(silent = false) {
     populateAgencyDropdowns();
     const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok', 'Synced ' + now);
+    _lastSyncAt = Date.now();
     if (_deepLinkExtNo) {
       const _dlExt = DATA.extinguishers.find(e => e.ExtNo === _deepLinkExtNo);
       if (_dlExt) { showToast('Opening ' + _deepLinkExtNo + ' from QR', 'info'); setTimeout(() => openHistoryModal(_deepLinkExtNo), 700); }
@@ -3465,6 +3486,18 @@ function resumeScanning() {
   startScanner();  // restart camera stream fresh
 }
 
+// ─── AUTO REFRESH ───
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
+function autoRefreshIfStale() {
+  if (!CONFIG.apiUrl || document.hidden) return;
+  if (Date.now() - _lastSyncAt < 30000) return;   // skip if synced in the last 30 seconds
+  refreshData(true);
+}
+setInterval(autoRefreshIfStale, AUTO_REFRESH_MS);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) autoRefreshIfStale(); });
+window.addEventListener('focus', autoRefreshIfStale);
+window.addEventListener('online', autoRefreshIfStale);
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -3508,7 +3541,7 @@ function openCondemnModal(extNo, prefillReason) {
     `<span style="font-size:12px;color:var(--grey);">${weightLabel(ext.Type, ext.Weight)} · ${ext.CurrentLocation || ext.Location || ''}</span>`;
   document.getElementById('condemn-reason').value = prefillReason || '';
   document.getElementById('condemn-other').value  = '';
-  document.getElementById('condemn-date').value   = new Date().toISOString().split('T')[0];
+  document.getElementById('condemn-date').value   = todayISO();
   syncCondemnReason();
   openModal('modal-condemn');
 }
@@ -3601,7 +3634,7 @@ function renderAlerts() {
         if (yearsOld >= 5 && !dismissed.includes(key)) {
           alerts.push({ key, cls:'alert-amber', icon:'💧',
             text: `<strong>${e.ExtNo}</strong> — no hydrostatic test on record`,
-            sub:  (e.CurrentLocation||e.Location) + ' — manufactured ' + fmtDate(e.MfgDate) + ', ${Math.floor(yearsOld)} years old' });
+            sub:  (e.CurrentLocation||e.Location) + ' — manufactured ' + fmtDate(e.MfgDate) + ', ' + Math.floor(yearsOld) + ' years old' });
         }
       }
     }
@@ -4505,7 +4538,7 @@ function filterRefills(type) {
 // PASSES
 // ═══════════════════════════════════════════════
 async function markPassSent(passNo) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   const rows  = DATA.refills.filter(r => r.PassNo === passNo && r.Status === 'pending');
   if (!rows.length) { showToast('Nothing pending on this pass', 'info'); return; }
   if (!confirm(`Mark ${rows.length} extinguisher(s) on ${passNo} as sent out?`)) return;
@@ -5214,7 +5247,7 @@ function openMarkSentModal(refillId) {
 async function markSent(refillId) {
   const idx = DATA.refills.findIndex(r => r.RefillID === refillId);
   if (idx === -1) return;
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   DATA.refills[idx].SentDate = today;
   DATA.refills[idx].Status = 'sent';
 
@@ -5239,7 +5272,7 @@ async function markSent(refillId) {
 // ─── RECEIVE (→ Storeroom) ────────────────────────────────────
 function openReceiveModal(refillId) {
   currentRefillId = refillId;
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   document.getElementById('rec-date').value = today;
   document.getElementById('rec-weight').value = '';
   document.getElementById('rec-nextdue').value = '';
@@ -5319,7 +5352,7 @@ function openDeployModal(extNo) {
   }
 
   const origLoc = ext.OriginalLocation || ext.Location || '';
-  const today   = new Date().toISOString().split('T')[0];
+  const today   = todayISO();
 
   document.getElementById('deploy-date').value     = today;
   document.getElementById('deploy-by').value       = '';
@@ -5450,8 +5483,12 @@ async function confirmDeploy() {
   showToast(`${deployingExtNo} deployed to ${location}!`, 'success');
 }
 
-function deleteHydro(testId) {
+async function deleteHydro(testId) {
   if (!confirm('Delete this hydrostatic test record?')) return;
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('deleteHydroTest', { TestID: testId }, true);
+    if (!res || !res.success) { showToast('Delete failed — record kept. Try again.', 'error'); return; }
+  }
   DATA.hydroTests = DATA.hydroTests.filter(h => h.TestID !== testId);
   renderHydroTable();
   showToast('Record deleted', 'info');
@@ -5561,7 +5598,7 @@ function quickRefill(extNo) {
 
 function openBulkRefillModal() {
   if (selectedExtNos.size === 0) { showToast('Select at least one extinguisher', 'error'); return; }
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   document.getElementById('bulk-reqdate').value = today;
   document.getElementById('bulk-remarks').value = '';
   document.getElementById('bulk-pass-count').textContent = selectedExtNos.size;
@@ -5909,9 +5946,18 @@ function printPdfBlob(blob) {
 // Print button: template PDF when the backend is connected, otherwise the built-in layout
 async function printCombinedPass() {
   const passNo = document.getElementById('cp-passno').textContent.trim();
-  const blob = CONFIG.passLayout === 'template' ? await templatePassPdf(passNo) : null;
-  if (blob) printPdfBlob(blob);
-  else printCombinedPassLocal();
+  const btn = document.getElementById('btn-print-pass');
+  const label = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Preparing…'; }
+  showLoading('Preparing pass for printing…');
+  try {
+    const blob = CONFIG.passLayout === 'template' ? await templatePassPdf(passNo) : null;
+    if (blob) printPdfBlob(blob);
+    else printCombinedPassLocal();
+  } finally {
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.innerHTML = label; }
+  }
 }
 
 function printCombinedPassLocal() {
@@ -6492,7 +6538,7 @@ function openBulkReceive(preselectPass) {
   sel.value = passNos.includes(preselectPass) ? preselectPass : '';
 
   // Defaults: received today, next refill due in 1 year
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
   const nextYr = new Date(); nextYr.setFullYear(nextYr.getFullYear() + 1);
   const nextYrStr = nextYr.toISOString().split('T')[0];
   document.getElementById('bulk-recv-date').value    = today;
