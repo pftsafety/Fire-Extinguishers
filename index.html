@@ -1328,6 +1328,8 @@
     <div class="page" id="page-refills">
       <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="openRefillRequestModal()">＋ New Refill Request</button>
+        <select id="refill-pass-select" class="filter-select" style="min-width:220px;"></select>
+        <button class="btn btn-blue" onclick="markSelectedPassSent()">📦 Mark pass sent</button>
         <button class="btn btn-green" id="refill-bulk-recv-btn" onclick="openBulkReceive()">📥 Bulk Receive</button>
         <button class="btn btn-ghost" onclick="filterRefills('all')" id="refill-tab-all">All</button>
         <button class="btn btn-ghost" onclick="filterRefills('pending')" id="refill-tab-pending">Pending</button>
@@ -2326,7 +2328,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.33';
+const EXPECTED_BACKEND = 'v2026.10.34';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -4701,6 +4703,13 @@ function filterHydro() {
 // ═══════════════════════════════════════════════
 function renderRefills() {
   const all = DATA.refills;
+  const psel = document.getElementById('refill-pass-select');
+  if (psel) {
+    const pend = [...new Set(all.filter(r => r.Status === 'pending').map(r => r.PassNo))];
+    psel.innerHTML = pend.length
+      ? pend.map(pn => `<option value="${pn}">${pn} — ${all.filter(r => r.PassNo === pn && r.Status === 'pending').length} to send</option>`).join('')
+      : '<option value="">No pass waiting to be sent</option>';
+  }
   const sentCount = all.filter(r => r.Status === 'sent').length;
   const brBtn = document.getElementById('refill-bulk-recv-btn');
   if (brBtn) brBtn.textContent = '📥 Bulk Receive' + (sentCount ? ' (' + sentCount + ')' : '');
@@ -4767,6 +4776,18 @@ function filterRefills(type) {
 // ═══════════════════════════════════════════════
 // PASSES
 // ═══════════════════════════════════════════════
+// Units on a pass with a given status (from the refill records, not the pass row)
+function refillCountOf(passNo, status) {
+  return (DATA.refills || []).filter(r => r.PassNo === passNo && r.Status === status).length;
+}
+
+// Bulk: mark every pending unit on the chosen pass as sent
+function markSelectedPassSent() {
+  const pn = (document.getElementById('refill-pass-select') || {}).value;
+  if (!pn) { showToast('No pass has units waiting to be sent', 'info'); return; }
+  markPassSent(pn);
+}
+
 async function markPassSent(passNo) {
   const today = todayISO();
   const rows  = DATA.refills.filter(r => r.PassNo === passNo && r.Status === 'pending');
@@ -4791,36 +4812,31 @@ async function markPassSent(passNo) {
 function renderPasses() {
   const tbody = document.getElementById('passes-body');
   if (!DATA.passes.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">No passes generated yet.</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">No passes generated yet.</div></div></td></tr>';
     return;
   }
   const pf = document.getElementById('pass-filter-status')?.value || '';
   tbody.innerHTML = DATA.passes.filter(p => !pf || p.Status === pf).map(p => {
-    // Count extinguishers: ExtList JSON or comma-split ExtNo
-    let extCount = 1;
-    let extLabel = p.ExtNo;
-    try {
-      const list = JSON.parse(p.ExtList || '[]');
-      if (list.length) { extCount = list.length; extLabel = list.map(e => e.extNo).join(', '); }
-    } catch (_) {
-      extCount = p.ExtNo ? p.ExtNo.split(',').length : 1;
-    }
-    const extDisplay = extCount > 1
-      ? `<span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">${extCount} extinguishers</span>`
-      : `<span class="ext-num">${p.ExtNo}</span>`;
+    // Units on the pass: ExtList (JSON) when present, otherwise the comma-separated ExtNo
+    let extNos = [];
+    try { extNos = JSON.parse(p.ExtList || '[]').map(e => e.extNo).filter(Boolean); } catch (_) {}
+    if (!extNos.length) extNos = String(p.ExtNo || '').split(',').map(s => s.trim()).filter(Boolean);
+    const n = extNos.length;
+    const extDisplay = `<span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);font-weight:600;">${n} unit${n !== 1 ? 's' : ''}</span>` +
+      (n ? `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--grey);margin-top:2px;">${extNos.join(', ')}</div>` : '');
     return `
     <tr>
       <td><span class="ext-num">${p.PassNo}</span></td>
       <td>${extDisplay}</td>
-      <td>${p.GeneratedBy}</td>
+      <td>${p.GeneratedBy || '—'}</td>
       <td>${fmtDate(p.GeneratedOn)}</td>
       <td>${statusBadge(p.Status)}</td>
       <td>
         <div class="actions-cell">
           <button class="btn btn-ghost btn-sm" onclick="viewPass('${p.PassNo}')">👁️ View</button>
           <button class="btn btn-primary btn-sm" onclick="viewAndDownload('${p.PassNo}')">⬇ Word</button>
-          ${p.Status === 'pending' ? `<button class="btn btn-blue btn-sm" onclick="markPassSent('${p.PassNo}')">📦 Mark All Sent</button>` : ''}
-          ${p.Status === 'sent' ? `<button class="btn btn-green btn-sm" onclick="openBulkReceiveForPass('${p.PassNo}')">📥 Receive</button>` : ''}
+          ${refillCountOf(p.PassNo, 'pending') > 0 ? `<button class="btn btn-blue btn-sm" onclick="markPassSent('${p.PassNo}')">📦 Mark All Sent</button>` : ''}
+          ${refillCountOf(p.PassNo, 'sent') > 0 ? `<button class="btn btn-green btn-sm" onclick="openBulkReceiveForPass('${p.PassNo}')">📥 Receive</button>` : ''}
           ${p.DocUrl ? `<a href="${p.DocUrl}" target="_blank" class="btn btn-ghost btn-sm">☁ Drive</a>` : ''}
         </div>
       </td>
