@@ -2326,7 +2326,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.32';
+const EXPECTED_BACKEND = 'v2026.10.33';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -4849,9 +4849,9 @@ async function templatePassDocx(passNo) {
     return { extNo: r.ExtNo, type: ext.Type || '', weight: ext.Weight || '' };
   });
   if (!extDetails.length) return null;
-  const res = await apiCall('passDocx', { pass, extDetails }, true);
+  const res = await apiCall('passDocx', { pass: slimPassForSave(pass) }, true);
   if (!res || !res.docx) {
-    showToast('Template Word failed — using built-in layout' + (res && res.error ? ': ' + res.error : ''), 'info');
+    showToast('Template Word failed: ' + ((res && res.error) || 'no response from the backend'), 'error');
     return null;
   }
   const bytes = Uint8Array.from(atob(res.docx), ch => ch.charCodeAt(0));
@@ -6154,11 +6154,8 @@ function viewPass(passNo) {
 function templatePayload(passNo) {
   const pass = DATA.passes.find(p => p.PassNo === passNo);
   if (!pass) return null;
-  const extDetails = DATA.refills.filter(r => r.PassNo === passNo).map(r => {
-    const ext = DATA.extinguishers.find(e => e.ExtNo === r.ExtNo) || {};
-    return { extNo: r.ExtNo, type: ext.Type || '', weight: ext.Weight || '' };
-  });
-  return extDetails.length ? { pass, extDetails } : null;
+  if (!DATA.refills.some(r => r.PassNo === passNo)) return null;
+  return { pass: slimPassForSave(pass) };   // the backend reads the units from the sheets
 }
 
 async function templatePassPdf(passNo) {
@@ -6167,7 +6164,7 @@ async function templatePassPdf(passNo) {
   if (!payload) return null;
   const res = await apiCall('passPdf', payload, true);
   if (!res || !res.pdf) {
-    showToast('Template PDF failed — printing built-in layout', 'info');
+    showToast('Template PDF failed: ' + ((res && res.error) || 'no response from the backend'), 'error');
     return null;
   }
   const bytes = Uint8Array.from(atob(res.pdf), ch => ch.charCodeAt(0));
