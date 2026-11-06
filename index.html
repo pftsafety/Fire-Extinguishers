@@ -1437,15 +1437,7 @@
           </div>
 
           <div class="form-grid">
-            <div class="form-group full">
-              <label>Pass Layout (Word &amp; Print)</label>
-              <select id="cfg-pass-layout">
-                <option value="builtin">Built-in (table as in print preview)</option>
-                <option value="template">Google Doc template</option>
-              </select>
-              <div style="font-size:11px; color:var(--muted); margin-top:4px;">The Drive PDF created on submit always uses the Google Doc template.</div>
-            </div>
-            <div class="form-group">
+                        <div class="form-group">
               <label>Organisation Name</label>
               <input type="text" id="cfg-org-name" placeholder="HLL Lifecare Limited">
             </div>
@@ -2473,6 +2465,7 @@ function loadConfig() {
   }
   // API URL is fixed in code — always overrides anything saved in the browser
   CONFIG.apiUrl = API_URL;
+  CONFIG.passLayout = 'template';   // Word and Print always follow the Google Doc template
   // Logo stored separately (can be large)
   const savedLogo = localStorage.getItem('fireguard_logo');
   if (savedLogo) {
@@ -4890,8 +4883,8 @@ async function downloadPassAsDocx() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating...'; }
 
   try {
-    const builtIn = () => buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows });
-    const blob = CONFIG.passLayout === 'template' ? ((await templatePassDocx(passNo)) || await builtIn()) : await builtIn();
+    const blob = await templatePassDocx(passNo);
+    if (!blob) return;   // the reason has already been shown; no built-in fallback
     saveAs(blob, 'Refill-Pass-' + passNo + '.docx');
     showToast(passNo + '.docx downloaded!', 'success');
   } catch (err) {
@@ -6202,9 +6195,8 @@ async function printCombinedPass() {
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Preparing…'; }
   showLoading('Preparing pass for printing…');
   try {
-    const blob = CONFIG.passLayout === 'template' ? await templatePassPdf(passNo) : null;
-    if (blob) printPdfBlob(blob);
-    else printCombinedPassLocal();
+    const blob = await templatePassPdf(passNo);
+    if (blob) printPdfBlob(blob);   // the reason has already been shown if this fails
   } finally {
     hideLoading();
     if (btn) { btn.disabled = false; btn.innerHTML = label; }
