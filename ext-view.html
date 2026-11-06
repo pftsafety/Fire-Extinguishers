@@ -189,6 +189,16 @@
   }
   .portal-link:hover { background: rgba(255,255,255,0.2); }
   .pill-condemned { background:#FEE2E2; color:#B91C1C; }
+  .insp-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#1D4ED8; margin:14px 0 6px; }
+  .insp-entry { border:1px solid #DDE3EC; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .insp-head  { font-size:13px; font-weight:600; margin-bottom:4px; }
+  .insp-none  { font-size:12px; color:#8FA0B4; padding:4px 0; }
+  .issue-row  { border-left:3px solid #DC2626; background:#FEF2F2; border-radius:6px; padding:7px 10px; margin-top:6px; }
+  .issue-row.rect { border-left-color:#16A34A; background:#F0FDF4; }
+  .issue-label { font-size:12px; font-weight:600; }
+  .issue-remark { font-size:12px; color:#5A6880; margin-top:2px; }
+  .issue-state { font-size:11px; font-weight:600; margin-top:3px; color:#B91C1C; }
+  .issue-row.rect .issue-state { color:#0D7F4A; }
 </style>
 </head>
 <body>
@@ -413,6 +423,39 @@ function hydroLabel(result) {
   return map[result] || ('<span class="hydro-fail">' + (result || '--') + '</span>');
 }
 
+// Visual inspections for this unit, with rectified issues shown
+function renderInspections(data, ext) {
+  if (!ext) return;
+  const card = document.getElementById('card');
+  let box = document.getElementById('r-inspections');
+  if (!box) { box = document.createElement('div'); box.id = 'r-inspections'; card.appendChild(box); }
+  const key = normX(ext.ExtNo);
+  const insp = (data.inspections || []).filter(r => normX(r.ExtNo) === key)
+    .sort((a, b) => String(b.InspectionDate).localeCompare(String(a.InspectionDate)));
+  const issues = data.inspectionIssues || [];
+  if (!insp.length) {
+    box.innerHTML = `<div class="insp-title">Visual Inspection</div><div class="insp-none">No inspection recorded.</div>`;
+    return;
+  }
+  const entries = insp.slice(0, 5).map(r => {
+    const iss = issues.filter(i => i.InspectionID === r.InspectionID);
+    const rows = iss.length ? iss.map(i => {
+      const rect = i.Status === 'rectified';
+      return `<div class="issue-row ${rect ? 'rect' : 'open'}">
+        <div class="issue-label">${i.CheckLabel || i.CheckKey || ''}</div>
+        ${i.Remarks ? `<div class="issue-remark">${i.Remarks}</div>` : ''}
+        <div class="issue-state">${rect ? `✔ Rectified ${fmtDate(i.RectifiedDate)} by ${i.RectifiedBy || '—'}` : `● Open · raised ${fmtDate(i.RaisedDate)}`}</div>
+      </div>`;
+    }).join('') : '<div class="insp-none">No issues found</div>';
+    return `<div class="insp-entry">
+      <div class="insp-head">${fmtDate(r.InspectionDate)} · by ${r.InspectedBy || '—'}</div>
+      ${r.Remarks ? `<div class="issue-remark">${r.Remarks}</div>` : ''}
+      ${rows}
+    </div>`;
+  }).join('');
+  box.innerHTML = `<div class="insp-title">Visual Inspection</div>${entries}`;
+}
+
 async function load() {
   // Read ?ext= from URL
   const params = new URLSearchParams(window.location.search);
@@ -434,7 +477,7 @@ async function load() {
     const res  = await fetch(url, { method:'GET', redirect:'follow' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
-    if (text.trim().startsWith('<')) throw new Error('API error — check deployment');
+    if (text.trim().startsWith('<')) throw new Error('Unable to load details. Try again later.');
     const data = JSON.parse(text);
 
     if (!data.success) throw new Error(data.error || 'API returned failure');
@@ -499,6 +542,7 @@ async function load() {
       set('r-svc-cond',  '—');
     }
 
+    renderInspections(data, ext);
     // Hydro test
     if (lastHydro) {
       const hResult = hydroLabel(lastHydro.Result);
