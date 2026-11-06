@@ -1049,7 +1049,7 @@
         <span id="sync-label">Not synced</span>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="openScannerModal()" title="Scan QR code">📷 Scan</button>
-      <button class="btn btn-ghost btn-sm" onclick="refreshData()">↻ Sync</button>
+      <button class="btn btn-ghost btn-sm" onclick="refreshData()">↻ Refresh</button>
       <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add Extinguisher</button>
     </div>
   </div>
@@ -1119,7 +1119,7 @@
               </tr>
             </thead>
             <tbody id="recent-body">
-              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">Connect to Google Sheets to load data</div></div></td></tr>
+              <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">Connecting to load data</div></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1346,7 +1346,7 @@
     <!-- ═══ PASSES ═══ -->
     <div class="page" id="page-passes">
       <div class="alert alert-info">
-        📄 Passes are generated automatically when a refill request is approved. They use your Google Docs template.
+        📄 Passes are generated automatically when a refill request is approved. They use your document template.
       </div>
       <div class="table-card">
         <div class="table-header">
@@ -1385,169 +1385,14 @@
         style="display:none; background:var(--red-bg); border:1px solid var(--red-bd); color:var(--red); font-size:13px; line-height:1.8; margin-bottom:0;">
       </div>
 
-      <div class="config-section">
-        <div class="config-section-title">⚙️ Backend & Template Settings</div>
-
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Google Sheet ID</label>
-            <input type="text" id="cfg-sheet-id"
-              placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
-          </div>
-          <div class="form-group">
-            <label>Doc Template ID (Google Docs) <span style="color:var(--grey);font-weight:400;">optional</span></label>
-            <input type="text" id="cfg-template-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
-            <div style="font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5;">
-              📄 The Google Docs file ID of your NOTE/gatepass template.<br>
-              Your template should have <code style="font-size:10px; background:var(--surface3); padding:1px 4px; border-radius:3px;">{{REQUEST_DATE}}</code>,
-              <code style="font-size:10px; background:var(--surface3); padding:1px 4px; border-radius:3px;">{{VENDOR_NAME}}</code>,
-              and a table row with
-              <code style="font-size:10px; background:var(--surface3); padding:1px 4px; border-radius:3px;">{{EXT_ITEM}}</code> /
-              <code style="font-size:10px; background:var(--surface3); padding:1px 4px; border-radius:3px;">{{EXT_NUMBER}}</code> placeholders.<br>
-              Save config to sync this ID to the Apps Script backend.
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Output Drive Folder ID <span style="color:var(--grey);font-weight:400;">optional</span></label>
-            <input type="text" id="cfg-folder-id" placeholder="Google Drive folder for PDFs">
-          </div>
-        </div>
-
-        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
-          <div style="font-size:12px; font-weight:700; color:var(--body); text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px;">📄 Note / Gatepass Template Details</div>
-
-          <!-- Logo upload -->
-          <div style="margin-bottom:18px; padding:16px; background:var(--surface2); border:1px solid var(--border); border-radius:10px;">
-            <div style="font-size:12px; font-weight:600; color:var(--grey); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px;">Organisation Logo</div>
-            <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
-              <div id="logo-preview-wrap" style="width:90px; height:60px; border:1px dashed var(--border2); border-radius:8px; display:flex; align-items:center; justify-content:center; background:var(--surface); overflow:hidden; flex-shrink:0;">
-                <img id="logo-preview-img" src="" alt="" style="max-width:88px; max-height:58px; object-fit:contain; display:none;">
-                <span id="logo-preview-placeholder" style="font-size:22px; color:var(--muted);">🏢</span>
-              </div>
-              <div style="flex:1; min-width:180px;">
-                <div style="font-size:12px; color:var(--grey); margin-bottom:8px; line-height:1.5;">Upload your organisation logo (PNG, JPG, SVG). It will appear in the pass letterhead, print output, and Word download.</div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <label class="btn btn-ghost btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-                    📁 Choose Logo
-                    <input type="file" id="cfg-logo-input" accept="image/png,image/jpeg,image/svg+xml,image/gif" style="display:none;" onchange="handleLogoUpload(this)">
-                  </label>
-                  <button class="btn btn-ghost btn-sm" onclick="clearLogo()" id="cfg-logo-clear" style="display:none; color:var(--red);">✕ Remove</button>
-                </div>
-                <div id="cfg-logo-hint" style="font-size:11px; color:var(--muted); margin-top:6px;">Recommended: transparent PNG, ~200×80px, max 500 KB</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-grid">
-                        <div class="form-group">
-              <label>Organisation Name</label>
-              <input type="text" id="cfg-org-name" placeholder="HLL Lifecare Limited">
-            </div>
-            <div class="form-group">
-              <label>Organisation Subtitle</label>
-              <input type="text" id="cfg-org-subtitle" placeholder="(A Government of India Enterprise)">
-            </div>
-            <div class="form-group">
-              <label>Factory / Unit Name</label>
-              <input type="text" id="cfg-factory-name" placeholder="PEROORKADA FACTORY">
-            </div>
-            <div class="form-group">
-              <label>Location / City</label>
-              <input type="text" id="cfg-factory-loc" placeholder="THIRUVANANTHAPURAM">
-            </div>
-            <div class="form-group">
-              <label>AMC / Vendor Name</label>
-              <input type="text" id="cfg-vendor-name" placeholder="M/S Red Firelines">
-            </div>
-            <div class="form-group">
-              <label>Addressee (To:)</label>
-              <input type="text" id="cfg-addressee" placeholder="Security Inspector">
-            </div>
-            <div class="form-group">
-              <label>Signatory Name</label>
-              <input type="text" id="cfg-signatory-name" placeholder="GOKUL V BABU">
-            </div>
-            <div class="form-group">
-              <label>Signatory Designation</label>
-              <input type="text" id="cfg-signatory-desig" placeholder="SM (Safety &amp; Environment)">
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
-          <button class="btn btn-ghost" onclick="testConnection()">🔌 Test Connection</button>
-        </div>
-      </div>
+      
 
       <!-- Deployment checklist -->
-      <div class="config-section">
-        <div class="config-section-title">🚀 Deployment Checklist — Fix "Failed to fetch"</div>
-        <div style="font-size:13px; color:var(--grey); line-height:2; counter-reset:step;">
+      
 
-          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">1</span>
-            <span>Open your Apps Script project → <strong style="color:var(--body);">Deploy → New deployment</strong> (or Manage deployments → Edit)</span>
-          </div>
-          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">2</span>
-            <span>Set <strong style="color:var(--body);">Execute as: Me</strong> and <strong style="color:var(--body);">Who has access: Anyone</strong> — not "Anyone within domain" (GitHub Pages is external)</span>
-          </div>
-          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">3</span>
-            <span>Copy the URL ending in <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">/exec</code> — not <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">/dev</code> (dev URLs block external access)</span>
-          </div>
-          <div style="display:flex; gap:10px; margin-bottom:6px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">4</span>
-            <span>After <em>any</em> code change, you must <strong style="color:var(--body);">create a new version</strong> — existing deployments do not auto-update</span>
-          </div>
-          <div style="display:flex; gap:10px; align-items:flex-start;">
-            <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;">5</span>
-            <span>Grant permissions when prompted — click <strong style="color:var(--body);">Review permissions → Advanced → Go to app (unsafe) → Allow</strong></span>
-          </div>
+      
 
-          <div style="margin-top:14px; padding:10px 14px; background:var(--blue-bg); border:1px solid var(--blue-bd); border-radius:8px; font-size:12px; color:var(--blue);">
-            💡 <strong>Why GET not POST?</strong> Apps Script handles CORS automatically for GET requests.
-            POST with <code>Content-Type: application/json</code> triggers a CORS preflight that Apps Script cannot respond to — causing "Failed to fetch". This portal uses GET with a <code>?payload=</code> param to avoid this entirely.
-          </div>
-        </div>
-      </div>
-
-      <div class="config-section">
-        <div class="config-section-title">📋 Sheet Tab & Column Reference</div>
-        <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:14px;">
-          Run <code style="background:var(--surface2);padding:1px 6px;border-radius:3px;">setupSheets()</code> in Apps Script editor to create all tabs automatically.
-        </p>
-        <div style="display:grid; gap:12px;">
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Extinguishers</code></div>
-            <div class="url-display" style="font-size:11px; line-height:1.8;">ExtNo | Type | Weight | Location | CurrentLocation | OriginalLocation | SubstituteFor | MfgDate | LastRefillDate | NextRefillDue | Status | Remarks | CreatedAt | UpdatedAt</div>
-          </div>
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Refills</code></div>
-            <div class="url-display" style="font-size:11px; line-height:1.8;">RefillID | ExtNo | RequestDate | RequestBy | SentDate | ReceivedDate | PassNo | Status | OriginalLocation | LocationAction | SubstituteExtNo | Remarks | CreatedAt | UpdatedAt</div>
-          </div>
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>Passes</code></div>
-            <div class="url-display" style="font-size:11px; line-height:1.8;">PassNo | ExtNo | ExtList | Location | Type | Weight | GeneratedOn | GeneratedBy | Remarks | Status | DocUrl | CreatedAt</div>
-          </div>
-          <div>
-            <div style="font-size:12px; font-weight:600; color:var(--accent); margin-bottom:4px;">Tab: <code>HydroTests</code></div>
-            <div class="url-display" style="font-size:11px; line-height:1.8;">TestID | ExtNo | TestDate | TestBy | Pressure | Result | NextDue | CertNo | CreatedAt</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="config-section">
-        <div class="config-section-title">📄 Google Docs Template Placeholders</div>
-        <p style="font-size:13px; color:var(--grey); line-height:1.6; margin-bottom:12px;">
-          Use these exact placeholders in your Google Docs template (the Word download does not use the template — it builds the file directly in the browser):
-        </p>
-        <div class="url-display" style="line-height:2.2; font-size:12px;">
-          <span style="color:var(--accent);">{{ORG_NAME}}</span> &nbsp; <span style="color:var(--accent);">{{PASS_NO}}</span> &nbsp; <span style="color:var(--accent);">{{REQUEST_DATE}}</span> &nbsp; <span style="color:var(--accent);">{{REQUEST_BY}}</span><br>
-          <span style="color:var(--accent);">{{EXT_COUNT}}</span> &nbsp; <span style="color:var(--accent);">{{REMARKS}}</span> &nbsp; <span style="color:var(--accent);">{{EXT_TABLE}}</span> &nbsp; <span style="color:var(--accent);">{{GENERATED_DATE}}</span>
-        </div>
-      </div>
+      
     </div>
 
   </div><!-- /content -->
@@ -1714,7 +1559,7 @@
         </div>
       </div>
       <div style="margin-top:16px; padding:14px; background:var(--accent-glow); border-radius:8px; font-size:12px; color:var(--grey);">
-        🔥 A <strong style="color:var(--accent2)">Refill Pass</strong> will be generated using your Google Docs template and saved to Drive.
+        🔥 A <strong style="color:var(--accent2)">Refill Pass</strong> will be generated from your pass template and saved as a PDF.
       </div>
     </div>
     <div class="modal-footer">
@@ -2295,7 +2140,7 @@
         </div>
       </div>
       <div style="margin-top:12px; padding:10px 14px; background:var(--yellow-bg); border:1px solid var(--yellow-bd); border-radius:8px; font-size:12px; color:var(--yellow); line-height:1.5;">
-        Condemned units leave the active counts, Location Map, refill and inspection lists. They stay in the sheet with the reason and date.
+        Condemned units leave the active counts, Location Map, refill and inspection lists. They stay on record with the reason and date.
       </div>
     </div>
     <div class="modal-footer">
@@ -2308,7 +2153,7 @@
 <!-- LOADING -->
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
-  <div style="color:var(--grey); font-size:13px;" id="loading-text">Syncing with Google Sheets...</div>
+  <div style="color:var(--grey); font-size:13px;" id="loading-text">Syncing data...</div>
 </div>
 
 <!-- TOAST CONTAINER -->
@@ -2328,7 +2173,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.34';
+const EXPECTED_BACKEND = 'v2026.10.35';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2549,7 +2394,7 @@ function saveConfig() {
   if (alertEl) alertEl.style.display = 'none';
 
   // Push Template Doc ID and Folder ID to backend Script Properties
-  // so generatePassDoc can find the template on Google Drive
+  // so generatePassDoc can find the template on file storage
   if (CONFIG.apiUrl && (CONFIG.templateId || CONFIG.folderId)) {
     apiCall('setConfig', {
       TEMPLATE_DOC_ID:  CONFIG.templateId  || '',
@@ -2589,7 +2434,7 @@ function loadSampleData() {
     { ExtNo:'EXT-005', Type:'CO₂', Weight:'2', Location:'Control Room', MfgDate:'2022', LastRefillDate:'2024-09-01', NextRefillDue:'2026-09-01', Status:'ok', CurrentLocation:'Control Room', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
     { ExtNo:'EXT-006', Type:'FOAM', Weight:'9', Location:'Building C - Floor 3', MfgDate:'2020', LastRefillDate:'2023-04-22', NextRefillDue:'2024-04-22', Status:'pending', CurrentLocation:'With Vendor', OriginalLocation:'Building C - Floor 3', SubstituteFor:'', Remarks:'Sent for service' },
     { ExtNo:'EXT-007', Type:'ABC', Weight:'6', Location:'Parking Level B1', MfgDate:'2021', LastRefillDate:'2023-07-30', NextRefillDue:'2025-07-30', Status:'ok', CurrentLocation:'Parking Level B1', OriginalLocation:'', SubstituteFor:'', Remarks:'' },
-    { ExtNo:'EXT-008', Type:'ABC', Weight:'6', Location:'Storeroom', MfgDate:'2022', LastRefillDate:'2024-01-10', NextRefillDue:'2026-01-10', Status:'in-store', CurrentLocation:'Storeroom', OriginalLocation:'', SubstituteFor:'', Remarks:'Ready for deployment' },
+    { ExtNo:'EXT-008', Type:'ABC', Weight:'6', Location:'Storeroom', MfgDate:'2022', LastRefillDate:'2024-01-10', NextRefillDue:'2026-01-10', Status:'in-store', CurrentLocation:'Storeroom', OriginalLocation:'', SubstituteFor:'', Remarks:'Ready' },
   ];
   DATA.hydroTests = [
     { TestID:'HT-001', ExtNo:'EXT-001', TestDate:'2022-03-15', TestBy:'SafeTech Pvt Ltd', Pressure:'25', Result:'pass', NextDue:'2027-03-15', CertNo:'CERT-2022-001' },
@@ -2608,7 +2453,7 @@ function loadSampleData() {
 
 // ═══════════════════════════════════════════════
 // API CALLS  — All requests use GET to avoid CORS
-// preflight. Apps Script handles GET CORS natively.
+// preflight. server handles GET CORS natively.
 // Payload is JSON-encoded as a query parameter.
 // ═══════════════════════════════════════════════
 async function apiCall(action, payload = {}, silent = false) {
@@ -2616,15 +2461,15 @@ async function apiCall(action, payload = {}, silent = false) {
     showToast('API URL not configured. Go to ⚙️ Configuration.', 'error');
     return null;
   }
-  if (!silent) showLoading('Syncing with Google Sheets...');
+  if (!silent) showLoading('Syncing data...');
 
   try {
     // Encode payload as URL param — avoids Content-Type:application/json
-    // which triggers a CORS preflight that Apps Script cannot respond to
+    // which triggers a CORS preflight that server cannot respond to
     const payloadStr = encodeURIComponent(JSON.stringify(payload));
     const url = `${CONFIG.apiUrl}?action=${encodeURIComponent(action)}&payload=${payloadStr}`;
 
-    // Apps Script Web Apps redirect to a new URL on execution.
+    // server Web Apps redirect to a new URL on execution.
     // 'follow' is default but we set it explicitly for clarity.
     const res = await fetch(url, {
       method: 'GET',
@@ -2637,9 +2482,9 @@ async function apiCall(action, payload = {}, silent = false) {
 
     const text = await res.text();
 
-    // Guard: Apps Script sometimes returns an HTML error page
+    // Guard: server sometimes returns an HTML error page
     if (text.trim().startsWith('<')) {
-      throw new Error('Apps Script returned HTML instead of JSON. Check deployment permissions (must be "Anyone").');
+      throw new Error('ACCESS_RESTRICTED');
     }
 
     const data = JSON.parse(text);
@@ -2649,20 +2494,10 @@ async function apiCall(action, payload = {}, silent = false) {
   } catch (e) {
     if (!silent) hideLoading();
 
-    // Detailed diagnostics to help user fix the issue
-    let msg = e.message || 'Unknown error';
-    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Load failed')) {
-      msg = 'Cannot reach Apps Script.\n\n'
-          + '• Check that API_URL in index.html matches your current deployment\n'
-          + '• Re-deploy script: Deploy → Manage Deployments → ✏️ Edit → New version\n'
-          + '• Set "Who has access" to Anyone (not just domain users)\n'
-          + '• Make sure the URL ends in /exec not /dev';
-    } else if (msg.includes('HTML instead of JSON')) {
-      msg = 'Script returned an error page.\n'
-          + 'Open the URL in a browser tab to see the actual error.';
-    }
-
-    if (!silent) showToast('API Error: ' + msg, 'error');
+    let msg = 'Something went wrong. Please try again.';
+    if (e.message === 'ACCESS_RESTRICTED') msg = 'Server access is restricted. Contact the administrator.';
+    else if (/Failed to fetch|NetworkError|Load failed/.test(e.message || '')) msg = 'Cannot reach the server. Check your connection and try again.';
+    if (!silent) showToast(msg, 'error');
     console.error('[FireGuard API]', action, e);
     return null;
   }
@@ -2673,11 +2508,11 @@ async function checkBackendVersion() {
     const res = await apiCall('ping', {}, true);
     const deployed = res && res.version;
     if (deployed !== EXPECTED_BACKEND) {
-      showToast('Backend is out of date (deployed: ' + (deployed || 'unknown') +
-                ', needs: ' + EXPECTED_BACKEND + '). Paste Code.gs into Apps Script and create a NEW deployment version.', 'error');
+      showToast('Server update required (deployed: ' + (deployed || 'unknown') +
+                ', needs: ' + EXPECTED_BACKEND + '). Server update required. Contact the administrator.', 'error');
     }
   } catch (_) {
-    showToast('Could not reach the backend. Check the deployment is set to "Anyone".', 'error');
+    showToast('Could not reach the server. Check your connection.', 'error');
   }
 }
 
@@ -2692,7 +2527,7 @@ async function refreshData(silent = false) {
 async function refreshDataInner(silent = false) {
   if (!CONFIG.apiUrl) { showToast('Backend URL missing in code', 'error'); return; }
   setSyncStatus('syncing', 'Syncing...');
-  if (!silent) showLoading('Syncing data from Google Sheets...');
+  if (!silent) showLoading('Syncing data from databases...');
   const res = await apiCall('getAll', {}, true);
   if (!silent) hideLoading();
   if (res && res.success) {
@@ -2742,14 +2577,14 @@ async function testConnection() {
   const btn = document.querySelector('[onclick="testConnection()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Testing...'; }
 
-  showLoading('Testing connection to Google Sheets...');
+  showLoading('Testing connection to databases...');
   const res = await apiCall('ping', {}, true);
   hideLoading();
 
   if (btn) { btn.disabled = false; btn.textContent = '🔌 Test Connection'; }
 
   if (res && res.success) {
-    showToast('✅ Connected! Apps Script is running.', 'success');
+    showToast('✅ Connected! server is running.', 'success');
     // Show server timestamp to confirm live connection
     if (res.ts) console.log('[FireGuard] Server time:', res.ts);
   } else {
@@ -2760,13 +2595,7 @@ async function testConnection() {
     const alertEl = document.getElementById('connection-error-alert');
     if (alertEl) {
       alertEl.style.display = 'block';
-      alertEl.innerHTML = `
-        <strong>Connection failed.</strong> Common fixes:<br>
-        1. In Apps Script → <strong>Deploy → Manage deployments → ✏️ Edit</strong> → set version to <em>New version</em> → re-deploy<br>
-        2. "Who has access" must be <strong>Anyone</strong> (not domain-restricted for GitHub Pages)<br>
-        3. Copy the URL ending in <code>/exec</code> — not <code>/dev</code><br>
-        4. <a href="${CONFIG.apiUrl}?action=ping" target="_blank" style="color:var(--blue);">Open API URL in new tab</a> to check for errors
-      `;
+      alertEl.innerHTML = '<strong>Connection failed.</strong> Try again later or contact the administrator.';
     }
   }
 }
@@ -2842,7 +2671,7 @@ function renderDashboard() {
   const recent = [...DATA.extinguishers].slice(0, 8);
   const tbody = document.getElementById('recent-body');
   if (!recent.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">Connect to Google Sheets to load data</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">Connecting to load data</div></div></td></tr>';
     return;
   }
   tbody.innerHTML = recent.map(e => `
@@ -3415,11 +3244,11 @@ function handleQRResult(rawData) {
       </div>
       <div class="scanner-detail-item" style="grid-column:1/-1;">
         <span class="scanner-detail-val" style="color:var(--muted);font-size:11px;">
-          Try ↻ Sync to refresh data, then scan again.
+          Try ↻ Refresh to refresh data, then scan again.
         </span>
       </div>`;
     document.getElementById('scanner-result-actions').innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="refreshData(false); resumeScanning();">↻ Sync &amp; Scan Again</button>`;
+      <button class="btn btn-ghost btn-sm" onclick="refreshData(false); resumeScanning();">↻ Refresh &amp; Scan Again</button>`;
   }
 
   renderScannerInspections(extNo);
@@ -3695,7 +3524,7 @@ async function saveInspection() {
     res = await apiCall('addInspection', { ExtNo: inspectingExtNo, date, by, remarks, checks, issueRemarks }, true);
     if (!res || !res.success) {
       btn.disabled = false;
-      showToast('Sheet save failed — nothing was recorded. Try again.', 'error');
+      showToast('Save failed — nothing was recorded. Try again.', 'error');
       return;
     }
   }
@@ -3795,7 +3624,7 @@ async function confirmCondemn() {
 
   if (CONFIG.apiUrl) {
     const res = await apiCall('condemnExtinguisher', { ExtNo: ext.ExtNo, reason, date }, true);
-    if (!res || !res.success) { showToast('Sheet save failed — nothing was condemned. Try again.', 'error'); return; }
+    if (!res || !res.success) { showToast('Save failed — nothing was condemned. Try again.', 'error'); return; }
   }
   ext.Status = 'condemned'; ext.CondemnedReason = reason; ext.CondemnedDate = date;
   DATA.extinguishers = DATA.extinguishers.filter(e => e.ExtNo !== ext.ExtNo);
@@ -4612,7 +4441,7 @@ function renderMasterTable(data) {
       <td>${weightLabel(e.Type, e.Weight)}</td>
       <td>${locDisplay}</td>
       <td>${origDisplay}</td>
-      <td>${e._misaligned ? '<span style="color:var(--red);font-size:11px;" title="Sheet column mismatch — run diagnoseExtSheet() in Apps Script">⚠ check sheet</span>' : fmtDate(e.MfgDate)}${eolTag(e)}</td>
+      <td>${e._misaligned ? '<span style="color:var(--red);font-size:11px;" title="Data format mismatch. Contact the administrator.">⚠ check data</span>' : fmtDate(e.MfgDate)}${eolTag(e)}</td>
       <td>${fmtDate(e.LastRefillDate)}</td>
       <td>${fmtDate(e.NextRefillDue)}</td>
       <td>${hydroStatus(e.ExtNo)}</td>
@@ -4801,7 +4630,7 @@ async function markPassSent(passNo) {
   if (CONFIG.apiUrl) {
     const res = await apiCall('markPassSent', { passNo, sentDate: today });
     if (!res || !res.success) {
-      showToast('Sheet update failed — re-sync to verify before relying on this status', 'error');
+      showToast('Update failed — refresh to verify before relying on this status', 'error');
       return;
     }
   }
@@ -4837,7 +4666,7 @@ function renderPasses() {
           <button class="btn btn-primary btn-sm" onclick="viewAndDownload('${p.PassNo}')">⬇ Word</button>
           ${refillCountOf(p.PassNo, 'pending') > 0 ? `<button class="btn btn-blue btn-sm" onclick="markPassSent('${p.PassNo}')">📦 Mark All Sent</button>` : ''}
           ${refillCountOf(p.PassNo, 'sent') > 0 ? `<button class="btn btn-green btn-sm" onclick="openBulkReceiveForPass('${p.PassNo}')">📥 Receive</button>` : ''}
-          ${p.DocUrl ? `<a href="${p.DocUrl}" target="_blank" class="btn btn-ghost btn-sm">☁ Drive</a>` : ''}
+          ${p.DocUrl ? `<a href="${p.DocUrl}" target="_blank" class="btn btn-ghost btn-sm">📄 PDF</a>` : ''}
         </div>
       </td>
     </tr>`;
@@ -4867,7 +4696,7 @@ async function templatePassDocx(passNo) {
   if (!extDetails.length) return null;
   const res = await apiCall('passDocx', { pass: slimPassForSave(pass) }, true);
   if (!res || !res.docx) {
-    showToast('Template Word failed: ' + ((res && res.error) || 'no response from the backend'), 'error');
+    showToast('Word file could not be created: ' + ((res && res.error) || 'no response from the backend'), 'error');
     return null;
   }
   const bytes = Uint8Array.from(atob(res.docx), ch => ch.charCodeAt(0));
@@ -5453,7 +5282,7 @@ async function createRefillRequest() {
 
   if (CONFIG.apiUrl) {
     const res = await apiCall('createRefillRequest', { refill, pass, ext });
-    if (!res || !res.success) { showToast('Sheet save failed — nothing was recorded. Try again.', 'error'); return; }
+    if (!res || !res.success) { showToast('Save failed — nothing was recorded. Try again.', 'error'); return; }
     if (res.docUrl) pass.DocUrl = res.docUrl;
   }
 
@@ -5679,7 +5508,7 @@ async function confirmDeploy() {
   const deployBy = document.getElementById('deploy-by').value.trim();
   const remarks = document.getElementById('deploy-remarks').value.trim();
 
-  if (!location) { showToast('Enter a deployment location', 'error'); return; }
+  if (!location) { showToast('Enter a location', 'error'); return; }
 
   const extIdx = DATA.extinguishers.findIndex(e => e.ExtNo === deployingExtNo);
   if (extIdx === -1) return;
@@ -6005,23 +5834,23 @@ async function submitBulkRefill() {
   // Save to backend if configured
   if (CONFIG.apiUrl) {
     try {
-      btn.textContent = '⏳ Saving to Sheet...';
+      btn.textContent = '⏳ Saving...';
       const res = await apiCall('createBatchRefillRequest', {
         pass: slimPassForSave(combinedPass), extNos: refillRecords.map(r => r.ExtNo), subs: subsOf(refillRecords), reqDate, reqBy, remarks
       });
       if (!res || !res.success) {
         btn.disabled = false;
         btn.innerHTML = `🔥 Generate <span id="bulk-pass-count">0</span> Pass(es)`;
-        showToast('Sheet save failed — nothing was recorded. Try again.', 'error');
+        showToast('Save failed — nothing was recorded. Try again.', 'error');
         return;
       }
       if (res.docUrl) combinedPass.DocUrl = res.docUrl;
-      if (res.docError) showToast('Pass saved, but the template PDF failed: ' + res.docError, 'error');
+      if (res.docError) showToast('Pass saved, but the PDF could not be created: ' + res.docError, 'error');
       btn.textContent = '⏳ Finalising...';
     } catch (_) {
       btn.disabled = false;
       btn.innerHTML = `🔥 Generate <span id="bulk-pass-count">0</span> Pass(es)`;
-      showToast('Sheet save failed — nothing was recorded. Try again.', 'error');
+      showToast('Save failed — nothing was recorded. Try again.', 'error');
       return;
     }
   }
@@ -6180,7 +6009,7 @@ async function templatePassPdf(passNo) {
   if (!payload) return null;
   const res = await apiCall('passPdf', payload, true);
   if (!res || !res.pdf) {
-    showToast('Template PDF failed: ' + ((res && res.error) || 'no response from the backend'), 'error');
+    showToast('PDF could not be created: ' + ((res && res.error) || 'no response from the backend'), 'error');
     return null;
   }
   const bytes = Uint8Array.from(atob(res.pdf), ch => ch.charCodeAt(0));
@@ -6475,7 +6304,7 @@ function openBulkReceive(preselectPass) {
       <td>${typeTag(ext.Type || '—')}</td>
       <td style="font-size:12px;">${home}</td>
       <td><input type="date" class="brecv-date" value="${today}" style="width:130px;"></td>
-      <td><input type="number" class="brecv-wt" step="0.5" value="${ext.Weight || ''}" placeholder="${weightUnit(ext.Type)}" style="width:80px;"></td>
+      <td><input type="number" class="brecv-wt" step="0.5" value="" placeholder="${weightUnit(ext.Type) === 'L' ? 'litres' : 'kg'}" style="width:80px;"></td>
       <td><input type="date" class="brecv-next" value="${nextYrStr}" style="width:130px;"></td>
     </tr>`;
   }).join('');
@@ -6610,7 +6439,7 @@ async function confirmBulkReceive() {
       showToast(done + ' of ' + items.length + ' received. The rest were NOT saved — review the list and confirm again.', 'error');
       openBulkReceive(document.getElementById('bulk-recv-pass-filter').value);  // refresh with what is left
     } else {
-      showToast('Sheet save failed — nothing was received. Try again.', 'error');
+      showToast('Save failed — nothing was received. Try again.', 'error');
     }
     return;
   }
@@ -6693,7 +6522,7 @@ const pageTitles = {
   hydro:       ['Hydrostatic Tests','Pressure Test Records'],
   refills:     ['Refills',          'Refill Requests & Tracking'],
   passes:      ['Passes / Requests','Generated Documents'],
-  storeroom:    ['Storeroom',         'Units Ready for Deployment'],
+  storeroom:    ['Storeroom',         'Units Ready to Deploy'],
   inspection:   ['Inspection',       'Visual inspection and open issues'],
   locationmap: ['Location Map',     'All Locations at a Glance'],
   amc:         ['AMC Tracker',      'Annual Maintenance Contracts'],
