@@ -965,6 +965,16 @@
     .stat-value { font-size: 26px; }
     .main { margin-left: 0; }
   }
+  .insp-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#1D4ED8; margin:14px 0 6px; }
+  .insp-entry { border:1px solid #DDE3EC; border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+  .insp-head  { font-size:13px; font-weight:600; margin-bottom:4px; }
+  .insp-none  { font-size:12px; color:#8FA0B4; padding:4px 0; }
+  .issue-row  { border-left:3px solid #DC2626; background:#FEF2F2; border-radius:6px; padding:7px 10px; margin-top:6px; }
+  .issue-row.rect { border-left-color:#16A34A; background:#F0FDF4; }
+  .issue-label { font-size:12px; font-weight:600; }
+  .issue-remark { font-size:12px; color:#5A6880; margin-top:2px; }
+  .issue-state { font-size:11px; font-weight:600; margin-top:3px; color:#B91C1C; }
+  .issue-row.rect .issue-state { color:#0D7F4A; }
 </style>
 </head>
 <body>
@@ -1179,13 +1189,13 @@
           <button class="btn btn-ghost" onclick="inspectSearch()">Inspect</button>
         </div>
       </div>
-      <div class="section-title">Open issues (by check)</div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;"><div class="section-title" style="margin:0; flex:1;">Issues (by check)</div><select id="ins-issue-filter" class="filter-select" onchange="renderInspectionPage()"><option value="open">Open</option><option value="rectified">Rectified</option><option value="all">All</option></select></div>
       <div id="ins-issue-summary"></div>
       <div class="section-title" style="margin-top:20px;">Recent inspections</div>
       <div class="table-card">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Ext. No.</th><th>Inspected by</th><th>Issues</th><th>Remarks</th></tr></thead>
+            <thead><tr><th>Date</th><th>Ext. No.</th><th>Location</th><th>Inspected by</th><th>Issues</th><th>Remarks</th></tr></thead>
             <tbody id="ins-recent-body"></tbody>
           </table>
         </div>
@@ -2324,7 +2334,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.30';
+const EXPECTED_BACKEND = 'v2026.10.32';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2648,7 +2658,7 @@ async function apiCall(action, payload = {}, silent = false) {
     let msg = e.message || 'Unknown error';
     if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Load failed')) {
       msg = 'Cannot reach Apps Script.\n\n'
-          + '• Check the Web App URL in ⚙️ Configuration\n'
+          + '• Check that API_URL in index.html matches your current deployment\n'
           + '• Re-deploy script: Deploy → Manage Deployments → ✏️ Edit → New version\n'
           + '• Set "Who has access" to Anyone (not just domain users)\n'
           + '• Make sure the URL ends in /exec not /dev';
@@ -3417,6 +3427,7 @@ function handleQRResult(rawData) {
       <button class="btn btn-ghost btn-sm" onclick="refreshData(false); resumeScanning();">↻ Sync &amp; Scan Again</button>`;
   }
 
+  renderScannerInspections(extNo);
   document.getElementById('scanner-result-panel').style.display = 'block';
   document.getElementById('scan-again-btn').style.display       = 'inline-flex';
 
@@ -3504,6 +3515,39 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) auto
 window.addEventListener('focus', autoRefreshIfStale);
 window.addEventListener('online', autoRefreshIfStale);
 
+// Inspections and issues for one unit (shared by the scanner panel)
+function inspectionSectionHtml(insp, issues) {
+  if (!insp.length) return `<div class="insp-title">Visual Inspection</div><div class="insp-none">No inspection recorded.</div>`;
+  const entries = insp.slice(0, 5).map(r => {
+    const iss = issues.filter(i => i.InspectionID === r.InspectionID);
+    const rows = iss.length ? iss.map(i => {
+      const rect = i.Status === 'rectified';
+      return `<div class="issue-row ${rect ? 'rect' : 'open'}">
+        <div class="issue-label">${i.CheckLabel || i.CheckKey || ''}</div>
+        ${i.Remarks ? `<div class="issue-remark">${i.Remarks}</div>` : ''}
+        <div class="issue-state">${rect ? `✔ Rectified ${fmtDate(i.RectifiedDate)} by ${i.RectifiedBy || '—'}` : `● Open · raised ${fmtDate(i.RaisedDate)}`}</div>
+      </div>`;
+    }).join('') : '<div class="insp-none">No issues found</div>';
+    return `<div class="insp-entry">
+      <div class="insp-head">${fmtDate(r.InspectionDate)} · by ${r.InspectedBy || '—'}</div>
+      ${r.Remarks ? `<div class="issue-remark">${r.Remarks}</div>` : ''}
+      ${rows}
+    </div>`;
+  }).join('');
+  return `<div class="insp-title">Visual Inspection</div>${entries}`;
+}
+
+function renderScannerInspections(extNo) {
+  const panel = document.getElementById('scanner-result-panel');
+  if (!panel) return;
+  let box = document.getElementById('scanner-inspections');
+  if (!box) { box = document.createElement('div'); box.id = 'scanner-inspections'; panel.appendChild(box); }
+  const key = normExt(extNo);
+  const insp = (DATA.inspections || []).filter(r => normExt(r.ExtNo) === key)
+    .sort((a, b) => String(b.InspectionDate).localeCompare(String(a.InspectionDate)));
+  box.innerHTML = inspectionSectionHtml(insp, DATA.inspectionIssues || []);
+}
+
 // ─── VISUAL INSPECTION ───
 const INSPECT_CHECKS = [
   { key: 'loc',    label: 'Extinguisher is in its designated location' },
@@ -3521,41 +3565,57 @@ function renderInspectionPage() {
   const dl = document.getElementById('ins-ext-list');
   if (dl) dl.innerHTML = DATA.extinguishers.map(e => `<option value="${e.ExtNo}"></option>`).join('');
 
-  const all  = DATA.inspectionIssues || [];
-  const open = all.filter(i => i.Status !== 'rectified');
-  const rectified = all.length - open.length;
+  const all    = DATA.inspectionIssues || [];
+  const filter = (document.getElementById('ins-issue-filter') || {}).value || 'open';
+  const shown  = all.filter(i => filter === 'all' || (filter === 'rectified' ? i.Status === 'rectified' : i.Status !== 'rectified'));
   const sum = document.getElementById('ins-issue-summary');
   if (sum) {
-    if (!open.length) {
-      sum.innerHTML = `<div class="empty-state" style="padding:20px;"><div class="empty-text">No open issues${rectified ? ' (' + rectified + ' rectified)' : ''}.</div></div>`;
+    if (!shown.length) {
+      const msg = filter === 'rectified' ? 'No rectified issues yet.' : filter === 'all' ? 'No issues recorded.' : 'No open issues.';
+      sum.innerHTML = `<div class="empty-state" style="padding:20px;"><div class="empty-text">${msg}</div></div>`;
     } else {
       const groups = {};
-      open.forEach(i => { const k = i.CheckLabel || i.CheckKey || 'Other'; (groups[k] = groups[k] || []).push(i); });
+      shown.forEach(i => { const k = i.CheckLabel || i.CheckKey || 'Other'; (groups[k] = groups[k] || []).push(i); });
       sum.innerHTML = Object.entries(groups)
         .sort((a, b) => b[1].length - a[1].length)
-        .map(([label, list]) => `
+        .map(([label, list]) => {
+          const openN = list.filter(i => i.Status !== 'rectified').length;
+          const rectN = list.length - openN;
+          const badges = (openN ? `<span class="nav-badge">${openN} open</span> ` : '') +
+                         (rectN ? `<span class="nav-badge" style="background:var(--green);">${rectN} rectified</span>` : '');
+          return `
           <div class="table-card" style="margin-bottom:12px;">
             <div class="table-header">
               <span class="table-title">${label}</span>
-              <span class="nav-badge" style="margin-left:auto;">${list.length} open</span>
+              <span style="margin-left:auto; display:flex; gap:6px;">${badges}</span>
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Ext. No.</th><th>Raised</th><th>Remarks</th><th>Action</th></tr></thead>
-                <tbody>${list.map(i => `
-                  <tr>
+                <thead><tr><th>Ext. No.</th><th>Raised</th><th>Remarks</th><th>Status</th></tr></thead>
+                <tbody>${list.map(i => {
+                  const state = i.Status === 'rectified'
+                    ? `<span style="color:var(--green); font-size:12px;">✔ Rectified ${fmtDate(i.RectifiedDate)}<br>by ${i.RectifiedBy || '—'}</span>`
+                    : `<button class="btn btn-green btn-sm" onclick="markIssueRectified('${i.IssueID}')">✔ Mark rectified</button>`;
+                  return `<tr>
                     <td><span class="ext-num">${i.ExtNo}</span></td>
                     <td>${fmtDate(i.RaisedDate)}</td>
                     <td style="font-size:12px;">${i.Remarks || '—'}</td>
-                    <td><button class="btn btn-green btn-sm" onclick="markIssueRectified('${i.IssueID}')">✔ Rectified</button></td>
-                  </tr>`).join('')}
+                    <td>${state}</td>
+                  </tr>`;
+                }).join('')}
                 </tbody>
               </table>
             </div>
-          </div>`).join('');
+          </div>`;
+        }).join('');
     }
   }
 
+  const locOf = extNo => {
+    const k = normExt(extNo);
+    const e = [...DATA.extinguishers, ...(DATA.condemnedExts || [])].find(x => normExt(x.ExtNo) === k);
+    return e ? (e.CurrentLocation || e.Location || '—') : '—';
+  };
   const tb = document.getElementById('ins-recent-body');
   if (tb) {
     const list = [...(DATA.inspections || [])]
@@ -3570,11 +3630,12 @@ function renderInspectionPage() {
       return `<tr>
         <td>${fmtDate(r.InspectionDate)}</td>
         <td><span class="ext-num">${r.ExtNo}</span></td>
+        <td style="font-size:12px;">${locOf(r.ExtNo)}</td>
         <td>${r.InspectedBy || '—'}</td>
         <td>${issueCell}</td>
         <td style="font-size:12px;">${r.Remarks || '—'}</td>
       </tr>`;
-    }).join('') : '<tr><td colspan="5"><div class="empty-state" style="padding:16px;"><div class="empty-text">No inspections yet.</div></div></td></tr>';
+    }).join('') : '<tr><td colspan="6"><div class="empty-state" style="padding:16px;"><div class="empty-text">No inspections yet.</div></div></td></tr>';
   }
 }
 
@@ -5858,6 +5919,20 @@ function toggleSubInput(extNo, value) {
   if (el) el.classList.toggle('show', value === 'substitute');
 }
 
+// Substitutes chosen per unit (only these need to be sent)
+function subsOf(list) {
+  const out = {};
+  list.forEach(r => { if (r.SubstituteExtNo) out[r.ExtNo] = r.SubstituteExtNo; });
+  return out;
+}
+
+// Send only what the backend needs for a pass: unit numbers and pass summary
+function slimPassForSave(p) { return { PassNo: p.PassNo, GeneratedOn: p.GeneratedOn, GeneratedBy: p.GeneratedBy, Remarks: p.Remarks, Status: p.Status }; }
+function slimRefillsForSave(list) {
+  return list.map(r => ({ RefillID: r.RefillID, ExtNo: r.ExtNo, RequestDate: r.RequestDate, RequestBy: r.RequestBy,
+    PassNo: r.PassNo, Remarks: r.Remarks, LocationAction: r.LocationAction, SubstituteExtNo: r.SubstituteExtNo }));
+}
+
 async function submitBulkRefill() {
   if (selectedExtNos.size === 0) { showToast('No extinguishers selected', 'error'); return; }
   const reqDate = document.getElementById('bulk-reqdate').value;
@@ -5923,7 +5998,7 @@ async function submitBulkRefill() {
     try {
       btn.textContent = '⏳ Saving to Sheet...';
       const res = await apiCall('createBatchRefillRequest', {
-        pass: combinedPass, refills: refillRecords, extDetails
+        pass: slimPassForSave(combinedPass), extNos: refillRecords.map(r => r.ExtNo), subs: subsOf(refillRecords), reqDate, reqBy, remarks
       });
       if (!res || !res.success) {
         btn.disabled = false;
