@@ -2739,13 +2739,13 @@ function renderDashboard() {
   const due     = DATA.extinguishers.filter(e => e.Status === 'due').length;
   const overdue = DATA.extinguishers.filter(e => e.Status === 'overdue').length;
   const vacant  = DATA.extinguishers.filter(e => {
-    if (e.Status !== 'pending') return false;
+    if (e.Status !== 'pending' && e.Status !== 'taken') return false;   // with vendor or taken for refilling
     const origLoc = e.OriginalLocation || e.Location;
     if (!origLoc) return false;
     return !DATA.extinguishers.some(s =>
       s.SubstituteFor === e.ExtNo &&
       (s.CurrentLocation === origLoc || s.Location === origLoc) &&
-      s.Status !== 'pending'
+      s.Status !== 'pending' && s.Status !== 'taken'
     );
   }).length;
 
@@ -4729,7 +4729,7 @@ function renderMasterTable(data) {
 
     // Check if original location is vacant
     const locVacant = origLoc && !DATA.extinguishers.find(ex => (ex.CurrentLocation || ex.Location) === origLoc && ex.ExtNo !== e.ExtNo && ex.Status !== 'pending');
-    if ((isPending || isInStore) && origLoc) {
+    if ((isPending || isInStore || e.Status === 'taken') && origLoc) {
       const subAtLoc = DATA.extinguishers.find(ex => ex.SubstituteFor === e.ExtNo);
       if (subAtLoc) origDisplay = `<span style="font-size:12px;color:var(--grey);">${origLoc}</span><div style="margin-top:2px;"><span class="loc-substitute">↔ ${subAtLoc.ExtNo} placed</span></div>`;
       else origDisplay = `<span style="font-size:12px;color:var(--grey);">${origLoc}</span><div style="margin-top:2px;"><span class="loc-vacant">⚠ Vacant</span></div>`;
