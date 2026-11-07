@@ -1172,6 +1172,7 @@
           </table>
         </div>
         <div class="pagination">
+          <button class="btn btn-ghost btn-sm" onclick="printMasterList()" title="Print the list as shown">🖨️ Print list</button>
           <span id="table-count">Showing 0 records</span>
           <div class="page-btns" id="page-btns"></div>
         </div>
@@ -1256,6 +1257,7 @@
       <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
         <div class="locmap-search">
           <span>🔍</span>
+          <button class="btn btn-ghost btn-sm" onclick="printVacantList()" title="Print vacant locations">🖨️ Print vacant list</button>
           <input type="text" id="locmap-search" placeholder="Search location..." oninput="renderLocationMap()">
         </div>
         <button class="btn btn-ghost btn-sm" onclick="renderLocationMap()">↻ Refresh</button>
@@ -1376,23 +1378,103 @@
 
     <!-- ═══ CONFIG ═══ -->
     <div class="page" id="page-config">
-      <div class="alert alert-warn">
-        ⚙️ The backend connection is built in. The settings below are saved in your browser only.
+      <div class="page-title-row" style="margin-bottom:16px;"></div>
+
+      <div class="config-section">
+        <div class="config-section-title">🏢 Organisation</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Organisation Name</label>
+            <input type="text" id="cfg-org-name">
+          </div>
+          <div class="form-group">
+            <label>Organisation Subtitle</label>
+            <input type="text" id="cfg-org-subtitle">
+          </div>
+          <div class="form-group">
+            <label>Factory Name</label>
+            <input type="text" id="cfg-factory-name">
+          </div>
+          <div class="form-group">
+            <label>Factory Location</label>
+            <input type="text" id="cfg-factory-loc">
+          </div>
+          
+        </div>
       </div>
 
-      <!-- Connection error alert — shown after failed test -->
-      <div class="alert" id="connection-error-alert"
-        style="display:none; background:var(--red-bg); border:1px solid var(--red-bd); color:var(--red); font-size:13px; line-height:1.8; margin-bottom:0;">
+      <div class="config-section">
+        <div class="config-section-title">✍️ Pass Details</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>AMC / Vendor Name</label>
+            <input type="text" id="cfg-vendor-name">
+          </div>
+          <div class="form-group">
+            <label>Signatory Name</label>
+            <input type="text" id="cfg-signatory-name">
+          </div>
+          <div class="form-group">
+            <label>Signatory Designation</label>
+            <input type="text" id="cfg-signatory-desig">
+          </div>
+          <div class="form-group full">
+            <label>Addressee (To)</label>
+            <input type="text" id="cfg-addressee">
+          </div>
+          
+        </div>
       </div>
 
-      
+      <div class="config-section">
+        <div class="config-section-title">📄 Pass Template</div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Pass Template ID</label>
+            <input type="text" id="cfg-template-id">
+          </div>
+          <div class="form-group full">
+            <label>Output Folder ID</label>
+            <input type="text" id="cfg-folder-id">
+          </div>
+          
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:6px;">Passes are generated from this template. The Drive PDF on submit always uses it.</div>
+      </div>
 
-      <!-- Deployment checklist -->
-      
+      <div class="config-section">
+        <div class="config-section-title">🖼️ Organisation Logo</div>
+        <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+          <div style="width:160px; height:80px; border:1px dashed var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--surface2);">
+            <img id="logo-preview-img" alt="" style="max-width:100%; max-height:100%; display:none;">
+            <span id="logo-preview-placeholder" style="font-size:12px; color:var(--muted);">No logo</span>
+          </div>
+          <div>
+            <input type="file" id="cfg-logo-input" accept="image/*" onchange="handleLogoUpload(this)" style="font-size:12px;">
+            <div id="cfg-logo-hint" style="font-size:11px; color:var(--muted); margin-top:6px;">PNG or JPG, under 500 KB.</div>
+            <button class="btn btn-ghost btn-sm" id="cfg-logo-clear" onclick="clearLogo()" style="margin-top:8px; display:none;">Remove logo</button>
+          </div>
+        </div>
+      </div>
 
-      
-
-      
+      <div class="config-section">
+        <div class="config-section-title">🗄️ Database</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Database ID</label>
+            <input type="text" id="cfg-sheet-id">
+          </div>
+          
+        </div>
+        <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+          <button class="btn btn-ghost btn-sm" onclick="testConnection()">Test connection</button>
+        </div>
+        <div id="connection-error-alert" style="display:none; margin-top:10px; padding:10px 14px; background:var(--red-bg); border:1px solid var(--red-bd); border-radius:8px; font-size:12px; color:var(--red);"></div>
+      </div>
+          
+      <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+        <button class="btn btn-primary" onclick="saveConfig()">💾 Save Configuration</button>
+      </div>
     </div>
 
   </div><!-- /content -->
@@ -2173,7 +2255,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.35';
+const EXPECTED_BACKEND = 'v2026.10.36';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2763,7 +2845,6 @@ let svcPicked = new Set();
 function svcShown() {
   const q = (document.getElementById('svc-pick-search').value || '').toLowerCase();
   return DATA.extinguishers
-    .filter(e => e.Status !== 'pending')
     .filter(e => !q || ((e.ExtNo + ' ' + (e.Type || '') + ' ' + (e.CurrentLocation || e.Location || '')).toLowerCase().includes(q)))
     .sort((a, b) => String(a.ExtNo).localeCompare(String(b.ExtNo), undefined, { numeric: true }));
 }
@@ -2772,7 +2853,7 @@ function renderServicePicker() {
     <label style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--border); cursor:pointer; font-size:13px; flex-wrap:wrap;">
       <input type="checkbox" data-ext="${e.ExtNo}" ${svcPicked.has(e.ExtNo) ? 'checked' : ''} onchange="svcToggle(this.dataset.ext, this.checked)" style="width:18px; height:18px;">
       <span class="ext-num">${e.ExtNo}</span> ${typeTag(e.Type)}
-      <span style="margin-left:auto; font-size:12px; color:var(--grey);">${weightLabel(e.Type, e.Weight)} · ${e.CurrentLocation || e.Location || ''}</span>
+      <span style="margin-left:auto; font-size:12px; color:var(--grey);">${weightLabel(e.Type, e.Weight)} · ${e.Status === 'pending' ? 'With vendor' : (e.CurrentLocation || e.Location || '')}</span>
     </label>`).join('') || '<div style="padding:12px; color:var(--muted); font-size:13px;">No extinguishers match.</div>';
   document.getElementById('svc-pick-count').textContent = svcPicked.size + ' selected';
 }
@@ -3557,6 +3638,88 @@ async function markIssueRectified(issueId) {
   issue.Status = 'rectified'; issue.RectifiedDate = date; issue.RectifiedBy = by.trim();
   renderInspectionPage();
   showToast('Issue marked rectified', 'success');
+}
+
+// ─── PRINT: MASTER LIST AND VACANT LOCATIONS ───
+const _esc = s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+const _plainStatus = s => ({ ok: 'OK', due: 'Due', overdue: 'Overdue', pending: 'With vendor',
+  'in-store': 'In storeroom', condemned: 'Condemned' }[s] || (s || '—'));
+
+// Print a report in a hidden frame (no new window, no popup blocker)
+function printReport(title, sub, bodyHtml) {
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${_esc(title)}</title><style>
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; margin: 14px; }
+    h1 { font-size: 16px; margin: 0 0 2px; }
+    .meta { color: #555; margin-bottom: 10px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #888; padding: 4px 6px; text-align: left; vertical-align: top; }
+    th { background: #e9edf3; }
+    tr { page-break-inside: avoid; }
+    @page { size: A4 landscape; margin: 10mm; }
+  </style></head><body>
+    <h1>${_esc(title)}</h1>
+    <div class="meta">${_esc(sub)} · Printed ${new Date().toLocaleString('en-IN')}</div>
+    ${bodyHtml}
+  </body></html>`;
+  const frame = document.createElement('iframe');
+  frame.style.display = 'none';
+  frame.onload = () => {
+    try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (_) {}
+    setTimeout(() => frame.remove(), 1500);
+  };
+  document.body.appendChild(frame);
+  frame.srcdoc = html;
+}
+
+// Master list: rows in the order shown, with the current filters, all pages
+function printMasterList() {
+  const rows = (filteredRows && filteredRows.length) ? filteredRows : [...DATA.extinguishers];
+  if (!rows.length) { showToast('Nothing to print', 'info'); return; }
+  const lastHydro = {};
+  (DATA.hydroTests || []).forEach(h => {
+    const k = normExt(h.ExtNo);
+    if (!lastHydro[k] || String(h.TestDate) > String(lastHydro[k].TestDate)) lastHydro[k] = h;
+  });
+  const body = `<table><thead><tr>
+      <th>Ext. No.</th><th>Type</th><th>Weight</th><th>Current location</th><th>Permanent location</th>
+      <th>Mfg year</th><th>Last refill</th><th>Next refill due</th><th>Hydro next due</th><th>Status</th>
+    </tr></thead><tbody>` +
+    rows.map(e => {
+      const h = lastHydro[normExt(e.ExtNo)];
+      return `<tr>
+        <td>${_esc(e.ExtNo)}</td><td>${_esc(e.Type)}</td><td>${_esc(weightLabel(e.Type, e.Weight))}</td>
+        <td>${_esc(e.CurrentLocation || e.Location)}</td><td>${_esc(e.Location)}</td>
+        <td>${_esc(String(e.MfgDate || '').substring(0, 4))}</td>
+        <td>${_esc(fmtDate(e.LastRefillDate))}</td><td>${_esc(fmtDate(e.NextRefillDue))}</td>
+        <td>${_esc(h && h.NextDue ? fmtDate(h.NextDue) : '—')}</td>
+        <td>${_esc(_plainStatus(e.Status))}</td>
+      </tr>`;
+    }).join('') + `</tbody></table>`;
+  printReport('Extinguisher Master List', rows.length + ' unit(s)', body);
+}
+
+// Vacant locations: no unit physically present; lists the units assigned there that are away
+function printVacantList() {
+  const present = new Set(), away = new Map();
+  DATA.extinguishers.forEach(e => {
+    const loc = (e.Location || '').trim();
+    if (!loc || loc === 'Storeroom' || loc === 'With Vendor') return;
+    if (!away.has(loc)) away.set(loc, []);
+    const curr = (e.CurrentLocation || e.Location || '').trim();
+    const isAway = curr === 'Storeroom' || curr === 'With Vendor' || e.Status === 'pending' || e.Status === 'in-store';
+    if (isAway) away.get(loc).push(e); else present.add(loc);
+  });
+  const vacant = [...away.keys()].filter(loc => !present.has(loc)).sort((a, b) => a.localeCompare(b));
+  if (!vacant.length) { showToast('No vacant locations', 'info'); return; }
+  const body = `<table><thead><tr><th>Location</th><th>Units assigned</th><th>Units away (where now)</th></tr></thead><tbody>` +
+    vacant.map(loc => {
+      const list = away.get(loc);
+      const detail = list.length
+        ? list.map(e => `${_esc(e.ExtNo)} (${_esc(e.Type)}) — ${_esc(_plainStatus(e.Status) === 'OK' ? (e.CurrentLocation || e.Location) : _plainStatus(e.Status))}`).join('<br>')
+        : '—';
+      return `<tr><td>${_esc(loc)}</td><td>${list.length}</td><td>${detail}</td></tr>`;
+    }).join('') + `</tbody></table>`;
+  printReport('Vacant Locations', vacant.length + ' location(s)', body);
 }
 
 // ─── END OF SERVICE LIFE (from manufacture year) ───
@@ -4638,6 +4801,18 @@ async function markPassSent(passNo) {
   showToast(`${rows.length} extinguisher(s) marked sent`, 'success');
 }
 
+// Pass date and agency, corrected when a date was stored in the agency field
+function passFields(p) {
+  const isDate = v => /^\d{4}-\d{2}-\d{2}/.test(String(v || ''));
+  let on = p.GeneratedOn, by = p.GeneratedBy;
+  if (isDate(by) && !on) { on = by; by = ''; }
+  if (!by || isDate(by)) {
+    const r = (DATA.refills || []).find(x => x.PassNo === p.PassNo && x.RequestBy && !isDate(x.RequestBy) && x.RequestBy !== 'pending');
+    by = r ? r.RequestBy : '';
+  }
+  return { on, by };
+}
+
 function renderPasses() {
   const tbody = document.getElementById('passes-body');
   if (!DATA.passes.length) {
@@ -4657,8 +4832,8 @@ function renderPasses() {
     <tr>
       <td><span class="ext-num">${p.PassNo}</span></td>
       <td>${extDisplay}</td>
-      <td>${p.GeneratedBy || '—'}</td>
-      <td>${fmtDate(p.GeneratedOn)}</td>
+      <td>${passFields(p).by || '—'}</td>
+      <td>${fmtDate(passFields(p).on)}</td>
       <td>${statusBadge(p.Status)}</td>
       <td>
         <div class="actions-cell">
@@ -5914,7 +6089,7 @@ function showCombinedPassPreview(pass, extDetails) {
   // Show date — guard against blank/invalid stored dates
   const rawDate = pass.GeneratedOn || pass.RequestDate || pass.GeneratedDate || '';
   document.getElementById('cp-reqdate').textContent = rawDate ? fmtDate(rawDate) : '—';
-  document.getElementById('cp-reqby').textContent = pass.GeneratedBy || pass.RequestBy || '—';
+  document.getElementById('cp-reqby').textContent = passFields(pass).by || '—';
   document.getElementById('cp-count').textContent = extDetails.length;
   document.getElementById('cp-remarks').textContent = pass.Remarks || '—';
 
@@ -6334,7 +6509,7 @@ function filterBulkRecvRows() {
   if (pn) {
     const pass = DATA.passes.find(p => p.PassNo === pn) || {};
     info.innerHTML = '<span class="ext-num">' + pn + '</span> &nbsp;·&nbsp; ' + units +
-      (pass.GeneratedBy ? ' &nbsp;·&nbsp; Agency: <strong>' + pass.GeneratedBy + '</strong>' : '');
+      (passFields(pass).by ? ' &nbsp;·&nbsp; Agency: <strong>' + passFields(pass).by + '</strong>' : '');
   } else {
     const passCount = new Set(sent.map(r => r.PassNo)).size;
     info.innerHTML = '<strong>' + units + '</strong> across <strong>' + passCount + '</strong> pass' + (passCount !== 1 ? 'es' : '');
