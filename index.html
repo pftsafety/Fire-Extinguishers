@@ -1019,6 +1019,9 @@
     <div class="nav-item" onclick="showPage('service')">
       <span class="icon">🛠️</span> Quarterly Service
     </div>
+    <div class="nav-item" onclick="showPage('taken')">
+      <span class="icon">📤</span> Taken Units
+    </div>
     <div class="nav-item" onclick="showPage('storeroom')">
       <span class="icon">📦</span> Storeroom
     </div>
@@ -1048,6 +1051,7 @@
         <span class="sync-dot" id="sync-dot"></span>
         <span id="sync-label">Not synced</span>
       </div>
+      <button class="btn btn-ghost btn-sm" id="topbar-print" onclick="printCurrentPage()" style="display:none;" title="Print this list">🖨️ Print</button>
       <button class="btn btn-ghost btn-sm" onclick="openScannerModal()" title="Scan QR code">📷 Scan</button>
       <button class="btn btn-ghost btn-sm" onclick="refreshData()">↻ Refresh</button>
       <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add Extinguisher</button>
@@ -1152,6 +1156,7 @@
             <option value="overdue">Overdue</option>
             <option value="pending">With Vendor</option>
             <option value="in-store">In Storeroom</option>
+            <option value="taken">Taken</option>
             <option value="condemned">Condemned</option>
           </select>
         </div>
@@ -1172,7 +1177,6 @@
           </table>
         </div>
         <div class="pagination">
-          <button class="btn btn-ghost btn-sm" onclick="printMasterList()" title="Print the list as shown">🖨️ Print list</button>
           <span id="table-count">Showing 0 records</span>
           <div class="page-btns" id="page-btns"></div>
         </div>
@@ -1198,6 +1202,26 @@
           <table>
             <thead><tr><th>Date</th><th>Ext. No.</th><th>Location</th><th>Inspected by</th><th>Issues</th><th>Remarks</th></tr></thead>
             <tbody id="ins-recent-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-taken">
+      <div class="insp-filter-row">
+        <input type="search" id="taken-search" class="filter-select" placeholder="Search ext no, type, location…" oninput="renderTakenPage()" style="min-width:240px;">
+        <span id="taken-count" style="font-size:12px; color:var(--muted);"></span>
+        <span id="taken-sel-count" style="font-size:12px; color:var(--grey); margin-left:auto;">0 selected</span>
+        <button class="btn btn-ghost btn-sm" onclick="takenSelectAll(true)">Select all</button>
+        <button class="btn btn-ghost btn-sm" onclick="takenSelectAll(false)">Clear</button>
+        <button class="btn btn-ghost btn-sm" onclick="returnTakenSelected()">↩ Return to location</button>
+        <button class="btn btn-primary" onclick="createPassFromTaken()">🧾 Create Pass</button>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:40px;"></th><th>Ext. No.</th><th>Type</th><th>Weight</th><th>Taken from</th><th>Permanent location</th></tr></thead>
+            <tbody id="taken-body"></tbody>
           </table>
         </div>
       </div>
@@ -1257,7 +1281,6 @@
       <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
         <div class="locmap-search">
           <span>🔍</span>
-          <button class="btn btn-ghost btn-sm" onclick="printVacantList()" title="Print vacant locations">🖨️ Print vacant list</button>
           <input type="text" id="locmap-search" placeholder="Search location..." oninput="renderLocationMap()">
         </div>
         <button class="btn btn-ghost btn-sm" onclick="renderLocationMap()">↻ Refresh</button>
@@ -1292,7 +1315,7 @@
       <div class="sel-count"><span id="sel-num">0</span> selected <span>extinguisher(s)</span></div>
       <div class="sel-divider"></div>
       <div class="sel-actions">
-        <button class="btn btn-primary btn-sm" onclick="openBulkRefillModal()">🔥 Send for Refill</button>
+        <button class="btn btn-primary btn-sm" onclick="takeSelectedForRefill()">📤 Take for Refill</button>
         <button class="btn btn-ghost btn-sm" onclick="clearSelection()">✕ Clear</button>
       </div>
     </div>
@@ -1329,7 +1352,7 @@
     <!-- ═══ REFILLS ═══ -->
     <div class="page" id="page-refills">
       <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="openRefillRequestModal()">＋ New Refill Request</button>
+        <button class="btn btn-primary" onclick="showPage('taken')">📤 Taken Units</button>
         <select id="refill-pass-select" class="filter-select" style="min-width:220px;"></select>
         <button class="btn btn-blue" onclick="markSelectedPassSent()">📦 Mark pass sent</button>
         <button class="btn btn-green" id="refill-bulk-recv-btn" onclick="openBulkReceive()">📥 Bulk Receive</button>
@@ -2255,7 +2278,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.36';
+const EXPECTED_BACKEND = 'v2026.10.37';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -3643,32 +3666,31 @@ async function markIssueRectified(issueId) {
 // ─── PRINT: MASTER LIST AND VACANT LOCATIONS ───
 const _esc = s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
 const _plainStatus = s => ({ ok: 'OK', due: 'Due', overdue: 'Overdue', pending: 'With vendor',
-  'in-store': 'In storeroom', condemned: 'Condemned' }[s] || (s || '—'));
+  'in-store': 'In storeroom', condemned: 'Condemned', taken: 'Taken' }[s] || (s || '—'));
 
-// Print a report in a hidden frame (no new window, no popup blocker)
+// Print a report in its own window (portrait A4); prints once the content is in place
 function printReport(title, sub, bodyHtml) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>${_esc(title)}</title><style>
-    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; margin: 14px; }
-    h1 { font-size: 16px; margin: 0 0 2px; }
-    .meta { color: #555; margin-bottom: 10px; }
+    @page { size: A4 portrait; margin: 10mm; }
+    body { font-family: Arial, sans-serif; font-size: 9px; color: #111; margin: 0; }
+    h1 { font-size: 14px; margin: 0 0 2px; }
+    .meta { color: #555; margin-bottom: 8px; }
     table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #888; padding: 4px 6px; text-align: left; vertical-align: top; }
+    thead { display: table-header-group; }
+    th, td { border: 1px solid #888; padding: 3px 4px; text-align: left; vertical-align: top; }
     th { background: #e9edf3; }
     tr { page-break-inside: avoid; }
-    @page { size: A4 landscape; margin: 10mm; }
   </style></head><body>
     <h1>${_esc(title)}</h1>
     <div class="meta">${_esc(sub)} · Printed ${new Date().toLocaleString('en-IN')}</div>
     ${bodyHtml}
   </body></html>`;
-  const frame = document.createElement('iframe');
-  frame.style.display = 'none';
-  frame.onload = () => {
-    try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (_) {}
-    setTimeout(() => frame.remove(), 1500);
-  };
-  document.body.appendChild(frame);
-  frame.srcdoc = html;
+  const w = window.open('', '_blank');
+  if (!w) { showToast('Allow pop-ups for this site to print', 'error'); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch (_) {} }, 500);
 }
 
 // Master list: rows in the order shown, with the current filters, all pages
@@ -3706,22 +3728,133 @@ function printVacantList() {
     if (!loc || loc === 'Storeroom' || loc === 'With Vendor') return;
     if (!away.has(loc)) away.set(loc, []);
     const curr = (e.CurrentLocation || e.Location || '').trim();
-    const isAway = curr === 'Storeroom' || curr === 'With Vendor' || e.Status === 'pending' || e.Status === 'in-store';
+    const isAway = curr === 'Storeroom' || curr === 'With Vendor' || e.Status === 'pending' || e.Status === 'in-store' || e.Status === 'taken';
     if (isAway) away.get(loc).push(e); else present.add(loc);
   });
   const vacant = [...away.keys()].filter(loc => !present.has(loc)).sort((a, b) => a.localeCompare(b));
   if (!vacant.length) { showToast('No vacant locations', 'info'); return; }
-  const body = `<table><thead><tr><th>Location</th><th>Units assigned</th><th>Units away (where now)</th></tr></thead><tbody>` +
-    vacant.map(loc => {
-      const list = away.get(loc);
-      const detail = list.length
-        ? list.map(e => `${_esc(e.ExtNo)} (${_esc(e.Type)}) — ${_esc(_plainStatus(e.Status) === 'OK' ? (e.CurrentLocation || e.Location) : _plainStatus(e.Status))}`).join('<br>')
-        : '—';
-      return `<tr><td>${_esc(loc)}</td><td>${list.length}</td><td>${detail}</td></tr>`;
-    }).join('') + `</tbody></table>`;
+  const rowsHtml = vacant.map(loc => {
+    const list = away.get(loc);
+    if (!list.length) return `<tr><td>${_esc(loc)}</td><td>0</td><td colspan="4">—</td></tr>`;
+    return list.map((e, i) => `<tr>` +
+      (i === 0 ? `<td rowspan="${list.length}">${_esc(loc)}</td><td rowspan="${list.length}">${list.length}</td>` : '') +
+      `<td>${_esc(e.ExtNo)}</td><td>${_esc(e.Type)}</td><td>${_esc(weightLabel(e.Type, e.Weight))}</td>` +
+      `<td>${_esc(_plainStatus(e.Status))}</td></tr>`).join('');
+  }).join('');
+  const body = `<table><thead><tr>
+      <th>Location</th><th>Units assigned</th><th>Ext. No.</th><th>Type</th><th>Weight</th><th>Where now</th>
+    </tr></thead><tbody>${rowsHtml}</tbody></table>`;
   printReport('Vacant Locations', vacant.length + ' location(s)', body);
 }
 
+// ─── TAKE FOR REFILL ───
+const TAKE_BLOCKED = ['pending', 'in-store', 'condemned', 'taken'];
+let takenSelected = new Set();
+
+// Status a unit returns to, from its next refill date (same rule as the server)
+function statusFromDue(nrd) {
+  if (!nrd) return 'ok';
+  const days = Math.round((new Date(String(nrd) + 'T00:00') - new Date(todayISO() + 'T00:00')) / 86400000);
+  return days < 0 ? 'overdue' : (days <= 30 ? 'due' : 'ok');
+}
+
+async function takeSelectedForRefill() {
+  const picked = [...selectedExtNos];
+  if (!picked.length) { showToast('Select at least one extinguisher', 'error'); return; }
+  const eligible = picked.filter(no => {
+    const e = DATA.extinguishers.find(x => x.ExtNo === no);
+    return e && !TAKE_BLOCKED.includes(e.Status);
+  });
+  if (!eligible.length) { showToast('Selected units are with the vendor, in storeroom or already taken', 'info'); return; }
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('takeForRefill', { extNos: eligible }, true);
+    if (!res || !res.success) { showToast('Could not take the units. Try again.', 'error'); return; }
+  }
+  eligible.forEach(no => {
+    const e = DATA.extinguishers.find(x => x.ExtNo === no);
+    if (!e) return;
+    e.Status = 'taken';
+    e.CurrentLocation = 'Taken';
+    if (!e.OriginalLocation) e.OriginalLocation = e.Location;
+  });
+  selectedExtNos.clear();
+  updateSelectionToolbar();
+  renderMasterTable(); renderDashboard(); renderLocationMap(); renderTakenPage();
+  showToast(eligible.length + ' unit(s) taken — create the pass from Taken Units', 'success');
+}
+
+function takenUnits() {
+  return DATA.extinguishers
+    .filter(e => e.Status === 'taken')
+    .sort((a, b) => String(a.ExtNo).localeCompare(String(b.ExtNo), undefined, { numeric: true }));
+}
+
+function renderTakenPage() {
+  const body = document.getElementById('taken-body');
+  if (!body) return;
+  const all = takenUnits();
+  takenSelected = new Set([...takenSelected].filter(no => all.some(e => e.ExtNo === no)));
+  const q = (document.getElementById('taken-search').value || '').toLowerCase();
+  const list = all.filter(e => !q || ((e.ExtNo + ' ' + (e.Type || '') + ' ' + (e.OriginalLocation || e.Location || '')).toLowerCase().includes(q)));
+  document.getElementById('taken-count').textContent = list.length + ' unit(s) taken';
+  document.getElementById('taken-sel-count').textContent = takenSelected.size + ' selected';
+  body.innerHTML = list.length ? list.map(e => `<tr>
+      <td><input type="checkbox" data-ext="${e.ExtNo}" ${takenSelected.has(e.ExtNo) ? 'checked' : ''} onchange="takenToggle(this.dataset.ext, this.checked)" style="width:18px; height:18px;"></td>
+      <td><span class="ext-num">${e.ExtNo}</span></td>
+      <td>${typeTag(e.Type)}</td>
+      <td>${weightLabel(e.Type, e.Weight)}</td>
+      <td style="font-size:12px;">${e.OriginalLocation || e.Location || '—'}</td>
+      <td style="font-size:12px;">${e.Location || '—'}</td>
+    </tr>`).join('')
+    : '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📤</div><div class="empty-text">No units taken. In Master List, select units and press Take for Refill.</div></div></td></tr>';
+}
+
+function takenToggle(extNo, on) {
+  if (on) takenSelected.add(extNo); else takenSelected.delete(extNo);
+  document.getElementById('taken-sel-count').textContent = takenSelected.size + ' selected';
+}
+
+function takenSelectAll(on) {
+  const q = (document.getElementById('taken-search').value || '').toLowerCase();
+  takenUnits().forEach(e => {
+    const shown = !q || ((e.ExtNo + ' ' + (e.Type || '') + ' ' + (e.OriginalLocation || e.Location || '')).toLowerCase().includes(q));
+    if (shown) { if (on) takenSelected.add(e.ExtNo); else takenSelected.delete(e.ExtNo); }
+  });
+  renderTakenPage();
+}
+
+// The pass is made from the taken units only: hand the selection to the pass form
+function createPassFromTaken() {
+  if (!takenSelected.size) { showToast('Select the taken units for the pass', 'info'); return; }
+  selectedExtNos = new Set(takenSelected);
+  openBulkRefillModal();
+}
+
+async function returnTakenSelected() {
+  const picked = [...takenSelected];
+  if (!picked.length) { showToast('Select the units to return', 'info'); return; }
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('returnFromRefill', { extNos: picked }, true);
+    if (!res || !res.success) { showToast('Could not return the units. Try again.', 'error'); return; }
+  }
+  picked.forEach(no => {
+    const e = DATA.extinguishers.find(x => x.ExtNo === no);
+    if (!e) return;
+    e.CurrentLocation = e.Location;
+    e.Status = statusFromDue(e.NextRefillDue);
+  });
+  takenSelected.clear();
+  renderTakenPage(); renderMasterTable(); renderDashboard(); renderLocationMap();
+  showToast(picked.length + ' unit(s) returned to their location', 'success');
+}
+
+
+function printCurrentPage() {
+  const id = (document.querySelector('.page.active') || {}).id;
+  if (id === 'page-masterlist') printMasterList();
+  else if (id === 'page-locationmap') printVacantList();
+  else showToast('Printing is available on Master List and Location Map', 'info');
+}
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -4087,7 +4220,7 @@ function renderLocationMap() {
     // Only push the extinguisher if it's physically at its assigned location
     const currLoc = (e.CurrentLocation || e.Location || '').trim();
     const isAway  = currLoc === 'Storeroom' || currLoc === 'With Vendor' ||
-                    (e.Status === 'pending') || (e.Status === 'in-store');
+                    (e.Status === 'pending') || (e.Status === 'in-store') || (e.Status === 'taken');
     if (!isAway) {
       locationMap.get(assignedLoc).push(e);
     }
@@ -5924,7 +6057,7 @@ function removeBulkItem(extNo) {
 function addMoreToSelection() {
   closeModal('modal-bulk-refill');
   showPage('masterlist');
-  showToast('Check more extinguishers, then click "Send for Refill" again', 'info');
+  showToast('Check more extinguishers, then click "Take for Refill" again', 'info');
 }
 
 function toggleSubInput(extNo, value) {
@@ -6377,7 +6510,8 @@ function statusBadge(status) {
     sent:      ['dot-pending', 'Sent Out'],
     'in-store':['dot-pending', 'In Storeroom'],
     deployed:  ['dot-ok',      'Deployed'],
-    condemned: ['dot-due',     'Condemned']
+    condemned: ['dot-due',     'Condemned'],
+    taken:     ['dot-warn',    'Taken']
   };
   const [dot, label] = map[status] || ['dot-warn', status];
   return `<span class="status-dot"><span class="dot ${dot}"></span>${label}</span>`;
@@ -6691,6 +6825,7 @@ function renderStoreroomPage() {
 }
 
 const pageTitles = {
+  taken:       ['Taken Units', 'Units taken from their location, ready for a pass'],
   service:     ['Quarterly Service', 'Quarterly service records per extinguisher'],
   dashboard:   ['Dashboard',        'Overview'],
   masterlist:  ['Master List',      'All Extinguishers'],
@@ -6720,6 +6855,8 @@ function showPage(id) {
   if (id === 'locationmap') renderLocationMap();
   if (id === 'storeroom')   renderStoreroomPage();
   if (id === 'service')     renderServicePage();
+  if (id === 'taken')       renderTakenPage();
+  document.getElementById('topbar-print').style.display = (id === 'masterlist' || id === 'locationmap') ? '' : 'none';
   if (id === 'inspection')  renderInspectionPage();
   if (id === 'amc') renderAmcGrid();
 
