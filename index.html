@@ -1020,7 +1020,7 @@
       <span class="icon">🛠️</span> Quarterly Service
     </div>
     <div class="nav-item" onclick="showPage('taken')">
-      <span class="icon">📤</span> Taken Units
+      <span class="icon">📤</span> Taken for Refilling
     </div>
     <div class="nav-item" onclick="showPage('storeroom')">
       <span class="icon">📦</span> Storeroom
@@ -1156,7 +1156,7 @@
             <option value="overdue">Overdue</option>
             <option value="pending">With Vendor</option>
             <option value="in-store">In Storeroom</option>
-            <option value="taken">Taken</option>
+            <option value="taken">Taken for Refilling</option>
             <option value="condemned">Condemned</option>
           </select>
         </div>
@@ -1352,7 +1352,7 @@
     <!-- ═══ REFILLS ═══ -->
     <div class="page" id="page-refills">
       <div style="display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
-        <button class="btn btn-primary" onclick="showPage('taken')">📤 Taken Units</button>
+        <button class="btn btn-primary" onclick="showPage('taken')">📤 Taken for Refilling</button>
         <select id="refill-pass-select" class="filter-select" style="min-width:220px;"></select>
         <button class="btn btn-blue" onclick="markSelectedPassSent()">📦 Mark pass sent</button>
         <button class="btn btn-green" id="refill-bulk-recv-btn" onclick="openBulkReceive()">📥 Bulk Receive</button>
@@ -2278,7 +2278,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.37';
+const EXPECTED_BACKEND = 'v2026.10.38';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -3666,7 +3666,7 @@ async function markIssueRectified(issueId) {
 // ─── PRINT: MASTER LIST AND VACANT LOCATIONS ───
 const _esc = s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
 const _plainStatus = s => ({ ok: 'OK', due: 'Due', overdue: 'Overdue', pending: 'With vendor',
-  'in-store': 'In storeroom', condemned: 'Condemned', taken: 'Taken' }[s] || (s || '—'));
+  'in-store': 'In storeroom', condemned: 'Condemned', taken: 'Taken for Refilling' }[s] || (s || '—'));
 
 // Print a report in its own window (portrait A4); prints once the content is in place
 function printReport(title, sub, bodyHtml) {
@@ -3748,7 +3748,8 @@ function printVacantList() {
 }
 
 // ─── TAKE FOR REFILL ───
-const TAKE_BLOCKED = ['pending', 'in-store', 'condemned', 'taken'];
+const TAKE_BLOCKED = ['pending', 'in-store', 'condemned'];
+const TAKEN_AT_LOCATION = 'Safety Dept';   // where units taken for refilling are kept
 let takenSelected = new Set();
 
 // Status a unit returns to, from its next refill date (same rule as the server)
@@ -3765,7 +3766,7 @@ async function takeSelectedForRefill() {
     const e = DATA.extinguishers.find(x => x.ExtNo === no);
     return e && !TAKE_BLOCKED.includes(e.Status);
   });
-  if (!eligible.length) { showToast('Selected units are with the vendor, in storeroom or already taken', 'info'); return; }
+  if (!eligible.length) { showToast('Selected units are with the vendor or in storeroom', 'info'); return; }
   if (CONFIG.apiUrl) {
     const res = await apiCall('takeForRefill', { extNos: eligible }, true);
     if (!res || !res.success) { showToast('Could not take the units. Try again.', 'error'); return; }
@@ -3774,13 +3775,13 @@ async function takeSelectedForRefill() {
     const e = DATA.extinguishers.find(x => x.ExtNo === no);
     if (!e) return;
     e.Status = 'taken';
-    e.CurrentLocation = 'Taken';
+    e.CurrentLocation = TAKEN_AT_LOCATION;
     if (!e.OriginalLocation) e.OriginalLocation = e.Location;
   });
   selectedExtNos.clear();
   updateSelectionToolbar();
   renderMasterTable(); renderDashboard(); renderLocationMap(); renderTakenPage();
-  showToast(eligible.length + ' unit(s) taken — create the pass from Taken Units', 'success');
+  showToast(eligible.length + ' unit(s) taken — create the pass from Taken for Refilling', 'success');
 }
 
 function takenUnits() {
@@ -4207,6 +4208,7 @@ function renderLocationMap() {
 
   // Build location map from all extinguishers
   const locationMap = new Map();
+  const takenAt = new Map();   // units taken for refilling, per assigned location
 
   DATA.extinguishers.forEach(e => {
     // The permanent assigned location is always e.Location (what's in the sheet).
@@ -4223,6 +4225,10 @@ function renderLocationMap() {
                     (e.Status === 'pending') || (e.Status === 'in-store') || (e.Status === 'taken');
     if (!isAway) {
       locationMap.get(assignedLoc).push(e);
+    }
+    if (isAway && e.Status === 'taken') {
+      if (!takenAt.has(assignedLoc)) takenAt.set(assignedLoc, []);
+      takenAt.get(assignedLoc).push(e);
     }
     // If away — slot remains in map but empty → shown as vacant
   });
@@ -4286,12 +4292,17 @@ function renderLocationMap() {
       </div>`;
     }
 
+    const takenHere = takenAt.get(loc) || [];
+    const takenLine = takenHere.length
+      ? `<div class="locmap-ext" style="color:#B45309;">Taken for refilling: ${takenHere.map(e => e.ExtNo).join(', ')}</div>`
+      : '';
     return `
       <div class="locmap-slot ${cls}" data-loc="${loc.replace(/"/g,'&quot;')}"
            onclick="filterToLocation(this.dataset.loc)" style="cursor:pointer;">
         <div class="locmap-badge">${badge}</div>
         <div class="locmap-name">${loc}</div>
         ${extLabel}
+        ${takenLine}
         ${countBadge}
         ${actionBtns}
       </div>`;
@@ -6511,7 +6522,7 @@ function statusBadge(status) {
     'in-store':['dot-pending', 'In Storeroom'],
     deployed:  ['dot-ok',      'Deployed'],
     condemned: ['dot-due',     'Condemned'],
-    taken:     ['dot-warn',    'Taken']
+    taken:     ['dot-warn',    'Taken for Refilling']
   };
   const [dot, label] = map[status] || ['dot-warn', status];
   return `<span class="status-dot"><span class="dot ${dot}"></span>${label}</span>`;
@@ -6825,7 +6836,7 @@ function renderStoreroomPage() {
 }
 
 const pageTitles = {
-  taken:       ['Taken Units', 'Units taken from their location, ready for a pass'],
+  taken:       ['Taken for Refilling', 'Units taken from their location, ready for a pass'],
   service:     ['Quarterly Service', 'Quarterly service records per extinguisher'],
   dashboard:   ['Dashboard',        'Overview'],
   masterlist:  ['Master List',      'All Extinguishers'],
