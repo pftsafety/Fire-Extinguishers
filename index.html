@@ -4687,7 +4687,10 @@ function filterByCard(filterType) {
 // MASTER TABLE
 // ═══════════════════════════════════════════════
 function renderMasterTable(data) {
-  filteredRows = data || [...DATA.extinguishers, ...(DATA.condemnedExts || [])];
+  // Ascending by extinguisher number (FE-9 before FE-16; spaces in numbers ignored)
+  const natExt = s => String(s || '').replace(/\s+/g, '');
+  filteredRows = [...(data || [...DATA.extinguishers, ...(DATA.condemnedExts || [])])]
+    .sort((a, b) => natExt(a.ExtNo).localeCompare(natExt(b.ExtNo), undefined, { numeric: true, sensitivity: 'base' }));
   _lastFilteredRows = filteredRows; // cache for cross-page select all
   const tbody = document.getElementById('master-body');
   const start = (currentPage - 1) * rowsPerPage;
