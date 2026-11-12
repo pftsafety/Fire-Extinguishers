@@ -975,6 +975,28 @@
   .issue-remark { font-size:12px; color:#5A6880; margin-top:2px; }
   .issue-state { font-size:11px; font-weight:600; margin-top:3px; color:#B91C1C; }
   .issue-row.rect .issue-state { color:#0D7F4A; }
+  /* ─── REFRESH SKELETON ─── */
+  @keyframes skel-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  @keyframes skel-bar { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+  body.syncing [id^="stat-"] {
+    color: transparent !important; display: inline-block; min-width: 56px; border-radius: 6px;
+    background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 37%, #E5E7EB 63%) !important;
+    background-size: 400% 100% !important; animation: skel-shimmer 1.3s ease-in-out infinite;
+  }
+  body.syncing .table-wrap tbody td {
+    color: transparent !important; border-color: #F1F5F9;
+    background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 37%, #F1F5F9 63%) !important;
+    background-size: 400% 100% !important; animation: skel-shimmer 1.3s ease-in-out infinite;
+  }
+  body.syncing .table-wrap tbody td * { visibility: hidden; }
+  body.syncing::before {
+    content: ''; position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 9999;
+    background: linear-gradient(90deg, transparent, #0F6FBF, transparent);
+    animation: skel-bar 1.1s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.syncing [id^="stat-"], body.syncing .table-wrap tbody td, body.syncing::before { animation: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -2626,8 +2648,9 @@ let _lastSyncAt   = 0;
 async function refreshData(silent = false) {
   if (_syncInFlight) return;            // never run two syncs at once
   _syncInFlight = true;
+  document.body.classList.add('syncing');     // skeleton while data is refreshed
   try { return await refreshDataInner(silent); }
-  finally { _syncInFlight = false; }
+  finally { _syncInFlight = false; document.body.classList.remove('syncing'); }
 }
 async function refreshDataInner(silent = false) {
   if (!CONFIG.apiUrl) { showToast('Backend URL missing in code', 'error'); return; }
