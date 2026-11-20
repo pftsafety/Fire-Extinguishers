@@ -2736,18 +2736,12 @@ let AMC_DATA = [];
 function loadAmcData() {
   try {
     const saved = localStorage.getItem('fireguard_amc');
-    if (saved) {
-      AMC_DATA = JSON.parse(saved);
-    } else {
-      // Sample AMC for demo
-      AMC_DATA = [
-        { id:'AMC-DEMO-1', vendor:'M/S Red Firelines', scope:'ABC & CO₂ — All blocks',
-          startDate:'2025-01-01', endDate:'2025-12-31', value:'85000', contact:'Suresh Kumar — 9876543210', remarks:'Annual renewal' },
-        { id:'AMC-DEMO-2', vendor:'FireSafe Engineers', scope:'DCP Trolley units',
-          startDate:'2025-04-01', endDate:'2026-03-31', value:'42000', contact:'Ravi Nair — 9845000123', remarks:'' }
-      ];
-    }
-  } catch(_){ AMC_DATA=[]; }
+    AMC_DATA = saved ? JSON.parse(saved) : [];
+    // Remove demo contracts left in the browser by earlier versions
+    const before = AMC_DATA.length;
+    AMC_DATA = AMC_DATA.filter(a => !String(a.id || '').startsWith('AMC-DEMO-'));
+    if (AMC_DATA.length !== before) localStorage.setItem('fireguard_amc', JSON.stringify(AMC_DATA));
+  } catch (_) { AMC_DATA = []; }
 }
 function saveAmcData() {
   localStorage.setItem('fireguard_amc', JSON.stringify(AMC_DATA));
