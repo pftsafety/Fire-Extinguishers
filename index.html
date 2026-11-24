@@ -997,6 +997,12 @@
   @media (prefers-reduced-motion: reduce) {
     body.syncing [id^="stat-"], body.syncing .table-wrap tbody td, body.syncing::before { animation: none !important; }
   }
+  .notif-panel { position: fixed; top: 64px; right: 16px; width: min(400px, calc(100vw - 32px)); max-height: calc(100vh - 80px);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.18);
+    z-index: 400; display: none; flex-direction: column; overflow: hidden; }
+  .notif-panel.open { display: flex; }
+  .notif-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .notif-body { padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
 </style>
 </head>
 <body>
@@ -1068,7 +1074,8 @@
       <span class="topbar-title" id="page-title">Dashboard</span>
       <span class="topbar-sub" id="page-sub">Overview</span>
     </div>
-    <div class="topbar-actions">
+    <button class="btn btn-ghost btn-sm" onclick="toggleNotifPanel()" title="Alerts" style="position:relative;">🔔 <span id="notif-count" class="nav-badge" style="display:none; margin-left:4px;">0</span></button>
+      <div class="topbar-actions">
       <div class="sync-status" id="sync-status" title="Last sync time">
         <span class="sync-dot" id="sync-dot"></span>
         <span id="sync-label">Not synced</span>
@@ -1159,7 +1166,7 @@
           <span class="table-title">All Extinguishers</span>
           <div class="search-box">
             <span>🔍</span>
-            <input type="text" id="search-input" placeholder="Search number, location..." oninput="filterTable()">
+            <input type="text" id="search-input" placeholder="Search number, Cylinder Serial No., location..." oninput="filterTable()">
           </div>
           <select class="filter-select" id="filter-type" onchange="filterTable()">
             <option value="">All Types</option>
@@ -2216,6 +2223,12 @@
       <button class="btn btn-ghost" onclick="closeModal('modal-history')">Close</button>
       </div>
   </div>
+</div>
+
+<!-- Notification Panel -->
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-head"><strong>Alerts</strong><button class="modal-close" onclick="toggleNotifPanel()" title="Close">✕</button></div>
+  <div class="notif-body" id="notif-list"></div>
 </div>
 
 <!-- Inspection Modal -->
@@ -3888,6 +3901,11 @@ function mfgToMonthInput(v) {
   return '';
 }
 
+// ─── NOTIFICATION PANEL ───
+function toggleNotifPanel() {
+  document.getElementById('notif-panel').classList.toggle('open');
+}
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -4060,17 +4078,26 @@ function renderAlerts() {
     }
   });
 
+  // Most urgent first (red, amber, others); then by extinguisher number
+  const rank = cls => cls === 'alert-red' ? 0 : (cls === 'alert-amber' ? 1 : 2);
+  const numOf = a => ((a.text.match(/<strong>([^<]+)<\/strong>/) || [0, a.text])[1]).replace(/\s+/g, '');
+  alerts.sort((a, b) => rank(a.cls) - rank(b.cls) || numOf(a).localeCompare(numOf(b), undefined, { numeric: true, sensitivity: 'base' }));
+
+  // Notification panel (the dashboard no longer lists alerts)
+  const badge = document.getElementById('notif-count');
+  if (badge) { badge.textContent = alerts.length; badge.style.display = alerts.length ? '' : 'none'; }
+  const list = document.getElementById('notif-list');
+  if (list) {
+    list.innerHTML = alerts.length ? alerts.map(a => `
+      <div class="alert-item ${a.cls}">
+        <span class="alert-icon">${a.icon}</span>
+        <div class="alert-text">${a.text}<small>${a.sub}</small></div>
+        <button class="alert-dismiss" onclick="dismissAlert('${a.key}')" title="Dismiss">✕</button>
+      </div>`).join('')
+      : '<div class="empty-state" style="padding:20px;"><div class="empty-text">No alerts.</div></div>';
+  }
   const banner = document.getElementById('alerts-banner');
-  if (!banner) return;
-  if (!alerts.length) { banner.innerHTML = ''; return; }
-  banner.innerHTML = alerts.slice(0, 6).map(a => `
-    <div class="alert-item ${a.cls}">
-      <span class="alert-icon">${a.icon}</span>
-      <div class="alert-text">${a.text}<small>${a.sub}</small></div>
-      <button class="alert-dismiss" onclick="dismissAlert('${a.key}')" title="Dismiss">✕</button>
-    </div>`).join('');
-  if (alerts.length > 6)
-    banner.innerHTML += `<div style="font-size:12px;color:var(--grey);padding:4px 8px;">+${alerts.length-6} more alerts — check master list</div>`;
+  if (banner) banner.innerHTML = '';
 }
 
 function dismissAlert(key) {
@@ -4827,6 +4854,8 @@ function filterTable() {
   const filtered = pool.filter(e => {
     const matchQ = !q ||
       (e.ExtNo       || '').toLowerCase().includes(q) ||
+      (e.ExtNo       || '').replace(/\s+/g, '').toLowerCase().includes(q.replace(/\s+/g, '')) ||
+      (e.CylinderSlNo || '').toLowerCase().includes(q) ||
       (e.Location    || '').toLowerCase().includes(q) ||
       (e.CurrentLocation || '').toLowerCase().includes(q) ||
       (e.Type        || '').toLowerCase().includes(q) ||
