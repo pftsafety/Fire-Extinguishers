@@ -3742,14 +3742,14 @@ function printMasterList() {
     if (!lastHydro[k] || String(h.TestDate) > String(lastHydro[k].TestDate)) lastHydro[k] = h;
   });
   const body = `<table><thead><tr>
-      <th>Sl No</th><th>Ext. No.</th><th>Type</th><th>Weight</th><th>Current location</th><th>Permanent location</th>
+      <th>Sl No</th><th style="width:110px;">Ext. No.</th><th>Type</th><th>Weight</th><th>Current location</th>
       <th>Mfg year</th><th>Last refill</th><th>Next refill due</th><th>Hydro next due</th><th>Status</th>
     </tr></thead><tbody>` +
     rows.map((e, i) => {
       const h = lastHydro[normExt(e.ExtNo)];
       return `<tr>
-        <td>${i + 1}</td><td>${_esc(e.ExtNo)}${e.CylinderSlNo ? '<br>Cyl. ' + _esc(e.CylinderSlNo) : ''}</td><td>${_esc(e.Type)}</td><td>${_esc(weightLabel(e.Type, e.Weight))}</td>
-        <td>${_esc(e.CurrentLocation || e.Location)}</td><td>${_esc(e.Location)}</td>
+        <td>${i + 1}</td><td style="white-space:nowrap;">${_esc(e.ExtNo)}${e.CylinderSlNo ? '<br>Cyl. ' + _esc(e.CylinderSlNo) : ''}</td><td>${_esc(e.Type)}</td><td>${_esc(weightLabel(e.Type, e.Weight))}</td>
+        <td>${_esc(e.CurrentLocation || e.Location)}</td>
         <td>${_esc(fmtDate(e.MfgDate))}</td>
         <td>${_esc(fmtDate(e.LastRefillDate))}</td><td>${_esc(fmtDate(e.NextRefillDue))}</td>
         <td>${_esc(h && h.NextDue ? fmtDate(h.NextDue) : '—')}</td>
