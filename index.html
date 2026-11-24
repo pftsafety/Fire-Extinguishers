@@ -1186,6 +1186,8 @@
             <option value="pending">With Vendor</option>
             <option value="in-store">In Storeroom</option>
             <option value="taken">Taken for Refilling</option>
+            <option value="eol">EOL</option>
+            <option value="past">Past life</option>
             <option value="condemned">Condemned</option>
           </select>
         </div>
@@ -4862,7 +4864,11 @@ function filterTable() {
       (e.Weight      || '').toString().toLowerCase().includes(q) ||
       (e.Remarks     || '').toLowerCase().includes(q);
     const matchType   = !type   || e.Type   === type;
-    const matchStatus = !status || e.Status === status;
+    const eol = eolInfo(e);   // same rule as the EOL tags
+    const matchStatus = !status ||
+      (status === 'eol'  ? !!eol && eol.state !== 'past' :
+       status === 'past' ? !!eol && eol.state === 'past' :
+       e.Status === status);
     return matchQ && matchType && matchStatus;
   });
   currentPage = 1;
