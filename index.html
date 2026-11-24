@@ -350,7 +350,7 @@
   .form-group { display: flex; flex-direction: column; gap: 6px; }
   .form-group.full { grid-column: 1 / -1; }
   label { font-size: 12px; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: .06em; }
-  input[type="text"], input[type="date"], input[type="number"], select, textarea {
+  input[type="text"], input[type="date"], input[type="month"], input[type="number"], select, textarea {
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 8px; padding: 9px 12px;
     color: var(--body); font-family: 'Inter', sans-serif; font-size: 13px;
@@ -2650,16 +2650,16 @@ async function checkBackendVersion() {
 
 let _syncInFlight = false;
 let _lastSyncAt   = 0;
-async function refreshData(silent = false) {
+async function refreshData(silent = false, background = false) {
   if (_syncInFlight) return;            // never run two syncs at once
   _syncInFlight = true;
-  document.body.classList.add('syncing');     // skeleton while data is refreshed
+  if (!background) document.body.classList.add('syncing');   // skeleton only for manual or first refresh
   try { return await refreshDataInner(silent); }
   finally { _syncInFlight = false; document.body.classList.remove('syncing'); }
 }
 async function refreshDataInner(silent = false) {
   if (!CONFIG.apiUrl) { showToast('Backend URL missing in code', 'error'); return; }
-  setSyncStatus('syncing', 'Syncing...');
+  if (!silent) setSyncStatus('syncing', 'Syncing...');
   if (!silent) showLoading('Syncing data from databases...');
   const res = await apiCall('getAll', {}, true);
   if (!silent) hideLoading();
@@ -3457,12 +3457,14 @@ function resumeScanning() {
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 function autoRefreshIfStale() {
   if (!CONFIG.apiUrl || document.hidden) return;
-  if (Date.now() - _lastSyncAt < 30000) return;   // skip if synced in the last 30 seconds
-  refreshData(true);
+  if (Date.now() - _lastSyncAt < 30000) return;           // synced in the last 30 seconds
+  if (document.querySelector('.modal-overlay.open')) return;   // a form is open
+  const a = document.activeElement;
+  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; // typing or choosing
+  refreshData(true, true);                                // quiet background sync
 }
 setInterval(autoRefreshIfStale, AUTO_REFRESH_MS);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) autoRefreshIfStale(); });
-window.addEventListener('focus', autoRefreshIfStale);
 window.addEventListener('online', autoRefreshIfStale);
 
 // Inspections and issues for one unit (shared by the scanner panel)
