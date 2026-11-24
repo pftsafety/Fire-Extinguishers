@@ -1188,6 +1188,7 @@
             <thead>
               <tr>
                 <th style="width:40px;"><div class="cb-wrap"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this)" title="Select all on this page"></div></th>
+                <th style="width:56px;">Sl No</th>
                 <th>Ext. No.</th><th>Type</th><th>Weight</th><th>Current Location</th>
                 <th>Permanent Location</th><th>Mfg Year</th><th>Last Refill</th><th>Next Due</th>
                 <th>Hydro Test</th><th>Status</th><th>Actions</th>
@@ -1567,8 +1568,8 @@
           <input type="text" id="f-location" placeholder="Building A - Floor 2">
         </div>
         <div class="form-group">
-          <label>Manufacturing Year</label>
-          <input type="number" id="f-mfgdate" placeholder="e.g. 2019" min="1990" max="2099" step="1" style="width:100%;">
+          <label>Manufacturing Month / Year</label>
+          <input type="month" id="f-mfgdate" style="width:100%;">
         </div>
         <div class="form-group">
           <label>Last Refill Date</label>
@@ -1587,7 +1588,11 @@
             <option value="pending">Sent for Refill</option>
           </select>
         </div>
-        <div class="form-group full">
+        <div class="form-group">
+            <label>Cylinder Serial No.</label>
+            <input type="text" id="f-cylsl" placeholder="e.g. CY-2019-4471">
+          </div>
+          <div class="form-group full">
           <label>Remarks</label>
           <textarea id="f-remarks" placeholder="Any notes..."></textarea>
         </div>
@@ -2300,7 +2305,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.38';
+const EXPECTED_BACKEND = 'v2026.10.40';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2378,7 +2383,7 @@ function cleanExtData(e) {
         if (!isNaN(dt.getTime())) {
           // MfgDate — store as year only
           if (field === 'MfgDate') {
-            e[field] = String(dt.getFullYear());
+            e[field] = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0');
           } else {
             // Other date fields — store as YYYY-MM-DD
             const yr  = dt.getFullYear();
@@ -2391,7 +2396,7 @@ function cleanExtData(e) {
     }
     // MfgDate with full date like "2019-01-01" — strip to year
     if (field === 'MfgDate' && /^\d{4}-/.test(s)) {
-      e[field] = s.substring(0, 4);
+      e[field] = s.substring(0, 7);
     }
   });
   return e;
@@ -3720,15 +3725,15 @@ function printMasterList() {
     if (!lastHydro[k] || String(h.TestDate) > String(lastHydro[k].TestDate)) lastHydro[k] = h;
   });
   const body = `<table><thead><tr>
-      <th>Ext. No.</th><th>Type</th><th>Weight</th><th>Current location</th><th>Permanent location</th>
+      <th>Sl No</th><th>Ext. No.</th><th>Type</th><th>Weight</th><th>Current location</th><th>Permanent location</th>
       <th>Mfg year</th><th>Last refill</th><th>Next refill due</th><th>Hydro next due</th><th>Status</th>
     </tr></thead><tbody>` +
-    rows.map(e => {
+    rows.map((e, i) => {
       const h = lastHydro[normExt(e.ExtNo)];
       return `<tr>
-        <td>${_esc(e.ExtNo)}</td><td>${_esc(e.Type)}</td><td>${_esc(weightLabel(e.Type, e.Weight))}</td>
+        <td>${i + 1}</td><td>${_esc(e.ExtNo)}${e.CylinderSlNo ? '<br>Cyl. ' + _esc(e.CylinderSlNo) : ''}</td><td>${_esc(e.Type)}</td><td>${_esc(weightLabel(e.Type, e.Weight))}</td>
         <td>${_esc(e.CurrentLocation || e.Location)}</td><td>${_esc(e.Location)}</td>
-        <td>${_esc(String(e.MfgDate || '').substring(0, 4))}</td>
+        <td>${_esc(fmtDate(e.MfgDate))}</td>
         <td>${_esc(fmtDate(e.LastRefillDate))}</td><td>${_esc(fmtDate(e.NextRefillDue))}</td>
         <td>${_esc(h && h.NextDue ? fmtDate(h.NextDue) : '—')}</td>
         <td>${_esc(_plainStatus(e.Status))}</td>
@@ -3873,6 +3878,14 @@ function printCurrentPage() {
   else if (id === 'page-locationmap') printVacantList();
   else showToast('Printing is available on Master List and Location Map', 'info');
 }
+// Manufacturing date: stored as YYYY-MM; a bare year is taken as January
+function mfgToMonthInput(v) {
+  const s = String(v || '').trim();
+  if (/^\d{4}-\d{2}/.test(s)) return s.substring(0, 7);
+  if (/^\d{4}$/.test(s)) return s + '-01';
+  return '';
+}
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -4714,14 +4727,14 @@ function renderMasterTable(data) {
   const pageRows = filteredRows.slice(start, start + rowsPerPage);
 
   if (!filteredRows.length) {
-    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">No extinguishers found.</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">No extinguishers found.</div></div></td></tr>';
     document.getElementById('table-count').textContent = 'Showing 0 records';
     document.getElementById('page-btns').innerHTML = '';
     updateSelectAllState();
     return;
   }
 
-  tbody.innerHTML = pageRows.map(e => {
+  tbody.innerHTML = pageRows.map((e, idx) => {
     const isChecked = selectedExtNos.has(e.ExtNo);
     const isPending = e.Status === 'pending';
     const isInStore = e.Status === 'in-store';
@@ -4763,7 +4776,8 @@ function renderMasterTable(data) {
           ${disableCb ? `disabled title="${isPending ? 'Already sent for refill' : 'In storeroom'}"` : ''}
           onchange="toggleRowSelect(this)">
       </div></td>
-      <td><span class="ext-num">${e.ExtNo}</span>${subDisplay}</td>
+       <td>${start + idx + 1}</td>
+      <td><span class="ext-num">${e.ExtNo}</span>${subDisplay}${e.CylinderSlNo ? `<div style="font-size:11px;color:var(--grey);">Cyl. ${e.CylinderSlNo}</div>` : ''}</td>
       <td>${typeTag(e.Type)}</td>
       <td>${weightLabel(e.Type, e.Weight)}</td>
       <td>${locDisplay}</td>
@@ -5423,7 +5437,7 @@ function openAddModal() {
   document.getElementById('modal-ext-title').textContent = 'Add Extinguisher';
 
   // Clear all fields
-  ['f-type','f-weight','f-location','f-mfgdate','f-lastrefill','f-nextdue','f-status','f-remarks'].forEach(id => {
+  ['f-type','f-weight','f-location','f-mfgdate','f-lastrefill','f-nextdue','f-status','f-remarks','f-cylsl'].forEach(id => {
     const el = document.getElementById(id);
     if (el.tagName === 'SELECT') el.selectedIndex = 0;
     else el.value = '';
@@ -5454,12 +5468,13 @@ function editExtinguisher(extNo) {
   document.getElementById('f-weight').value = ext.Weight;
   document.getElementById('f-location').value = ext.Location;
   // MfgDate stored as year-only — show just the year
-  const mfgVal = ext.MfgDate ? String(ext.MfgDate).substring(0,4) : '';
+  const mfgVal = mfgToMonthInput(ext.MfgDate);
   document.getElementById('f-mfgdate').value = mfgVal;
   document.getElementById('f-lastrefill').value = ext.LastRefillDate;
   document.getElementById('f-nextdue').value = ext.NextRefillDue;
   document.getElementById('f-status').value = ext.Status;
   document.getElementById('f-remarks').value = ext.Remarks || '';
+  document.getElementById('f-cylsl').value = ext.CylinderSlNo || '';
 
   // Hide auto-number badge and regen button when editing
   const badgeEl = document.getElementById('extno-auto-badge');
@@ -5495,10 +5510,11 @@ async function saveExtinguisher() {
     CurrentLocation: document.getElementById('f-location').value.trim(), // same as home when first added
     OriginalLocation: '',  // only set when ext is sent away
     SubstituteFor: '',
-    MfgDate: String(document.getElementById('f-mfgdate').value || '').substring(0,4),
+    MfgDate: String(document.getElementById('f-mfgdate').value || '').substring(0,7),
     LastRefillDate: document.getElementById('f-lastrefill').value,
     NextRefillDue: document.getElementById('f-nextdue').value,
     Status: document.getElementById('f-status').value,
+    CylinderSlNo: document.getElementById('f-cylsl').value.trim(),
     Remarks: document.getElementById('f-remarks').value
   };
   if (!data.ExtNo || !data.Location) { showToast('Ext. Number and Location are required', 'error'); return; }
@@ -6551,6 +6567,8 @@ function statusBadge(status) {
 function fmtDate(d) {
   if (!d || String(d).trim() === '' || String(d) === 'undefined' || String(d) === 'null') return '—';
   const s = String(d).trim();
+  // Month and year (YYYY-MM) -- MfgDate
+  if (/^\d{4}-\d{2}$/.test(s)) { const [y, m] = s.split('-'); return new Date(+y, +m - 1, 1).toLocaleString('en-GB', { month: 'short', year: 'numeric' }); }
   // Year-only (exactly 4 digits) — MfgDate
   if (/^\d{4}$/.test(s)) return s;
   // Already nicely formatted (e.g. "15-Jun-2026") — return as-is
