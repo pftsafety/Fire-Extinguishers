@@ -1003,6 +1003,9 @@
   .notif-panel.open { display: flex; }
   .notif-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); }
   .notif-body { padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .hydro-fail-row td { background: #FEF2F2 !important; }
+  .hydro-fail-row td:first-child { box-shadow: inset 4px 0 0 #DC2626; }
+  .hydro-group-row td { background: var(--surface2) !important; cursor: pointer; border-top: 2px solid var(--border); }
 </style>
 </head>
 <body>
@@ -1049,6 +1052,9 @@
     </div>
     <div class="nav-item" onclick="showPage('taken')">
       <span class="icon">📤</span> Taken for Refilling
+    </div>
+    <div class="nav-item" onclick="showPage('eol')">
+      <span class="icon">⚠️</span> End of Life
     </div>
     <div class="nav-item" onclick="showPage('storeroom')">
       <span class="icon">📦</span> Storeroom
@@ -1239,6 +1245,20 @@
       </div>
     </div>
 
+    <div class="page" id="page-eol">
+      <div class="insp-filter-row">
+        <span id="eol-count" style="font-size:12px; color:var(--muted);"></span>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ext. No.</th><th>Cylinder No.</th><th>Type</th><th>Location</th><th>Mfg</th><th>End of life</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="eol-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-taken">
       <div class="insp-filter-row">
         <input type="search" id="taken-search" class="filter-select" placeholder="Search ext no, type, location…" oninput="renderTakenPage()" style="min-width:240px;">
@@ -1303,6 +1323,7 @@
         <span id="store-count-label" style="font-size:12px; color:var(--muted);"></span>
       </div>
 
+      <div id="free-fe-store" style="margin-bottom:12px;"></div>
       <div id="store-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px;">
         <div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">No units in storeroom.</div></div>
       </div>
@@ -1547,7 +1568,7 @@
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group">
-          <label>Extinguisher Number *
+          <label>Extinguisher Number
             <span id="extno-auto-badge" style="margin-left:6px; font-size:10px; background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-bd); border-radius:10px; padding:1px 7px; font-weight:500; text-transform:none; letter-spacing:0;">Auto</span>
           </label>
           <div style="display:flex; gap:6px; align-items:center;">
@@ -1572,8 +1593,9 @@
           <label id="f-weight-label">Weight (kg)</label>
           <input type="number" id="f-weight" placeholder="6" step="0.5">
         </div>
-        <div class="form-group">
-          <label>Permanent Location *</label>
+        <div id="free-fe-list" style="margin:-4px 0 10px;"></div>
+          <div class="form-group">
+          <label>Permanent Location</label>
           <input type="text" id="f-location" placeholder="Building A - Floor 2">
         </div>
         <div class="form-group">
@@ -1764,7 +1786,8 @@
       <div id="deploy-ext-summary" style="margin-bottom:16px;"></div>
 
       <div class="form-grid">
-        <div class="form-group full">
+        <div class="form-group" id="deploy-fe-group" style="display:none;"><label>FE Number</label><select id="deploy-fe"></select></div>
+          <div class="form-group full">
           <label>Deploy To Location *</label>
           <input type="text" id="deploy-location" placeholder="e.g. Building A - Entrance">
           <div style="font-size:11px; color:var(--grey); margin-top:4px;" id="deploy-loc-hint"></div>
@@ -2233,6 +2256,28 @@
   <div class="notif-body" id="notif-list"></div>
 </div>
 
+<!-- Replace Modal -->
+<div class="modal-overlay" id="modal-replace">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head">
+      <div class="modal-title">🔁 Replace End-of-Life Unit</div>
+      <button class="modal-close" onclick="closeModal('modal-replace')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="rep-old-info" style="margin-bottom:14px;"></div>
+      <div class="form-group">
+        <label>Storeroom unit to place here</label>
+        <select id="rep-new"></select>
+      </div>
+      <div style="margin-top:10px; font-size:12px; color:var(--muted);">The new unit takes this FE number and location. The old unit is moved to Condemned, with its cylinder number.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-replace')">Cancel</button>
+      <button class="btn btn-green" onclick="confirmReplace()">✅ Replace</button>
+    </div>
+  </div>
+</div>
+
 <!-- Inspection Modal -->
 <div class="modal-overlay" id="modal-inspect">
   <div class="modal" style="max-width:640px;">
@@ -2320,7 +2365,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.40';
+const EXPECTED_BACKEND = 'v2026.10.44';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -3908,6 +3953,153 @@ function toggleNotifPanel() {
   document.getElementById('notif-panel').classList.toggle('open');
 }
 
+// ─── EXTINGUISHER NUMBERS ───
+// "22" or "fe 22" or "FE- 22" -> "FE-22"
+function normalizeExtNo(v) {
+  const t = String(v || '').trim();
+  if (!t) return '';
+  if (/^\d+$/.test(t)) return 'FE-' + t;
+  const m = t.match(/^([A-Za-z]+)\s*-?\s*(\d+)$/);
+  return m ? m[1].toUpperCase() + '-' + m[2] : t.replace(/\s*-\s*/g, '-');
+}
+function nextFeNumber() {
+  let max = 0;
+  [...DATA.extinguishers, ...(DATA.condemnedExts || [])].forEach(e => {
+    const m = String(e.ExtNo || '').replace(/\s+/g, '').match(/^FE-(\d+)$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return 'FE-' + (max + 1);
+}
+// Temporary id for a unit in the storeroom (its FE number is given when it is placed in a location)
+function nextStoreId() {
+  let max = 0;
+  [...DATA.extinguishers, ...(DATA.condemnedExts || [])].forEach(e => {
+    const m = String(e.ExtNo || '').match(/^NEW-(\d+)$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return 'NEW-' + String(max + 1).padStart(3, '0');
+}
+// Latest hydro-test result for a unit ('pass', 'fail', 'condemned' or '')
+function latestHydroResult(extNo) {
+  const k = normExt(extNo);
+  let best = null;
+  (DATA.hydroTests || []).forEach(h => {
+    if (normExt(h.ExtNo) === k && (!best || String(h.TestDate) > String(best.TestDate))) best = h;
+  });
+  return best ? best.Result : '';
+}
+
+// ─── END OF LIFE ───
+async function assignFeThenDeploy() {
+  const oldNo = deployingExtNo;
+  let newNo = nextFeNumber();
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('assignFeNumber', { ExtNo: oldNo, chosen: (document.getElementById('deploy-fe') || {}).value || '' }, true);
+    if (!res || !res.success || !res.ExtNo) { showToast('Could not assign the FE number. Try again.', 'error'); return; }
+    newNo = res.ExtNo;
+  }
+  const ext = DATA.extinguishers.find(e => e.ExtNo === oldNo);
+  if (ext) ext.ExtNo = newNo;
+  deployingExtNo = newNo;
+  confirmDeploy();
+}
+
+function eolLabel(state) {
+  return state === 'past' ? 'Past life' : (state === 'due' ? 'EOL this year' : 'EOL next year');
+}
+
+function renderEolPage() {
+  const body = document.getElementById('eol-body');
+  if (!body) return;
+  const rank = s => (s === 'past' ? 0 : (s === 'due' ? 1 : 2));
+  const list = DATA.extinguishers
+    .map(e => ({ e, info: eolInfo(e) }))
+    .filter(x => x.info)
+    .sort((a, b) => rank(a.info.state) - rank(b.info.state) ||
+      String(a.e.ExtNo).replace(/\s+/g, '').localeCompare(String(b.e.ExtNo).replace(/\s+/g, ''), undefined, { numeric: true }));
+  document.getElementById('eol-count').textContent = list.length + ' unit(s)';
+  body.innerHTML = list.length ? list.map(({ e, info }) => `<tr>
+      <td><span class="ext-num">${e.ExtNo}</span></td>
+      <td style="font-size:12px;">${e.CylinderSlNo || '—'}</td>
+      <td>${typeTag(e.Type)}</td>
+      <td style="font-size:12px;">${e.CurrentLocation || e.Location || '—'}</td>
+      <td>${fmtDate(e.MfgDate)}</td>
+      <td>${info.year}</td>
+      <td><span class="${info.state === 'past' ? 'loc-vacant' : 'loc-substitute'}">${eolLabel(info.state)}</span></td>
+      <td><button class="btn btn-primary btn-sm" onclick="openReplaceModal('${e.ExtNo}')">🔁 Replace</button></td>
+    </tr>`).join('')
+    : '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">No units at or near end of service life.</div></div></td></tr>';
+}
+
+let repOldNo = '';
+function openReplaceModal(oldNo) {
+  const old = DATA.extinguishers.find(e => e.ExtNo === oldNo);
+  if (!old) return;
+  const stock = DATA.extinguishers
+    .filter(e => e.Status === 'in-store')
+    .sort((a, b) => String(a.ExtNo).localeCompare(String(b.ExtNo), undefined, { numeric: true }));
+  if (!stock.length) { showToast('No unit in the storeroom. Add one first.', 'error'); return; }
+  repOldNo = oldNo;
+  document.getElementById('rep-old-info').innerHTML =
+    `<span class="ext-num">${old.ExtNo}</span> &nbsp;${typeTag(old.Type)} &nbsp;` +
+    `<span style="font-size:12px;color:var(--grey);">Cyl. ${old.CylinderSlNo || '—'} · ${old.CurrentLocation || old.Location || ''}</span>`;
+  document.getElementById('rep-new').innerHTML = stock.map(e =>
+    `<option value="${e.ExtNo}">${/^NEW-/.test(e.ExtNo) ? 'New unit (storeroom)' : e.ExtNo} · ${e.Type} · ${weightLabel(e.Type, e.Weight)}</option>`).join('');
+  openModal('modal-replace');
+}
+
+async function confirmReplace() {
+  const newNo = document.getElementById('rep-new').value;
+  if (!newNo) { showToast('Choose the storeroom unit', 'error'); return; }
+  const old = DATA.extinguishers.find(e => e.ExtNo === repOldNo);
+  const neu = DATA.extinguishers.find(e => e.ExtNo === newNo);
+  if (!old || !neu) return;
+  let archivedNo = old.ExtNo;
+  if (CONFIG.apiUrl) {
+    const res = await apiCall('replaceEol', { oldExtNo: repOldNo, newExtNo: newNo }, true);
+    if (!res || !res.success) { showToast('Could not replace the unit. Try again.', 'error'); return; }
+    archivedNo = res.archived || archivedNo;
+  } else {
+    archivedNo = old.ExtNo + '-C' + (old.CylinderSlNo || todayISO().replace(/-/g, ''));
+  }
+  const place = old.Location || old.CurrentLocation || '';
+  old.ExtNo = archivedNo; old.Status = 'condemned'; old.CondemnedDate = todayISO();
+  old.CondemnedReason = 'End of service life - replaced by ' + repOldNo;
+  DATA.extinguishers = DATA.extinguishers.filter(e => e !== old);
+  DATA.condemnedExts = [...(DATA.condemnedExts || []), old];
+  neu.ExtNo = repOldNo; neu.Status = 'ok'; neu.Location = place; neu.CurrentLocation = place; neu.OriginalLocation = '';
+  closeModal('modal-replace');
+  renderEolPage(); renderMasterTable(); renderDashboard(); renderLocationMap(); renderStoreroomPage();
+  showToast(repOldNo + ' replaced — old unit condemned', 'success');
+}
+
+// ─── FREE FE NUMBERS ───
+// FE numbers not in use by any unit (the gaps below the highest number)
+function freeFeNumbers() {
+  const used = new Set(DATA.extinguishers.map(e => String(e.ExtNo || '').replace(/\s+/g, '').toUpperCase()));
+  let max = 0;
+  used.forEach(n => { const m = n.match(/^FE-(\d+)$/); if (m) max = Math.max(max, parseInt(m[1], 10)); });
+  const free = [];
+  for (let i = 1; i <= max; i++) if (!used.has('FE-' + i)) free.push('FE-' + i);
+  return free;
+}
+// Shows the free numbers; with an input id, clicking one fills that input
+function renderFreeFeList(containerId, inputId) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  const free = freeFeNumbers();
+  if (!free.length) {
+    box.innerHTML = `<div style="font-size:11px;color:var(--grey);">No free numbers. Next new number: ${nextFeNumber()}</div>`;
+    return;
+  }
+  const chip = n => inputId
+    ? `<button type="button" class="btn btn-ghost btn-sm" style="margin:0 4px 4px 0; padding:2px 8px; font-size:11px;" onclick="document.getElementById('${inputId}').value='${n}'">${n}</button>`
+    : `<span style="display:inline-block; margin:0 4px 4px 0; padding:2px 8px; font-size:11px; border:1px solid var(--border); border-radius:10px; background:var(--surface2);">${n}</span>`;
+  box.innerHTML = `<div style="font-size:11px; color:var(--grey); margin-bottom:4px;">Free FE numbers available (${free.length}):</div>` +
+    free.slice(0, 80).map(chip).join('') +
+    (free.length > 80 ? `<span style="font-size:11px;color:var(--grey);"> +${free.length - 80} more</span>` : '');
+}
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -3933,8 +4125,10 @@ function eolTag(e) {
 function applyCondemnedLocally(extNo, reason, date) {
   const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
   if (!ext) return;
+  const cyl = String(ext.CylinderSlNo || '').trim();
+  ext.ExtNo = extNo + '-C' + (cyl || String(date || todayISO()).replace(/-/g, ''));
   ext.Status = 'condemned'; ext.CondemnedReason = reason; ext.CondemnedDate = date;
-  DATA.extinguishers = DATA.extinguishers.filter(e => e.ExtNo !== extNo);
+  DATA.extinguishers = DATA.extinguishers.filter(e => e !== ext);
   DATA.condemnedExts = [...(DATA.condemnedExts || []), ext];
   selectedExtNos.delete(extNo);
 }
@@ -4800,7 +4994,7 @@ function renderMasterTable(data) {
     }
 
     return `
-    <tr class="${isChecked ? 'selected' : ''}" id="row-${e.ExtNo}">
+    <tr class="${isChecked ? 'selected' : ''} ${latestHydroResult(e.ExtNo) === 'fail' ? 'hydro-fail-row' : ''}" id="row-${e.ExtNo}">
       <td><div class="cb-wrap">
         <input type="checkbox" class="row-cb" value="${e.ExtNo}"
           ${isChecked ? 'checked' : ''}
@@ -4878,26 +5072,104 @@ function filterTable() {
 // ═══════════════════════════════════════════════
 // HYDRO
 // ═══════════════════════════════════════════════
+// Cylinder serial under an extinguisher number (blank if none recorded)
+function cylOf(extNo) {
+  const k = normExt(extNo);
+  const e = [...DATA.extinguishers, ...(DATA.condemnedExts || [])].find(x => normExt(x.ExtNo) === k);
+  return e && e.CylinderSlNo ? `<div style="font-size:11px;color:var(--grey);">Cyl. ${e.CylinderSlNo}</div>` : '';
+}
+
+// Hydrostatic test records grouped by certificate number; each group opens to show its units
+const hydroOpen = new Set();
+function toggleHydroCert(key) {
+  if (hydroOpen.has(key)) hydroOpen.delete(key); else hydroOpen.add(key);
+  renderHydroTable();
+}
+
 function renderHydroTable(data) {
   const rows = data || DATA.hydroTests;
   const tbody = document.getElementById('hydro-body');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💧</div><div class="empty-text">No records found.</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🧪</div><div class="empty-text">No records found.</div></div></td></tr>';
     return;
   }
-  tbody.innerHTML = rows.map(h => `
-    <tr>
-      <td><span class="ext-num">${h.ExtNo}</span></td>
-      <td>${getLocation(h.ExtNo)}</td>
-      <td>${fmtDate(h.TestDate)}</td>
-      <td>${h.TestBy || '—'}</td>
-      <td>${h.Pressure || '—'} bar</td>
-      <td>${h.Result === 'pass' ? '<span class="status-dot"><span class="dot dot-ok"></span>Pass</span>' : h.Result === 'fail' ? '<span class="status-dot"><span class="dot dot-due"></span>Fail</span>' : '<span class="status-dot"><span class="dot dot-due"></span>Condemned</span>'}</td>
-      <td>${h.NextDue ? fmtDate(h.NextDue) : (() => { const d=new Date(h.TestDate); d.setFullYear(d.getFullYear()+5); return fmtDate(d.toISOString().split('T')[0]) + ' <span style=\'font-size:10px;color:var(--muted);\'>auto</span>'; })()}</td>
-      <td>${h.CertNo || '—'}</td>
-      <td><button class="btn btn-red btn-sm" onclick="deleteHydro('${h.TestID}')">🗑️</button></td>
-    </tr>
-  `).join('');
+  const groups = new Map();
+  rows.forEach(h => {
+    const certNo = h.CertNo ? String(h.CertNo).trim() : '';
+    const key = certNo || ('__' + h.TestID);
+    if (!groups.has(key)) groups.set(key, { key, certNo, items: [] });
+    groups.get(key).items.push(h);
+  });
+  const latest = g => g.items.map(h => String(h.TestDate)).sort().pop();
+  const list = [...groups.values()].sort((a, b) => String(latest(b)).localeCompare(String(latest(a))));
+
+  tbody.innerHTML = list.map(g => {
+    const pass = g.items.filter(h => h.Result === 'pass').length;
+    const fail = g.items.filter(h => h.Result === 'fail').length;
+    const cond = g.items.length - pass - fail;
+    const enc = encodeURIComponent(g.key);
+    const file = (g.items.find(h => h.CertFile) || {}).CertFile || '';
+    const open = hydroOpen.has(g.key);
+    const head = `<tr class="hydro-group-row" onclick="toggleHydroCert(decodeURIComponent('${enc}'))">
+      <td colspan="9" style="padding:10px 12px;">
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <span style="font-size:12px;">${open ? '▾' : '▸'}</span>
+          <span class="ext-num">${g.certNo || 'No certificate no.'}</span>
+          <span style="font-size:12px; color:var(--grey);">${fmtDate(latest(g))} · ${g.items.length} unit(s)</span>
+          <span style="font-size:12px;">✔ ${pass} pass${fail ? ` · <span style="color:var(--red);">✖ ${fail} fail</span>` : ''}${cond ? ` · ${cond} condemned` : ''}</span>
+          <span style="margin-left:auto; display:flex; gap:8px; align-items:center;" onclick="event.stopPropagation()">
+            ${file ? `<a class="btn btn-ghost btn-sm" href="${file}" target="_blank" rel="noopener">📄 Certificate</a>` : ''}
+            ${g.certNo
+              ? `<label class="btn btn-ghost btn-sm" style="cursor:pointer;">📎 Upload certificate<input type="file" accept="application/pdf,image/*" style="display:none;" onchange="uploadHydroCertificate(decodeURIComponent('${enc}'), this.files[0]); this.value='';"></label>`
+              : `<span style="font-size:11px; color:var(--muted);">Enter a certificate no. to attach a file</span>`}
+          </span>
+        </div>
+      </td>
+    </tr>`;
+    if (!open) return head;
+    return head + g.items.map(h => `
+      <tr>
+        <td><span class="ext-num">${h.ExtNo}</span>${cylOf(h.ExtNo)}</td>
+        <td>${getLocation(h.ExtNo)}</td>
+        <td>${fmtDate(h.TestDate)}</td>
+        <td>${h.TestBy || '--'}</td>
+        <td>${h.Pressure || '--'} bar</td>
+        <td>${h.Result === 'pass' ? '<span class="status-dot"><span class="dot dot-ok"></span>Pass</span>' : h.Result === 'fail' ? '<span class="status-dot"><span class="dot dot-due"></span>Fail</span>' : '<span class="status-dot"><span class="dot dot-due"></span>Condemned</span>'}</td>
+        <td>${h.NextDue ? fmtDate(h.NextDue) : '<span style="color:var(--muted);">—</span>'}</td>
+        <td>${h.CertNo || '--'}</td>
+        <td><button class="btn btn-red btn-sm" onclick="deleteHydro('${h.TestID}')">🗑</button></td>
+      </tr>`).join('');
+  }).join('');
+}
+
+// Upload a certificate: stored in the output folder, linked to every record with that number
+async function uploadHydroCertificate(certNo, file) {
+  if (!file) return;
+  if (!CONFIG.apiUrl) { showToast('Not connected to the server', 'error'); return; }
+  if (file.size > 4 * 1024 * 1024) { showToast('File is too large (max 4 MB)', 'error'); return; }
+  showLoading('Uploading certificate...');
+  try {
+    const data = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(r.error);
+      r.readAsDataURL(file);
+    });
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'uploadHydroCert', certNo, fileName: file.name, mimeType: file.type || 'application/pdf', data })
+    });
+    const res = JSON.parse(await resp.text());
+    if (!res.success) throw new Error(res.error || 'Upload failed');
+    DATA.hydroTests.forEach(h => { if (String(h.CertNo || '').trim() === certNo) h.CertFile = res.url; });
+    renderHydroTable();
+    showToast('Certificate uploaded', 'success');
+  } catch (err) {
+    showToast('Certificate not uploaded: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
 }
 
 function filterHydro() {
@@ -5417,6 +5689,9 @@ async function buildDocxBlob({ passNo, org, reqDate, reqBy, count, remarks, rows
 // ── Auto-number helpers ──────────────────────────────────────
 
 function getNextExtNo() {
+  return nextFeNumber();
+}
+function _legacyNextExtNo() {
   const existing = DATA.extinguishers.map(e => e.ExtNo);
   if (!existing.length) return 'EXT-001';
 
@@ -5482,7 +5757,8 @@ function openAddModal() {
 
   // Auto-fill next number
   const nextNo = getNextExtNo();
-  document.getElementById('f-extno').value = nextNo;
+  document.getElementById('f-extno').value = '';   // number is given when the unit is placed in a location
+  renderFreeFeList('free-fe-list', 'f-extno');
 
   // Reset hint
   const hintEl = document.getElementById('extno-hint');
@@ -5525,7 +5801,7 @@ function editExtinguisher(extNo) {
 }
 
 async function saveExtinguisher() {
-  const extNoVal = document.getElementById('f-extno').value.trim();
+  const extNoVal = normalizeExtNo(document.getElementById('f-extno').value);
 
   // Duplicate check on add
   if (!editingExtNo) {
@@ -5554,7 +5830,18 @@ async function saveExtinguisher() {
     CylinderSlNo: document.getElementById('f-cylsl').value.trim(),
     Remarks: document.getElementById('f-remarks').value
   };
-  if (!data.ExtNo || !data.Location) { showToast('Ext. Number and Location are required', 'error'); return; }
+  if (editingExtNo) {
+    if (!data.ExtNo || !data.Location) { showToast('Ext. Number and Location are required', 'error'); return; }
+  } else if (!data.Location) {
+    // No location: the unit goes to the storeroom with a temporary id
+    data.ExtNo = data.ExtNo || nextStoreId();
+    data.Location = '';
+    data.CurrentLocation = 'Storeroom';
+    data.OriginalLocation = '';
+    data.Status = 'in-store';
+  } else {
+    data.ExtNo = data.ExtNo || nextFeNumber();
+  }
 
   if (CONFIG.apiUrl) {
     const action = editingExtNo ? 'updateExtinguisher' : 'addExtinguisher';
@@ -5589,16 +5876,16 @@ function autoFillHydroNextDue(testDateVal) {
 async function saveHydroTest() {
   const data = {
     TestID: 'HT-' + String(DATA.hydroTests.length + 1).padStart(3, '0'),
-    ExtNo: document.getElementById('h-extno').value.trim(),
+    ExtNo: normalizeExtNo(document.getElementById('h-extno').value),
     TestDate: document.getElementById('h-testdate').value,
     TestBy: document.getElementById('h-testby').value.trim(),
     Pressure: document.getElementById('h-pressure').value,
     Result: document.getElementById('h-result').value,
-    NextDue: document.getElementById('h-nextdue').value,
+    NextDue: document.getElementById('h-result').value === 'fail' ? '' : document.getElementById('h-nextdue').value,
     CertNo: document.getElementById('h-certno').value.trim()
   };
   if (!data.ExtNo) { showToast('Ext. Number is required', 'error'); return; }
-  if (data.Result === 'condemned') {
+  if (data.Result === 'condemned' || data.Result === 'fail') {
     const ext = DATA.extinguishers.find(e => e.ExtNo === data.ExtNo);
     if (!ext) { showToast('Extinguisher not found in the active list', 'error'); return; }
     if (ext.Status === 'pending') { showToast(data.ExtNo + ' is with the vendor. Receive it before condemning.', 'error'); return; }
@@ -5613,12 +5900,10 @@ async function saveHydroTest() {
   closeModal('modal-hydro');
   renderHydroTable();
   showToast('Hydrostatic test recorded!', 'success');
-  if (data.Result === 'condemned') {
-    applyCondemnedLocally(data.ExtNo, 'Condemned at hydrostatic test ' + data.TestID + (data.CertNo ? ' (cert ' + data.CertNo + ')' : ''), data.TestDate);
+  if (data.Result === 'condemned' || data.Result === 'fail') {
+    applyCondemnedLocally(data.ExtNo, (data.Result === 'fail' ? 'Failed hydrostatic test ' : 'Condemned at hydrostatic test ') + data.TestID + (data.CertNo ? ' (cert ' + data.CertNo + ')' : ''), data.TestDate);
     renderMasterTable(); renderDashboard(); renderLocationMap(); renderRefills(); renderStoreroomPage(); renderServicePage();
     showToast(data.ExtNo + ' condemned — shown as Condemned in the Master List', 'info');
-  } else if (data.Result === 'fail') {
-    openCondemnModal(data.ExtNo, 'Failed hydrostatic test');
   }
 }
 
@@ -5851,6 +6136,15 @@ function openDeployModal(extNo) {
     checkSubstituteAlert(this.value, extNo);
   };
 
+  const feGroup = document.getElementById('deploy-fe-group');
+  if (feGroup) {
+    const isStore = /^NEW-/.test(extNo);
+    feGroup.style.display = isStore ? '' : 'none';
+    if (isStore) {
+      document.getElementById('deploy-fe').innerHTML = `<option value="">Automatic: ${nextFeNumber()} (next)</option>` +
+        freeFeNumbers().map(n => `<option value="${n}">${n} (free)</option>`).join('');
+    }
+  }
   openModal('modal-deploy');
 }
 
@@ -5895,6 +6189,7 @@ function fillOriginalLocation() {
 }
 
 async function confirmDeploy() {
+  if (/^NEW-/.test(deployingExtNo || '')) { assignFeThenDeploy(); return; }
   const location = document.getElementById('deploy-location').value.trim();
   const deployDate = document.getElementById('deploy-date').value;
   const deployBy = document.getElementById('deploy-by').value.trim();
@@ -6850,6 +7145,7 @@ async function confirmBulkReceive() {
 // STOREROOM PAGE
 // ═══════════════════════════════════════════════════════════════
 function renderStoreroomPage() {
+  renderFreeFeList('free-fe-store', null);
   const grid   = document.getElementById('store-grid');
   const countEl= document.getElementById('store-count-label');
   if (!grid) return;
@@ -6911,6 +7207,7 @@ function renderStoreroomPage() {
 }
 
 const pageTitles = {
+  eol:         ['End of Life', 'Units at or past end of service life'],
   taken:       ['Taken for Refilling', 'Units taken from their location, ready for a pass'],
   service:     ['Quarterly Service', 'Quarterly service records per extinguisher'],
   dashboard:   ['Dashboard',        'Overview'],
@@ -6942,6 +7239,7 @@ function showPage(id) {
   if (id === 'storeroom')   renderStoreroomPage();
   if (id === 'service')     renderServicePage();
   if (id === 'taken')       renderTakenPage();
+  if (id === 'eol')         renderEolPage();
   document.getElementById('topbar-print').style.display = (id === 'masterlist' || id === 'locationmap') ? '' : 'none';
   if (id === 'inspection')  renderInspectionPage();
   if (id === 'amc') renderAmcGrid();
