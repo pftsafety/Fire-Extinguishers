@@ -1594,7 +1594,7 @@
           <input type="number" id="f-weight" placeholder="6" step="0.5">
         </div>
         <div id="free-fe-list" style="margin:-4px 0 10px;"></div>
-          <div class="form-group">
+          <div class="form-group" id="location-group">
           <label>Permanent Location</label>
           <input type="text" id="f-location" placeholder="Building A - Floor 2">
         </div>
@@ -4099,6 +4099,10 @@ function renderFreeFeList(containerId, inputId) {
 
 // ─── ADD FORM ───
 // The number is given when the unit is placed in a location; it is shown only when editing
+function setLocationFieldVisible(on) {
+  const el = document.getElementById('location-group');
+  if (el) el.style.display = on ? '' : 'none';
+}
 function setExtNoFieldVisible(on) {
   ['extno-group', 'free-fe-list'].forEach(id => {
     const el = document.getElementById(id);
@@ -5784,11 +5788,14 @@ function openAddModal() {
   if (regenBtn) regenBtn.style.display = '';
 
   openModal('modal-ext');
-  setExtNoFieldVisible(false);   // number is given when the unit is placed
+  setExtNoFieldVisible(true);
+  setLocationFieldVisible(false);   // location is not asked when adding
+  document.getElementById('f-extno').value = nextFeNumber();
 }
 
 function editExtinguisher(extNo) {
   setExtNoFieldVisible(true);
+  setLocationFieldVisible(true);
   const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
   if (!ext) return;
   editingExtNo = extNo;
@@ -5851,7 +5858,7 @@ async function saveExtinguisher() {
     if (!data.ExtNo || !data.Location) { showToast('Ext. Number and Location are required', 'error'); return; }
   } else if (!data.Location) {
     // No location: the unit goes to the storeroom with a temporary id
-    data.ExtNo = data.ExtNo || nextStoreId();
+    data.ExtNo = data.ExtNo || nextFeNumber();
     data.Location = '';
     data.CurrentLocation = 'Storeroom';
     data.OriginalLocation = '';
