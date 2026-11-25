@@ -2365,7 +2365,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.47';
+const EXPECTED_BACKEND = 'v2026.10.48';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -3963,9 +3963,13 @@ function normalizeExtNo(v) {
   return m ? m[1].toUpperCase() + '-' + m[2] : t.replace(/\s*-\s*/g, '-');
 }
 function nextFeNumber() {
-  const used = new Set([...DATA.extinguishers, ...(DATA.condemnedExts || [])]
-    .map(e => String(e.ExtNo || '').replace(/\s+/g, '').toUpperCase()));
-  for (let i = 1; ; i++) if (!used.has('FE-' + i)) return 'FE-' + i;   // lowest free number first
+  // Auto number: the next after the highest in use (free gaps are offered separately as a list)
+  let max = 0;
+  [...DATA.extinguishers, ...(DATA.condemnedExts || [])].forEach(e => {
+    const m = String(e.ExtNo || '').replace(/\s+/g, '').match(/^FE-(\d+)$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return 'FE-' + (max + 1);
 }
 // Temporary id for a unit in the storeroom (its FE number is given when it is placed in a location)
 function nextStoreId() {
