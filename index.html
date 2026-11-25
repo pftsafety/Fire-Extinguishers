@@ -1391,7 +1391,7 @@
             <thead>
               <tr>
                 <th>Ext. No.</th><th>Location</th><th>Test Date</th><th>Test By</th>
-                <th>Pressure (bar)</th><th>Result</th><th>Next Due</th><th>Certificate No.</th><th>Actions</th>
+                <th>Pressure (bar)</th><th>Result</th><th>Next Due</th><th>Certificate No.</th>
               </tr>
             </thead>
             <tbody id="hydro-body">
@@ -1567,7 +1567,7 @@
     </div>
     <div class="modal-body">
       <div class="form-grid">
-        <div class="form-group">
+        <div class="form-group" id="extno-group">
           <label>Extinguisher Number
             <span id="extno-auto-badge" style="margin-left:6px; font-size:10px; background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-bd); border-radius:10px; padding:1px 7px; font-weight:500; text-transform:none; letter-spacing:0;">Auto</span>
           </label>
@@ -1604,7 +1604,7 @@
         </div>
         <div class="form-group">
           <label>Last Refill Date</label>
-          <input type="date" id="f-lastrefill">
+          <input type="date" id="f-lastrefill" onchange="autoNextDue()">
         </div>
         <div class="form-group">
           <label>Next Refill Due</label>
@@ -2365,7 +2365,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.44';
+const EXPECTED_BACKEND = 'v2026.10.46';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -3963,12 +3963,9 @@ function normalizeExtNo(v) {
   return m ? m[1].toUpperCase() + '-' + m[2] : t.replace(/\s*-\s*/g, '-');
 }
 function nextFeNumber() {
-  let max = 0;
-  [...DATA.extinguishers, ...(DATA.condemnedExts || [])].forEach(e => {
-    const m = String(e.ExtNo || '').replace(/\s+/g, '').match(/^FE-(\d+)$/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
-  });
-  return 'FE-' + (max + 1);
+  const used = new Set([...DATA.extinguishers, ...(DATA.condemnedExts || [])]
+    .map(e => String(e.ExtNo || '').replace(/\s+/g, '').toUpperCase()));
+  for (let i = 1; ; i++) if (!used.has('FE-' + i)) return 'FE-' + i;   // lowest free number first
 }
 // Temporary id for a unit in the storeroom (its FE number is given when it is placed in a location)
 function nextStoreId() {
@@ -4076,7 +4073,7 @@ async function confirmReplace() {
 // ─── FREE FE NUMBERS ───
 // FE numbers not in use by any unit (the gaps below the highest number)
 function freeFeNumbers() {
-  const used = new Set(DATA.extinguishers.map(e => String(e.ExtNo || '').replace(/\s+/g, '').toUpperCase()));
+  const used = new Set([...DATA.extinguishers, ...(DATA.condemnedExts || [])].map(e => String(e.ExtNo || '').replace(/\s+/g, '').toUpperCase()));
   let max = 0;
   used.forEach(n => { const m = n.match(/^FE-(\d+)$/); if (m) max = Math.max(max, parseInt(m[1], 10)); });
   const free = [];
@@ -4098,6 +4095,25 @@ function renderFreeFeList(containerId, inputId) {
   box.innerHTML = `<div style="font-size:11px; color:var(--grey); margin-bottom:4px;">Free FE numbers available (${free.length}):</div>` +
     free.slice(0, 80).map(chip).join('') +
     (free.length > 80 ? `<span style="font-size:11px;color:var(--grey);"> +${free.length - 80} more</span>` : '');
+}
+
+// ─── ADD FORM ───
+// The number is given when the unit is placed in a location; it is shown only when editing
+function setExtNoFieldVisible(on) {
+  ['extno-group', 'free-fe-list'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = on ? '' : 'none';
+  });
+}
+// Next refill due: one year after the last refill, less one day (06.10.2026 -> 05.10.2027)
+function nextDueFromLast(iso) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  const dt = new Date(y + 1, m - 1, d - 1);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+function autoNextDue() {
+  const last = document.getElementById('f-lastrefill').value;
+  if (last) document.getElementById('f-nextdue').value = nextDueFromLast(last);
 }
 
 // ─── END OF SERVICE LIFE (from manufacture year) ───
@@ -5090,7 +5106,7 @@ function renderHydroTable(data) {
   const rows = data || DATA.hydroTests;
   const tbody = document.getElementById('hydro-body');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🧪</div><div class="empty-text">No records found.</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🧪</div><div class="empty-text">No records found.</div></div></td></tr>';
     return;
   }
   const groups = new Map();
@@ -5111,7 +5127,7 @@ function renderHydroTable(data) {
     const file = (g.items.find(h => h.CertFile) || {}).CertFile || '';
     const open = hydroOpen.has(g.key);
     const head = `<tr class="hydro-group-row" onclick="toggleHydroCert(decodeURIComponent('${enc}'))">
-      <td colspan="9" style="padding:10px 12px;">
+      <td colspan="8" style="padding:10px 12px;">
         <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
           <span style="font-size:12px;">${open ? '▾' : '▸'}</span>
           <span class="ext-num">${g.certNo || 'No certificate no.'}</span>
@@ -5137,7 +5153,6 @@ function renderHydroTable(data) {
         <td>${h.Result === 'pass' ? '<span class="status-dot"><span class="dot dot-ok"></span>Pass</span>' : h.Result === 'fail' ? '<span class="status-dot"><span class="dot dot-due"></span>Fail</span>' : '<span class="status-dot"><span class="dot dot-due"></span>Condemned</span>'}</td>
         <td>${h.NextDue ? fmtDate(h.NextDue) : '<span style="color:var(--muted);">—</span>'}</td>
         <td>${h.CertNo || '--'}</td>
-        <td><button class="btn btn-red btn-sm" onclick="deleteHydro('${h.TestID}')">🗑</button></td>
       </tr>`).join('');
   }).join('');
 }
@@ -5769,9 +5784,11 @@ function openAddModal() {
   if (regenBtn) regenBtn.style.display = '';
 
   openModal('modal-ext');
+  setExtNoFieldVisible(false);   // number is given when the unit is placed
 }
 
 function editExtinguisher(extNo) {
+  setExtNoFieldVisible(true);
   const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
   if (!ext) return;
   editingExtNo = extNo;
@@ -5875,7 +5892,7 @@ function autoFillHydroNextDue(testDateVal) {
 
 async function saveHydroTest() {
   const data = {
-    TestID: 'HT-' + String(DATA.hydroTests.length + 1).padStart(3, '0'),
+    TestID: '',   // assigned by the server
     ExtNo: normalizeExtNo(document.getElementById('h-extno').value),
     TestDate: document.getElementById('h-testdate').value,
     TestBy: document.getElementById('h-testby').value.trim(),
@@ -5896,6 +5913,7 @@ async function saveHydroTest() {
     if (!res || !res.success) return;
   }
 
+  if (res && res.TestID) data.TestID = res.TestID;
   DATA.hydroTests.push(data);
   closeModal('modal-hydro');
   renderHydroTable();
@@ -6245,13 +6263,16 @@ async function confirmDeploy() {
   showToast(`${deployingExtNo} deployed to ${location}!`, 'success');
 }
 
-async function deleteHydro(testId) {
+async function deleteHydro(testId, extNoEnc, testDate) {
   if (!confirm('Delete this hydrostatic test record?')) return;
+  const extNo = decodeURIComponent(extNoEnc || '');
+  const same = h => h.TestID === testId && String(h.ExtNo || '').replace(/\s+/g, '') === extNo.replace(/\s+/g, '') && String(h.TestDate || '').substring(0, 10) === String(testDate || '').substring(0, 10);
   if (CONFIG.apiUrl) {
-    const res = await apiCall('deleteHydroTest', { TestID: testId }, true);
-    if (!res || !res.success) { showToast('Delete failed — record kept. Try again.', 'error'); return; }
+    const res = await apiCall('deleteHydroTest', { TestID: testId, ExtNo: extNo, TestDate: testDate }, true);
+    if (!res || !res.success) { showToast('Delete failed -- record kept. Try again.', 'error'); return; }
   }
-  DATA.hydroTests = DATA.hydroTests.filter(h => h.TestID !== testId);
+  const i = DATA.hydroTests.findIndex(same);
+  if (i >= 0) DATA.hydroTests.splice(i, 1);
   renderHydroTable();
   showToast('Record deleted', 'info');
 }
