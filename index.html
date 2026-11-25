@@ -7212,6 +7212,8 @@ function renderStoreroomPage() {
         <div class="store-card-body">
           <div>🏠 <strong>Home:</strong> ${origLoc}</div>
           <div>📅 <strong>Last Refill:</strong> ${lastRef}</div>
+          <div>🏭 <strong>Mfg:</strong> ${fmtDate(e.MfgDate)}</div>
+          <div>🔢 <strong>Cyl. Sl No:</strong> ${e.CylinderSlNo || '—'}</div>
           <div>⏰ <strong>Next Due:</strong> ${nextDue}</div>
           ${isSub ? `<div>↔️ <strong>Substitute for:</strong> ${e.SubstituteFor}</div>` : ''}
         </div>
