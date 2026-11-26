@@ -4658,6 +4658,9 @@ function renderLocationMap() {
       </div>`;
     }
 
+    if (subs.length && !String(actionBtns || '').includes('openRemoveSubModal')) {
+      actionBtns = (actionBtns || '') + `<div class="locmap-slot-actions"><button class="btn btn-ghost" onclick="event.stopPropagation(); openRemoveSubModal('${subs[0].ExtNo}')" style="color:var(--red);border-color:var(--red-bd);">✕ Remove Sub</button></div>`;
+    }
     const takenHere = takenAt.get(loc) || [];
     const takenLine = takenHere.length
       ? `<div class="locmap-ext" style="color:#B45309;">Taken for refilling: ${takenHere.map(e => e.ExtNo).join(', ')}</div>`
@@ -5089,7 +5092,7 @@ function renderMasterTable(data) {
     const subMeDisplay = subOfMe ? `<div style="margin-top:3px;"><span class="loc-substitute">⇄ Substitute: ${subOfMe.ExtNo}</span></div>` : '';
     // Substitute indicator
     let subDisplay = '';
-    if (e.SubstituteFor) subDisplay = `<div style="margin-top:3px;"><span class="loc-substitute">↔ Sub for ${e.SubstituteFor}</span></div>`;
+    if (e.SubstituteFor) subDisplay = `<div style="margin-top:3px;"><span class="loc-substitute">↔ Sub for ${e.SubstituteFor}</span> <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openRemoveSubModal('${e.ExtNo}')" style="margin-left:6px;color:var(--red);border-color:var(--red-bd);">✕ Remove</button></div>`;
 
     // Original location (shown when away or in store)
     // OriginalLocation is the permanent home. If blank, use Location (same meaning for active units)
