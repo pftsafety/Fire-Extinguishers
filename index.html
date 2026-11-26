@@ -4615,12 +4615,11 @@ function openPlaceSubModal(loc, origExtNo) {
   if (btn) btn.disabled = true;
 
   // Populate available extinguishers (in-store + active not already a substitute)
-  const available = DATA.extinguishers.filter(e =>
-    (e.Status === 'in-store' || e.Status === 'ok') &&
-    !e.SubstituteFor &&
-    e.ExtNo !== origExtNo &&
-    (e.CurrentLocation || e.Location) !== loc
-  );
+  // Every storeroom unit can be placed; other active units only if they are not a substitute already and not at this location
+  const available = DATA.extinguishers.filter(e => e.ExtNo !== origExtNo && (
+    e.Status === 'in-store' ||
+    (e.Status === 'ok' && !e.SubstituteFor && (e.CurrentLocation || e.Location) !== loc)
+  ));
 
   const list = document.getElementById('sub-ext-list');
   if (!available.length) {
@@ -6195,7 +6194,7 @@ function checkSubstituteAlert(location, extNo) {
     alertEl.innerHTML = `⚠️ <strong>${subHere.ExtNo}</strong> is currently placed at <strong>${location}</strong> as a substitute. Deploying here will mark it as removed from substitute duty and move it back to available/storeroom.`;
   } else if (anySubHere) {
     alertEl.style.display = 'block';
-    alertEl.innerHTML = `⚠️ <strong>${anySubHere.ExtNo}</strong> is at <strong>${location}</strong> as substitute for ${anySubHere.SubstituteFor}. Confirm before overriding.`;
+    alertEl.innerHTML = `⚠️ <strong>${anySubHere.ExtNo}</strong> is at <strong>${location}</strong> as substitute for ${anySubHere.SubstituteFor}. Nothing is moved: this unit is added alongside it.`;
   } else {
     alertEl.style.display = 'none';
   }
@@ -6205,7 +6204,7 @@ function checkSubstituteAlert(location, extNo) {
     (e.CurrentLocation === location || e.Location === location) &&
     e.ExtNo !== extNo && e.Status === 'ok'
   );
-  hintEl.textContent = occupied ? `ℹ️ ${occupied.ExtNo} already at this location — confirm override` : '';
+  hintEl.textContent = occupied ? `ℹ️ ${occupied.ExtNo} already at this location: this unit is added alongside it` : '';
   hintEl.style.color = occupied ? 'var(--yellow)' : 'var(--grey)';
 }
 
