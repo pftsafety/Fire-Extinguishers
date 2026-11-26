@@ -1623,6 +1623,10 @@
             <label>Cylinder Serial No.</label>
             <input type="text" id="f-cylsl" placeholder="e.g. CY-2019-4471">
           </div>
+          <div class="form-group" id="subfor-group">
+            <label>Substitute for (unit away)</label>
+            <select id="f-subfor"></select>
+          </div>
           <div class="form-group full">
           <label>Remarks</label>
           <textarea id="f-remarks" placeholder="Any notes..."></textarea>
@@ -4102,6 +4106,17 @@ function latestServiceMap() {
   return map;
 }
 
+// Units away from their home location, offered as "Substitute for"
+function populateSubForOptions(selfNo, selected) {
+  const sel = document.getElementById('f-subfor');
+  if (!sel) return;
+  const away = DATA.extinguishers.filter(x => x.ExtNo !== selfNo && (x.Status === 'taken' || x.Status === 'pending'))
+    .sort((a, b) => String(a.ExtNo).localeCompare(String(b.ExtNo), undefined, { numeric: true }));
+  sel.innerHTML = '<option value="">— none —</option>' + away.map(x =>
+    `<option value="${x.ExtNo}">${x.ExtNo} · ${x.OriginalLocation || x.Location || ''} (${x.Status === 'taken' ? 'taken' : 'with vendor'})</option>`).join('');
+  sel.value = selected || '';
+}
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -4531,7 +4546,7 @@ function renderLocationMap() {
     if (isEmpty) {
       // Find original ext that was at this location
       const origExt = DATA.extinguishers.find(e =>
-        (e.OriginalLocation === loc || e.Location === loc) && e.Status === 'pending'
+        (e.OriginalLocation === loc || e.Location === loc) && (e.Status === 'pending' || e.Status === 'taken')
       );
       const origExtNo = origExt ? origExt.ExtNo : '';
       actionBtns = `<div class="locmap-slot-actions">
@@ -5776,9 +5791,11 @@ function openAddModal() {
   setExtNoFieldVisible(true);
   setLocationFieldVisible(false);   // location is not asked when adding
   document.getElementById('f-extno').value = nextFeNumber();
+  populateSubForOptions('', '');
 }
 
 function editExtinguisher(extNo) {
+  { const _se = DATA.extinguishers.find(x => x.ExtNo === extNo); populateSubForOptions(extNo, _se ? _se.SubstituteFor : ''); }
   setExtNoFieldVisible(true);
   setLocationFieldVisible(true);
   const ext = DATA.extinguishers.find(e => e.ExtNo === extNo);
@@ -5836,6 +5853,7 @@ async function saveExtinguisher() {
     LastRefillDate: document.getElementById('f-lastrefill').value,
     NextRefillDue: document.getElementById('f-nextdue').value,
     Status: document.getElementById('f-status').value,
+    SubstituteFor: (document.getElementById('f-subfor') || {}).value || '',
     CylinderSlNo: document.getElementById('f-cylsl').value.trim(),
     Remarks: document.getElementById('f-remarks').value
   };
