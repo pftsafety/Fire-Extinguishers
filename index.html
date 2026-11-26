@@ -4976,6 +4976,9 @@ function renderMasterTable(data) {
     if (isInStore) locDisplay = `<span class="loc-store">📦 Storeroom</span>`;
     if (isCondemned) locDisplay = '<span style="color:var(--red);font-size:12px;">Condemned</span>';
 
+    // Substitute placed in this unit's place (shown on this unit's row)
+    const subOfMe = DATA.extinguishers.find(x => x.ExtNo !== e.ExtNo && x.SubstituteFor && normExt(x.SubstituteFor) === normExt(e.ExtNo));
+    const subMeDisplay = subOfMe ? `<div style="margin-top:3px;"><span class="loc-substitute">⇄ Substitute: ${subOfMe.ExtNo}</span></div>` : '';
     // Substitute indicator
     let subDisplay = '';
     if (e.SubstituteFor) subDisplay = `<div style="margin-top:3px;"><span class="loc-substitute">↔ Sub for ${e.SubstituteFor}</span></div>`;
@@ -5008,7 +5011,7 @@ function renderMasterTable(data) {
       <td>${typeTag(e.Type)}</td>
       <td>${weightLabel(e.Type, e.Weight)}</td>
       <td>${locDisplay}</td>
-      <td>${origDisplay}</td>
+      <td>${origDisplay}${subMeDisplay}</td>
       <td>${e._misaligned ? '<span style="color:var(--red);font-size:11px;" title="Data format mismatch. Contact the administrator.">⚠ check data</span>' : fmtDate(e.MfgDate)}${eolTag(e)}</td>
       <td>${fmtDate(e.LastRefillDate)}</td>
       <td>${fmtDate(e.NextRefillDue)}</td>
