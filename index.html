@@ -1174,6 +1174,10 @@
             <span>🔍</span>
             <input type="text" id="search-input" placeholder="Search number, Cylinder Serial No., location..." oninput="filterTable()">
           </div>
+          <select class="filter-select" id="sort-by" onchange="filterTable()" title="Sort order">
+            <option value="extno">Sort: Extinguisher no.</option>
+            <option value="location">Sort: Location</option>
+          </select>
           <select class="filter-select" id="filter-type" onchange="filterTable()">
             <option value="">All Types</option>
             <option>ABC</option>
@@ -2369,7 +2373,7 @@ try {
 const API_URL = 'https://script.google.com/macros/s/AKfycbwrgECmoacU8EmKv4WWY9t4umOL3RBXy5B9TR0yvLybTLb5aibICA9nWAma4mxe9KHu/exec';
 
 // Must match BACKEND_VERSION in Code.gs. A mismatch means the deployed backend is out of date.
-const EXPECTED_BACKEND = 'v2026.10.48';
+const EXPECTED_BACKEND = 'v2026.10.50';
 
 let CONFIG = {
   apiUrl: API_URL,
@@ -2735,6 +2739,7 @@ async function refreshDataInner(silent = false) {
     DATA.refills       = res.refills       || [];
     DATA.passes        = res.passes        || [];
     DATA.services      = res.services      || [];
+    DATA.activity      = res.activity      || [];
     DATA.inspections     = res.inspections || [];
     DATA.inspectionIssues = res.inspectionIssues || [];
     renderDashboard();
@@ -2843,6 +2848,7 @@ function renderDashboard() {
   renderAlerts();
   renderTypeChart();
   renderTimelineChart();
+  renderActivity();
 }
 function serviceStatus(last) {
   if (!last) return { key: 'never', label: 'Never serviced', cls: 'dot-due', rank: 2 };
@@ -4117,6 +4123,57 @@ function populateSubForOptions(selfNo, selected) {
   sel.value = selected || '';
 }
 
+// ─── LATEST UPDATES (dashboard) ───
+const ACTIVITY_LABELS = {
+  ADD_EXT: 'New extinguisher added', DEPLOY: 'Deployed to location',
+  SUB_PLACED: 'Placed as substitute', SUB_REMOVED: 'Substitute removed',
+  TAKE_FOR_REFILL: 'Taken for refilling', RETURN_FROM_REFILL: 'Returned to location',
+  CREATE_REFILL: 'Sent for refilling (pass)', PASS_SENT: 'Pass sent out',
+  RECEIVE_BULK: 'Received from vendor', RECEIVE_REFILL: 'Received from vendor',
+  ADD_HYDRO: 'Hydro test recorded', HYDRO_DELETE: 'Hydro record deleted',
+  HYDRO_CERT_UPLOAD: 'Certificate uploaded', CONDEMN: 'Condemned',
+  EOL_REPLACED: 'Replaced (end of life)', FE_ASSIGNED: 'FE number assigned',
+  INSPECT: 'Inspection recorded', ISSUE_RECTIFIED: 'Issue rectified',
+  SERVICE_ADD: 'Quarterly service recorded', DELETE_EXT: 'Deleted'
+};
+
+function renderActivity() {
+  const body = document.getElementById('recent-body');
+  if (!body) return;
+  const rows = (DATA.activity || []).filter(a => ACTIVITY_LABELS[a.Action]);
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">No recent activity yet.</div></div></td></tr>';
+    return;
+  }
+  const findUnit = no => {
+    const k = normExt(no);
+    return [...DATA.extinguishers, ...(DATA.condemnedExts || [])].find(x => normExt(x.ExtNo) === k);
+  };
+  body.innerHTML = rows.slice(0, 40).map(a => {
+    const u = findUnit(a.ExtNo);
+    const when = a.Timestamp ? new Date(a.Timestamp).toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    return `<tr>
+      <td><span class="ext-num">${a.ExtNo || '—'}</span></td>
+      <td style="font-size:12px;">${u ? (u.CurrentLocation || u.Location || '—') : '—'}</td>
+      <td>${u ? typeTag(u.Type) : '—'}</td>
+      <td><div style="font-size:12px; font-weight:600;">${ACTIVITY_LABELS[a.Action]}</div>
+        ${a.Details ? `<div style="font-size:11px; color:var(--grey);">${a.Details}</div>` : ''}</td>
+      <td style="font-size:12px;">${when}</td>
+      <td>${u ? statusBadge(u.Status) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Master list order: by extinguisher number, or by location so units of one location sit together
+function masterSortFn() {
+  const natExt = s => String(s || '').replace(/\s+/g, '');
+  const byNo = (a, b) => natExt(a.ExtNo).localeCompare(natExt(b.ExtNo), undefined, { numeric: true, sensitivity: 'base' });
+  const sortBy = (document.getElementById('sort-by') || {}).value || 'extno';
+  if (sortBy !== 'location') return byNo;
+  return (a, b) => String(a.Location || a.CurrentLocation || '').localeCompare(String(b.Location || b.CurrentLocation || ''), undefined, { sensitivity: 'base' }) || byNo(a, b);
+}
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -4961,7 +5018,7 @@ function renderMasterTable(data) {
   // Ascending by extinguisher number (FE-9 before FE-16; spaces in numbers ignored)
   const natExt = s => String(s || '').replace(/\s+/g, '');
   filteredRows = [...(data || [...DATA.extinguishers, ...(DATA.condemnedExts || [])])]
-    .sort((a, b) => natExt(a.ExtNo).localeCompare(natExt(b.ExtNo), undefined, { numeric: true, sensitivity: 'base' }));
+    .sort(masterSortFn());
   _lastFilteredRows = filteredRows; // cache for cross-page select all
   const tbody = document.getElementById('master-body');
   const start = (currentPage - 1) * rowsPerPage;
