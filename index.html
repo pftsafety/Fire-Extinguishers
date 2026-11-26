@@ -2823,81 +2823,7 @@ function renderDashboard() {
   const vacant  = DATA.extinguishers.filter(e => {
     if (e.Status !== 'pending' && e.Status !== 'taken') return false;   // with vendor or taken for refilling
     const origLoc = e.OriginalLocation || e.Location;
-    if (!origLoc) return false;
-    return !DATA.extinguishers.some(s =>
-      s.SubstituteFor === e.ExtNo &&
-      (s.CurrentLocation === origLoc || s.Location === origLoc) &&
-      s.Status !== 'pending' && s.Status !== 'taken'
-    );
-  }).length;
-
-  document.getElementById('stat-total').textContent   = total;
-  document.getElementById('stat-ok').textContent      = ok;
-  document.getElementById('stat-due').textContent     = due;
-  document.getElementById('stat-overdue').textContent = overdue;
-  document.getElementById('stat-vacant').textContent  = vacant;
-
-  const pending = DATA.refills.filter(r => r.Status !== 'received' && r.Status !== 'deployed').length;
-  document.getElementById('pending-badge').textContent = pending;
-
-  // Active card highlight
-  ['card-total','card-ok','card-due','card-overdue','card-vacant'].forEach(id =>
-    document.getElementById(id)?.classList.remove('active-filter')
-  );
-  if (activeCardFilter) {
-    const cardMap = { all:'card-total', ok:'card-ok', due:'card-due', overdue:'card-overdue', vacant:'card-vacant' };
-    const aId = cardMap[activeCardFilter];
-    if (aId) document.getElementById(aId)?.classList.add('active-filter');
-  }
-
-  renderAlerts();
-  renderTypeChart();
-  renderTimelineChart();
-
-  // Recent table
-  const recent = [...DATA.extinguishers].slice(0, 8);
-  const tbody = document.getElementById('recent-body');
-  if (!recent.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🧯</div><div class="empty-text">Connecting to load data</div></div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = recent.map(e => `
-    <tr>
-      <td><span class="ext-num">${e.ExtNo}</span></td>
-      <td>${e.CurrentLocation || e.Location}</td>
-      <td>${typeTag(e.Type)}</td>
-      <td>Last Refill</td>
-      <td>${fmtDate(e.LastRefillDate)}</td>
-      <td>${statusBadge(e.Status)}</td>
-    </tr>`).join('');
-}
-
-// ─── QUARTERLY SERVICE (QuarterlyServices sheet) ───
-const SERVICE_INTERVAL_MONTHS = 3;
-const normExt = s => String(s || '').replace(/\s+/g, '').toUpperCase();   // sheet has "FE- 202" and "FE-202"
-function todayISO() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function addMonths(iso, m) {
-  const [y, mo, d] = String(iso).split('-').map(Number);
-  const dt = new Date(y, mo - 1 + m, d);
-  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-}
-// Next service due: three months after the service date, less one day
-// (06 Aug 2026 -> 05 Nov 2026)
-function serviceDueFrom(iso) {
-  const [y, mo, d] = addMonths(iso, SERVICE_INTERVAL_MONTHS).split('-').map(Number);
-  const dt = new Date(y, mo - 1, d - 1);
-  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-}
-function latestServiceMap() {
-  const map = {};
-  (DATA.services || []).forEach(s => {
-    const k = normExt(s.ExtNo);
-    const d = String(s.ServiceDate || '');
-    if (!k || !d) return;
-    if (!map[k] || d > String(map[k].ServiceDate)) map[k] = s;
+    return !!origLoc && !locationOccupied(origLoc, e.ExtNo);
   });
   return map;
 }
@@ -4124,6 +4050,13 @@ function autoNextDue() {
   if (last) document.getElementById('f-nextdue').value = nextDueFromLast(last);
 }
 
+// A location is occupied when a unit that is actually there (a substitute too) is on it
+function locationOccupied(loc, exceptNo) {
+  return DATA.extinguishers.some(x => x.ExtNo !== exceptNo &&
+    !['pending', 'taken', 'in-store', 'condemned'].includes(x.Status) &&
+    (x.CurrentLocation || x.Location) === loc);
+}
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -5011,7 +4944,7 @@ function renderMasterTable(data) {
 
     // Check if original location is vacant
     const locVacant = origLoc && !DATA.extinguishers.find(ex => (ex.CurrentLocation || ex.Location) === origLoc && ex.ExtNo !== e.ExtNo && ex.Status !== 'pending');
-    if ((isPending || isInStore || e.Status === 'taken') && origLoc) {
+    if ((isPending || isInStore || e.Status === 'taken') && origLoc && !locationOccupied(origLoc, e.ExtNo)) {
       const subAtLoc = DATA.extinguishers.find(ex => ex.SubstituteFor === e.ExtNo);
       if (subAtLoc) origDisplay = `<span style="font-size:12px;color:var(--grey);">${origLoc}</span><div style="margin-top:2px;"><span class="loc-substitute">↔ ${subAtLoc.ExtNo} placed</span></div>`;
       else origDisplay = `<span style="font-size:12px;color:var(--grey);">${origLoc}</span><div style="margin-top:2px;"><span class="loc-vacant">⚠ Vacant</span></div>`;
