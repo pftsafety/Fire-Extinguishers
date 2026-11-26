@@ -2815,17 +2815,30 @@ function saveAmcData() {
 let activeCardFilter = null; // tracks which card is currently active
 
 function renderDashboard() {
-  const today = new Date(); today.setHours(0,0,0,0);
   const total   = DATA.extinguishers.length;
   const ok      = DATA.extinguishers.filter(e => e.Status === 'ok').length;
   const due     = DATA.extinguishers.filter(e => e.Status === 'due').length;
   const overdue = DATA.extinguishers.filter(e => e.Status === 'overdue').length;
+  // Vacant: a unit away from its home location (with vendor or taken) and nothing else is there
   const vacant  = DATA.extinguishers.filter(e => {
-    if (e.Status !== 'pending' && e.Status !== 'taken') return false;   // with vendor or taken for refilling
+    if (e.Status !== 'pending' && e.Status !== 'taken') return false;
     const origLoc = e.OriginalLocation || e.Location;
     return !!origLoc && !locationOccupied(origLoc, e.ExtNo);
-  });
-  return map;
+  }).length;
+  const pending = DATA.extinguishers.filter(e => e.Status === 'pending').length;
+
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('stat-total', total);
+  set('stat-ok', ok);
+  set('stat-due', due);
+  set('stat-overdue', overdue);
+  set('stat-vacant', vacant);
+  const badge = document.getElementById('pending-badge');
+  if (badge) badge.textContent = pending;
+
+  renderAlerts();
+  renderTypeChart();
+  renderTimelineChart();
 }
 function serviceStatus(last) {
   if (!last) return { key: 'never', label: 'Never serviced', cls: 'dot-due', rank: 2 };
@@ -4055,6 +4068,38 @@ function locationOccupied(loc, exceptNo) {
   return DATA.extinguishers.some(x => x.ExtNo !== exceptNo &&
     !['pending', 'taken', 'in-store', 'condemned'].includes(x.Status) &&
     (x.CurrentLocation || x.Location) === loc);
+}
+
+// Today as YYYY-MM-DD (local date)
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// ─── QUARTERLY SERVICE HELPERS ───
+const SERVICE_INTERVAL_MONTHS = 3;
+const normExt = s => String(s || '').replace(/\s+/g, '').toUpperCase();   // "FE- 202" and "FE-202" are the same unit
+function addMonths(iso, m) {
+  const [y, mo, d] = String(iso).split('-').map(Number);
+  const dt = new Date(y, mo - 1 + m, d);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+// Next service due: three months after the service date, less one day (06 Aug 2026 -> 05 Nov 2026)
+function serviceDueFrom(iso) {
+  const [y, mo, d] = addMonths(iso, SERVICE_INTERVAL_MONTHS).split('-').map(Number);
+  const dt = new Date(y, mo - 1, d - 1);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+// Latest service record for each unit
+function latestServiceMap() {
+  const map = {};
+  (DATA.services || []).forEach(s => {
+    const k = normExt(s.ExtNo);
+    const d = String(s.ServiceDate || '');
+    if (!k || !d) return;
+    if (!map[k] || d > String(map[k].ServiceDate)) map[k] = s;
+  });
+  return map;
 }
 
 // ─── END OF SERVICE LIFE (from manufacture year) ───
