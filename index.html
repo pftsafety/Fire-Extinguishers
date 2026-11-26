@@ -2286,6 +2286,22 @@
   </div>
 </div>
 
+<!-- Refill Due Modal -->
+<div class="modal-overlay" id="modal-timeline">
+  <div class="modal" style="max-width:760px;">
+    <div class="modal-head">
+      <div class="modal-title" id="timeline-modal-title">Refill due</div>
+      <button class="modal-close" onclick="closeModal('modal-timeline')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="table-wrap" id="timeline-modal-body"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-timeline')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Inspection Modal -->
 <div class="modal-overlay" id="modal-inspect">
   <div class="modal" style="max-width:640px;">
@@ -4174,6 +4190,25 @@ function masterSortFn() {
   return (a, b) => String(a.Location || a.CurrentLocation || '').localeCompare(String(b.Location || b.CurrentLocation || ''), undefined, { sensitivity: 'base' }) || byNo(a, b);
 }
 
+// Click a month on the refill timeline: list the units due in that month
+function openTimelineMonth(i) {
+  const m = (window._timelineMonths || [])[i];
+  if (!m) return;
+  const units = [...m.units].sort((a, b) => String(a.ExtNo).localeCompare(String(b.ExtNo), undefined, { numeric: true }));
+  document.getElementById('timeline-modal-title').textContent = 'Refill due — ' + m.label + ' (' + units.length + ' unit' + (units.length !== 1 ? 's' : '') + ')';
+  document.getElementById('timeline-modal-body').innerHTML = units.length
+    ? `<table><thead><tr><th>Ext. No.</th><th>Type</th><th>Location</th><th>Next refill due</th><th>Status</th></tr></thead><tbody>` +
+      units.map(e => `<tr>
+        <td><span class="ext-num">${e.ExtNo}</span></td>
+        <td>${typeTag(e.Type)}</td>
+        <td style="font-size:12px;">${e.CurrentLocation || e.Location || '—'}</td>
+        <td>${fmtDate(e.NextRefillDue)}</td>
+        <td>${statusBadge(e.Status)}</td>
+      </tr>`).join('') + '</tbody></table>'
+    : '<div class="empty-state"><div class="empty-text">No units due in this month.</div></div>';
+  openModal('modal-timeline');
+}
+
 // ─── END OF SERVICE LIFE (from manufacture year) ───
 const SERVICE_LIFE_YEARS = 15;   // steel cylinders — change to match your inspection policy
 function eolInfo(e) {
@@ -4483,21 +4518,23 @@ function renderTimelineChart() {
   const months = [];
   for (let i = 0; i < 12; i++) {
     const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
-    months.push({ label: d.toLocaleString('en-IN',{month:'short', year:'2-digit'}), count: 0, overdue: 0, extNos: [] });
+    months.push({ label: d.toLocaleString('en-IN',{month:'short', year:'2-digit'}), count: 0, overdue: 0, extNos: [], units: [] });
   }
 
   // Bucket each extinguisher's next due into the right month
   DATA.extinguishers.forEach(e => {
     if (!e.NextRefillDue) return;
     const due = new Date(e.NextRefillDue); due.setHours(0,0,0,0);
-    if (due < today) { months[0].overdue++; months[0].extNos.push(e.ExtNo + '*'); return; }
+    if (due < today) { months[0].overdue++; months[0].extNos.push(e.ExtNo + '*'); months[0].units.push(e); return; }
     const monthIdx = (due.getFullYear() - today.getFullYear()) * 12 + (due.getMonth() - today.getMonth());
     if (monthIdx >= 0 && monthIdx < 12) {
       months[monthIdx].count++;
       months[monthIdx].extNos.push(e.ExtNo);
+      months[monthIdx].units.push(e);
     }
   });
 
+  window._timelineMonths = months;   // used when a month is clicked
   const maxCount = Math.max(...months.map(m => m.count + m.overdue), 1);
 
   container.innerHTML = months.map((m, i) => {
@@ -4507,7 +4544,7 @@ function renderTimelineChart() {
     const label = total > 0 ? total : '';
     const tip   = m.extNos.length ? m.extNos.join(', ') : 'None';
     return `
-      <div class="timeline-bar-row" title="${tip}">
+      <div class="timeline-bar-row" title="${tip}" onclick="openTimelineMonth(${i})" style="cursor:pointer;">
         <div class="timeline-month">${m.label}</div>
         <div class="timeline-track">
           ${total > 0
